@@ -5,7 +5,7 @@
 #  chili-fr - Wrapper lite para o qemu
 #  Created: 2019/12/13 - 00:00
 #  Altered: 2024/10/03 - 00:00
-#  Updated: dom 07 dez 2025 23:06:48 -04
+#  Updated: sáb 13 dez 2025 01:47:59 -04
 #
 #  Copyright (c) 2019-2025, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -42,7 +42,7 @@ export PS4='${red}${0##*/}${green}[$FUNCNAME]${pink}[$LINENO]${reset} '
 
 #system
 readonly APP="${0##*/}"
-readonly VERSION='2.12.7-20251207'
+readonly VERSION='2.12.13-20251213'
 readonly APPDESC='Wrapper lite para o qemu'
 readonly -a DEPENDENCIES=(
 	'tput'
@@ -463,7 +463,7 @@ sh_checkOVMFFiles() {
 			break
 		else
 			true
-			log_msg "Check: ${cyan}$d"
+			log_msg "Check UEFI: ${cyan}$d"
 			:
 		fi
 	done
@@ -666,7 +666,7 @@ create_real_bridge() {
 	# CAPTURAR IP/GW
 	###########################################################################
 	if [[ -n "$slave_iface" ]]; then
-		msg_info "Tentando detectar IP na subinterface VLAN '$slave_iface'"
+		msg_info "Detectando IP na subinterface VLAN '$slave_iface'"
 		bridge_ip=$(nmcli -g IP4.ADDRESS device show "$slave_iface" 2>/dev/null | head -n1 || true)
 		bridge_gw=$(nmcli -g IP4.GATEWAY device show "$slave_iface" 2>/dev/null | head -n1 || true)
 		if [[ -z "$bridge_ip" ]]; then
@@ -1459,11 +1459,20 @@ add_smb_share() {
 }
 
 print_summary_access_vm() {
-	msg_info "acesso a vm/convidado via ssh:"
-	msg_info_tab "$ ssh live@vsock/$GUEST_CID                     ${cyan}# via vsock"
-	msg_info_tab "$ ssh live@127.0.0.1 -p $HOST_FWD            ${cyan}# via redirecionamento"
-	msg_info_tab "$ ssh ${violet}<ip_vm>                            ${cyan}# via bridge (caso vm iniciada com -b) ${rst}"
-	msg_info_tab "$ ssh $USER@127.0.0.1 -p $HOST_FWD      ${cyan}# via redirecionamento"
+   if $bridge; then
+     msg_info "Iniciando VM em modo BRIDGE (IP via DHCP)"
+   else
+     msg_info "Iniciando VM em modo NAT (hostfwd ativo)"
+   fi
+
+	msg_info "acesso a VM via ${cyan}ssh:"
+	msg_info_tab "$ ssh $USER@vsock/$GUEST_CID                     ${cyan}# via vsock (se habilitado do guest)"
+   if ! $bridge; then
+   	msg_info_tab "$ ssh $USER@127.0.0.1 -p $HOST_FWD            ${cyan}# via redirecionamento NAT"
+   else
+      bloco_br=$(ip -4 route show dev "$iface_bridge" | awk '$1 ~ "/" {print $1; exit}')
+      msg_info_tab "$ ssh ${violet}<IP-da-VM>                         ${cyan}# IP atribuído na VM via DHCP ($bloco_br) ${rst}"
+   fi
 }
 
 function sh_start_with_spice() {
@@ -1485,6 +1494,7 @@ function sh_start_with_spice() {
 	)
 
 	# Executar o QEMU
+#  echo "${qemu_options[@]}" ;  exit 0
 	sudo env XDG_RUNTIME_DIR=/run/user/$(id -u) qemu-system-x86_64 "${qemu_options[@]}" &
 	qemu_pid=$!
 	remote-viewer spice://localhost:$random_spice_port &
@@ -1516,14 +1526,20 @@ main() {
 		}
 		if [[ ! -e "$img" ]]; then
 			[[ ! -e "$HOME_DIR/vdisk/$img" ]] && {
-				log_msg 1 "Check: ${yellow}dispositivo #${count}: ${cyan}$img"
+				log_msg 1 "Check input ${yellow}#${count}: ${cyan}$img"
 				sh_list_vdisks
 				die "Erro: vdisk/iso/device #${count} ${cyan}${img} ${red}não localizada, tente os listados acima!${reset}"
 			}
 			img="$HOME_DIR/vdisk/$img"
 		fi
 		devices+=("$img")
-		log_msg true "Check: ${yellow}dispositivo #${count}: ${cyan}$img"
+#		log_msg true "Check input ${yellow}#${count}: ${cyan}$img"
+
+      if (( count == 1 )); then
+         log_msg true "Boot source ${yellow}(#${count}): ${cyan}$img"
+      else
+         log_msg true "Data source ${yellow}(#${count}): ${cyan}$img"
+      fi
 		((++count))
 	done
 
@@ -1640,11 +1656,11 @@ main() {
 		exit 0
 	else
 		if $only_tty; then
-			#echo "${qemu_options[@]}" # ;  exit 0
+#			echo "${qemu_options[@]}" ;  exit 0
 			cmd_sudo env XDG_RUNTIME_DIR=/run/user/$(id -u) qemu-system-x86_64 "${qemu_options[@]}"
 			exit 0
 		else
-			#echo "${qemu_options[@]}" # ;  exit 0
+#			echo "${qemu_options[@]}" ;  exit 0
 			sudo env XDG_RUNTIME_DIR=/run/user/$(id -u) qemu-system-x86_64 "${qemu_options[@]}"
 			exit 0
 		fi
@@ -1678,7 +1694,7 @@ while test ${#opts[*]} -gt 0; do
 		sh_unsetvarcolors
 		;;
 	-u | --uefi)
-      msg_info "Parametro ${cyan}--uefi${rst} detectado: tentando usar uefi ${rst}"
+      msg_info "Parametro ${cyan}--uefi${rst} detectado: usando uefi ${rst}"
 
 		uefi=true
 		;;
@@ -1736,7 +1752,7 @@ while test ${#opts[*]} -gt 0; do
 	-b | --bridge)
 		if [[ " $(get_bridge_interfaces) " =~ "$2" ]]; then
 			iface_bridge="$2"
-			msg_info "Parametro ${cyan}--bridge${rst} detectado: tentando usar bridge ${cyan}'$iface_bridge'${rst}"
+			msg_info "Parametro ${cyan}--bridge${rst} detectado: usando bridge ${cyan}'$iface_bridge'${rst}"
 			bridge=true
 			shift
 		else
@@ -1747,7 +1763,7 @@ while test ${#opts[*]} -gt 0; do
 		;;
 	-s | --spice)
 		spice=true
-		log_msg "Parametro --spice detectado: tentando usar spice..."
+		log_msg "Parametro --spice detectado: usando spice..."
 		;;
 	-t | --tty)
 		spice=false
@@ -1850,6 +1866,7 @@ if [[ $# > 0 ]]; then
 
 	# intervalo de 555 a 560 → tamanho = 560−555+1 = 6
 	export GUEST_CID=$((RANDOM % 6 + 555))
+#	export HOST_FWD=$((RANDOM % 10000 + 20000))
 	export HOST_FWD=$((RANDOM % 6 + 60022))
 
 	if ! $uefi; then
@@ -1862,36 +1879,38 @@ if [[ $# > 0 ]]; then
 		only_tty=true
 	fi
 
-	if $netchoosedriver; then
-		for netdevice in "${anetdevices[@]}"; do
-			((nId++))
-			netdev_id="net$nId"
-			if $bridge; then
-				qemu_options+=(-netdev bridge,id="$netdev_id",br=$iface_bridge)
-			else
-				if $spice; then
-					qemu_options+=(-netdev user,id="$netdev_id")
-				else
-					qemu_options+=(-netdev user,id="$netdev_id",hostfwd=tcp::$HOST_FWD-:22"$(add_smb_share)")
-				fi
-			fi
-			qemu_options+=(-device "$netdevice",netdev="$netdev_id")
-		done
-		qemu_options+=(-device vhost-vsock-pci,id=vhost-vsock-pci0,guest-cid=$GUEST_CID)
-	else
-		netdev_id="net0"
-		if $bridge; then
-			qemu_options+=(-netdev bridge,id="$netdev_id",br=$iface_bridge)
-		else
-			if $spice; then
-				qemu_options+=(-netdev user,id="$netdev_id")
-			else
-				qemu_options+=(-netdev user,id="$netdev_id",hostfwd=tcp::$HOST_FWD-:22"$(add_smb_share)")
-			fi
-		fi
-		qemu_options+=(-device "$netdevice",netdev="$netdev_id")
-		qemu_options+=(-device vhost-vsock-pci,id=vhost-vsock-pci0,guest-cid=$GUEST_CID)
-	fi
+   if $netchoosedriver; then
+      for netdevice in "${anetdevices[@]}"; do
+         ((nId++))
+         netdev_id="net$nId"
+
+         # Verificar o tipo de rede (bridge ou user)
+         if $bridge; then
+            qemu_options+=(-netdev bridge,id="$netdev_id",br="$iface_bridge")
+         else
+            # Apenas o primeiro dispositivo recebe hostfwd e smb
+            if (( nId == 1 )); then
+               qemu_options+=(-netdev user,id="$netdev_id",hostfwd=tcp::$HOST_FWD-:22"$(add_smb_share)")
+            else
+               qemu_options+=(-netdev user,id="$netdev_id")
+            fi
+         fi
+
+         # Associar o dispositivo de rede
+         qemu_options+=(-device "$netdevice",netdev="$netdev_id")
+      done
+   else
+      netdev_id="net0"
+      if $bridge; then
+         qemu_options+=(-netdev bridge,id="$netdev_id",br="$iface_bridge")
+      else
+         qemu_options+=(-netdev user,id="$netdev_id",hostfwd=tcp::$HOST_FWD-:22"$(add_smb_share)")
+      fi
+      qemu_options+=(-device "$netdevice",netdev="$netdev_id")
+   fi
+
+   # Adicionando vhost-vsock
+   qemu_options+=(-device vhost-vsock-pci,id=vhost-vsock-pci0,guest-cid="$GUEST_CID")
 	print_summary_access_vm
 
 	#windows
