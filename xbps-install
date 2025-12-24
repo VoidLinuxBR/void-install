@@ -27,7 +27,8 @@ if [[ "$1" == "-R" ]]; then
 fi
 
 if [[ "$1" == "-Ss" ]]; then
-  exec "$REAL_QUERY" "$@"
+  shift
+  exec "$REAL_QUERY" -SsR "$@"
 fi
 
 # Se o comando contém "-R" em qualquer posição, também repassa pra remove
