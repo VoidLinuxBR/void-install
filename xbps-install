@@ -4,6 +4,7 @@
 
 REAL_INSTALL="/usr/bin/xbps-install"
 REAL_REMOVE="/usr/bin/xbps-remove"
+REAL_QUERY="/usr/bin/xbps-query"
 
 # precisa ser root pra certas ações
 if [[ "$EUID" -ne 0 ]]; then
@@ -23,6 +24,10 @@ fi
 # Ex: xbps-install -R vim
 if [[ "$1" == "-R" ]]; then
   exec "$REAL_REMOVE" "$@"
+fi
+
+if [[ "$1" == "-Ss" ]]; then
+  exec "$REAL_QUERY" "$@"
 fi
 
 # Se o comando contém "-R" em qualquer posição, também repassa pra remove
