@@ -57,9 +57,11 @@ declare LEFI=false
 declare LGRUB=false
 declare LDISK=false
 declare LMIRROR=true
-declare LSOURCE=false
+declare LSOURCE=true
 declare LKEYMAP=true
 declare LTIMEZONE=true
+declare LAUDIO=true
+declare LWM=true
 #
 declare -gi ncounter=0 njobs=73
 declare -gi quiet=0 grafico=0
@@ -76,6 +78,7 @@ declare -gA AConfFde=([partition]='' [vg]='voidvm' [passphrase]='voidlinux' [ver
 declare -gA AConfDisk=([_DEVICE]='/dev/sdX' [_FILESYSTEM]='ext4' [_DISKTABLE]='' [_BOOTLOADER]='/dev/sdX' [_OSPROBER]=0)
 declare -gA AConfLocale=([_TIMEZONE]='America/Sao_Paulo' [_KEYMAP]='br-abnt2' [_CLOCK]='UTC' [_FONT]='default8x16' [_FONT_OLD]='Lat2-Terminus16')
 declare -gA AConfMirror=([_SOURCE]='network' [_MIRROR]='repo.fastly.voidlinux.org' [url_mirror]='https://repo-fastly.voidlinux.org' [location]='Fastly Global CDN')
+declare -gA AConfAudio=([_AUDIOSERVER]='Pulseaudio')
 declare -gA AConfWifi=([_NETWORK]='wifi_ssid' [_PASSWORD]='wifi_password')
 declare -gA Alanguage=([pt_BR]=0 [en_US]=1 [de_DE]=2 [fr_FR]=3 [es_ES]=4 [it_IT]=5)
 declare -gA Alocale=([0]=pt_BR [1]=en_US [2]=de_DE [3]=fr_FR [4]=es_ES [5]=it_IT)
@@ -260,10 +263,10 @@ sh_update_self() {
 
 sh_choose_packages() {
 	## begin packages
-
 	declare -ga aXorg=('xorg' 'xinit' 'xterm' 'xorg-fonts' 'dbus-x11' 'elogind' 'dbus-elogind' 'polkit-elogind' 'xdg-user-dirs' 'xrdb')
 	declare -ga aPulseaudio=('pulseaudio' 'pavucontrol' 'pasystray' 'gst-plugins-bad1' 'gst-plugins-good1' 'gst-plugins-ugly1' 'gst-plugins-base1')
 	declare -ga aPipewire=('pipewire' 'wireplumber' 'pulseaudio-utils' 'alsa-pipewire' 'libspa-bluetooth' 'libjack-pipewire')
+
 	if $LCUSTOM; then
 		## X11
 		declare -ga aIconsAndThemes=('Adapta' 'adwaita-icon-theme' 'chili-void-beauty-icons' 'chili-void-wallpapers' 'chili-void-gnome-professional-theme' 'xfwm-axiom-theme')
@@ -336,13 +339,11 @@ sh_choose_packages() {
 
 declare _DEVICE='/dev/sdX'
 declare _FILESYSTEM='ext4'
-declare _AUDIOSERVER='Pulseaudio'
 declare _DISKTABLE=''
 declare _BOOTLOADER="$_DEVICE"
 declare _WINDOWMANAGER=('tty')
 declare _WIFI_NETWORK="wifi_ssid"
 declare _WIFI_PASSWORD="wifi_password"
-declare _SOURCE="network"
 declare _ONLY_TTY=1
 #source /usr/bin/gettext.sh
 #declare Interrupted="$(gettext "Interrompido!") $(pgettext "context" "Saindo...")"
@@ -483,7 +484,6 @@ sh_touchConf() {
 		DISKTABLE=$_DISKTABLE
 		WIFI_NETWORK=$_WIFI_NETWORK
 		WIFI_PASSWORD=$_WIFI_PASSWORD
-		SOURCE=$_SOURCE
 		PKGS="$_PKGS"
 		EXTRAS="$_EXTRAS"
 EOF
@@ -493,13 +493,13 @@ EOF
 		declare -p _DISKTABLE
 		declare -p _WIFI_NETWORK
 		declare -p _WIFI_PASSWORD
-		declare -p _SOURCE
 		declare -p _WINDOWMANAGER
 		declare -p AsUser
 		declare -p Amkfs
 		declare -p Amntpoint
 		declare -p AmntpointFDE
 		declare -p AConfDisk
+		declare -p AConfAudio
 		declare -p AConfLocale
 		declare -p AConfMirror
 		declare -p AConfWifi
@@ -1912,7 +1912,7 @@ sh_X11minimal() {
 	apkgs+=("${aUtilityX[@]}")
 	apkgs+=("${aIconsAndThemes[@]}")
 
-	if [[ $_AUDIOSERVER = 'Pulseaudio' ]]; then
+	if [[ "${AConfAudio[_AUDIOSERVER]}" == 'Pulseaudio' ]]; then
 		apkgs+=("${aPulseaudio[@]}")
 		aMedia+=("${aPulseaudio[@]}")
 	else
@@ -2272,15 +2272,16 @@ sh_chooseSource() {
 	local exit_status
 	local array=()
 	local x
+	local _src
 
 	Asource["local"]="${cmsg_PacotesDaImagemIso[LC_DEFAULT]}"
 	Asource["network"]="${cmsg_BaixadoDoRepositorioOficial[$LC_DEFAULT]}"
 	Asource["networkFull"]="${cmsg_BaixadoDoRepositorioOficialFull[$LC_DEFAULT]}"
 	cextra="${cmsg_ExtraNotIso[$LC_DEFAULT]}"
 
-	_SOURCE=${AConfMirror[_SOURCE]}
+	_src=${AConfMirror[_SOURCE]}
 	for x in "${!Asource[@]}"; do
-		if [[ $_SOURCE = $x ]]; then
+		if [[ $_src = $x ]]; then
 			Aflag[$x]='on'
 		else
 			Aflag[$x]='off'
@@ -2299,7 +2300,7 @@ sh_chooseSource() {
 
 	while true; do
 		src=$(${DIALOG} --title "=== ${cmsg_Source[LC_DEFAULT]^^} ===" \
-			--default-item "$_SOURCE" \
+			--default-item "${AConfMirror[_SOURCE]}" \
 			--stdout \
 			--colors \
 			--cancel-label "${cmsg_ButtonBack[$LC_DEFAULT]}" \
@@ -2324,18 +2325,15 @@ sh_chooseSource() {
 			if [[ "$src" = "local" ]]; then
 				if ! sh_getIso; then
 					info "$ccabec" "\n\n$cextra"
-					LSOURCE=false
-					sh_chooseSource
+               continue
 				else
 					LSOURCE=true
-					_SOURCE=$src
 					AConfMirror[_SOURCE]=$src
 				fi
 			fi
 			;;
 		esac
 		LSOURCE=true
-		_SOURCE=$src
 		AConfMirror[_SOURCE]=$src
 		return 0
 	done
@@ -2397,12 +2395,20 @@ sh_chooseaudioserver() {
 	local x
 	local caudio
 
-	array+=("Pulseaudio" "Pulseaudio" "on")
-	array+=("Pipewire" "Pipewire" "off")
+   case "${AConfAudio[_AUDIOSERVER]:-Pulseaudio}" in
+     Pulseaudio)
+       array+=("Pulseaudio" "Pulseaudio" "on")
+       array+=("Pipewire"   "Pipewire"   "off")
+       ;;
+     Pipewire)
+       array+=("Pulseaudio" "Pulseaudio" "off")
+       array+=("Pipewire"   "Pipewire"   "on")
+       ;;
+   esac
 
 	caudio=$(${DIALOG} \
 		--title "${cmsg_DefinirAudioServer[$LC_DEFAULT]}" \
-		--default-item "$_AUDIOSERVER" \
+		--default-item "${AConfAudio[_AUDIOSERVER]}" \
 		--colors \
 		--cancel-label "${cmsg_ButtonBack[$LC_DEFAULT]}" \
 		--ok-label "${cmsg_Aceitar[$LC_DEFAULT]}" \
@@ -2415,8 +2421,8 @@ sh_chooseaudioserver() {
 		return 1
 		;;
 	esac
-	LAUDIO=$true
-	_AUDIOSERVER="$caudio"
+	LAUDIO=true
+	AConfAudio[_AUDIOSERVER]="$caudio"
 	return 0
 }
 
@@ -2833,7 +2839,7 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 				AConfDisk[_BOOTLOADER]=$_BOOTLOADER
 				LGRUB=true
 				LOSPROBER=$false
-				LDISK=$true
+				LDISK=true
 				return 0
 			fi
 		fi
@@ -2847,7 +2853,7 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 			AConfDisk[_BOOTLOADER]=$_BOOTLOADER
 			LGRUB=true
 			LOSPROBER=$false
-			LDISK=$true
+			LDISK=true
 			return 0
 			;;
 		"$D_CONFIG")
@@ -2856,7 +2862,7 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 			;;
 		esac
 	done
-	LDISK=$true
+	LDISK=true
 	return 0
 }
 
@@ -3204,11 +3210,12 @@ sh_parseconf() {
 	[[ -n "${AConfLocale[_TIMEZONE]}" ]] && LTIMEZONE=true
 	[[ -n "${AConfLocale[_KEYMAP]}" ]] && LKEYMAP=true
 	[[ -n "${AConfMirror[_MIRROR]}" && -n "$url_mirror" ]] && LMIRROR=true
+	[[ -n "${AConfMirror[_SOURCE]}" ]] && LSOURCE=true
+	[[ -n "${AConfAudio[_AUDIOSERVER]}" ]] && LAUDIO=true
 	[[ -n "${Amntpoint[*]}" ]] && LPARTITION=$true
-	[[ -n $_DEVICE ]] && LDISK=$true
+	[[ -n $_DEVICE ]] && LDISK=true
 	[[ -n $_BOOTLOADER ]] && LGRUB=true
-	[[ -n ${_WINDOWMANAGER[*]} ]] && LWM=$true
-	[[ -n $_SOURCE ]] && LSOURCE=true
+	[[ -n ${_WINDOWMANAGER[*]} ]] && LWM=true
 }
 
 sh_mkefiroaming() {
@@ -3240,10 +3247,10 @@ sh_choosewm() {
 	declare -A aWm
 	local x
 
-	if [[ "$_SOURCE" = "local" ]]; then
+	if [[ "${AConfMirror[_SOURCE]}" = "local" ]]; then
 		alerta "$ccabec" "Instalação escolhida foi via local/ISO, não é necessário alterar nada aqui"
 		_WINDOWMANAGER='tty'
-		LWM=$true
+		LWM=true
 		return
 	fi
 
@@ -3320,7 +3327,7 @@ sh_choosewm() {
 	if grep -qi hyprland <<<"${_WINDOWMANAGER[@]}"; then
 		HYPRLAND=$true
 	fi
-	LWM=$true
+	LWM=true
 }
 
 function pcount() {
@@ -3510,30 +3517,34 @@ sh_gethidden-password() {
 sh_checkInstall() {
 	local cmdsearch
 
-	if [ -z "$LMIRROR" ]; then
+	if ! $LMIRROR; then
 		alerta "${cmsg_Mirror[$LC_DEFAULT]^^}" "${cmsg_Mirror[$LC_DEFAULT]} ${cmsg_NotConfDefault[$LC_DEFAULT]}"
 		DEFITEM="${cmsg_Mirror[$LC_DEFAULT]}"
 		return 1
-	elif [ -z "$LSOURCE" ]; then
-		alerta "SOURCE" "${cmsg_Source[$LC_DEFAULT]} ${cmsg_NotConfDefault[$LC_DEFAULT]}"
+	elif ! $LSOURCE; then
+		alerta "${cmsg_Source[$LC_DEFAULT]^^}" "${cmsg_Source[$LC_DEFAULT]} ${cmsg_NotConfDefault[$LC_DEFAULT]}"
 		DEFITEM="${cmsg_Source[$LC_DEFAULT]}"
 		return 1
-	elif [ -z "$LGRUB" ]; then
-		alerta "${cmsg_BootLoader[$LC_DEFAULT]^^}" "${cmsg_NotConfBootLoader[$LC_DEFAULT]}"
-		DEFITEM="${cmsg_BootLoader[$LC_DEFAULT]}"
+	elif ! $LDISK; then
+		alerta "${cmsg_Disco[$LC_DEFAULT]^^}" "${cmsg_Disco[$LC_DEFAULT]} ${cmsg_NotConfDefault[$LC_DEFAULT]}"
+		DEFITEM="${cmsg_Disco[$LC_DEFAULT]}"
 		return 1
 	elif ! sh_validate_filesystem; then
 		DEFITEM="FileSystem"
 		return 1
-	elif [ -z "$LKEYMAP" ]; then
+	elif ! $LGRUB ]; then
+		alerta "${cmsg_BootLoader[$LC_DEFAULT]^^}" "${cmsg_NotConfBootLoader[$LC_DEFAULT]}"
+		DEFITEM="${cmsg_BootLoader[$LC_DEFAULT]}"
+		return 1
+	elif ! $LKEYMAP; then
 		alerta "${cmsg_Teclado[$LC_DEFAULT]^^}" "${cmsg_NotConfTeclado[$LC_DEFAULT]}"
 		DEFITEM="${cmsg_Teclado[$LC_DEFAULT]}"
 		return 1
-	elif [ -z "$LTIMEZONE" ]; then
+	elif ! $LTIMEZONE; then
 		alerta "TIMEZONE" "${cmsg_NotConfTimezone[$LC_DEFAULT]}"
 		DEFITEM="Timezone"
 		return 1
-	elif [ -z "$LWM" ]; then
+	elif ! $LWM; then
 		alerta "WM" "${cmsg_NotConfWm[$LC_DEFAULT]}"
 		DEFITEM="Wm"
 		return 1
@@ -3792,11 +3803,11 @@ sh_install_prereqs() {
 
 #dom 03 mar 2024 09:35:25 -04
 sh_extract_root_fs() {
-	if [[ "$_SOURCE" = "local" ]]; then
+	if [[ "${AConfMirror[_SOURCE]}" = "local" ]]; then
 		sh_cp_rootfs
-	elif [[ "$_SOURCE" = "network" ]]; then
+	elif [[ "${AConfMirror[_SOURCE]}" = "network" ]]; then
 		sh_tar_rootfs
-	elif [[ "$_SOURCE" = "networkFull" ]]; then
+	elif [[ "${AConfMirror[_SOURCE]}" = "networkFull" ]]; then
 		sh_install_prereqs
 	fi
 }
@@ -3820,7 +3831,7 @@ sh_install() {
 	#	dialog --title $BOOTLOG --begin 1 0 --tailbox "$BOOTLOG" 20 0 &
 	reset
 	sh_checkNet "$url_mirror" || return 1
-	if [[ "$_SOURCE" = "network" ]]; then
+	if [[ "${AConfMirror[_SOURCE]}" = "network" ]]; then
 		sh_checkTarball
 	fi
 	sh_choose_packages
@@ -3857,7 +3868,7 @@ sh_install() {
 			# Go install
 			sh_chroot_job "${cmsg_Atualizando[$LC_DEFAULT]} xbps ${cmsg_Em[$LC_DEFAULT]} $dir_install" "LC_ALL=C xbps-install --sync --update xbps --yes"
 			sh_chroot_job "${cmsg_AtualizandoRepositorio[$LC_DEFAULT]} ${cmsg_Em[$LC_DEFAULT]} $dir_install" "LC_ALL=C xbps-install --sync --update --yes"
-			if [[ "$_SOURCE" = "local" ]]; then
+			if [[ "${AConfMirror[_SOURCE]}" = "local" ]]; then
 				sh_chroot_job "${cmsg_AtualizandoPacotesBase[$LC_DEFAULT]} ${cmsg_Em[$LC_DEFAULT]} $dir_install" "${XBPS_INSTALL_UNPACK_ONLY} ${agrub[*]}"
 			else
 				sh_chroot_job "${cmsg_Instalando[$LC_DEFAULT]} Kernel ${cmsg_Em[$LC_DEFAULT]} $dir_install" "${XBPS_INSTALL_UNPACK_ONLY} ${akernel[*]}"
@@ -3930,7 +3941,7 @@ sh_install() {
 				esac
 			done
 
-			if [[ $_AUDIOSERVER = 'Pipewire' ]]; then
+			if [[ "${AConfAudio[_AUDIOSERVER]}" == 'Pipewire' ]]; then
 				sh_activating_pipewire
 			fi
 
@@ -4172,7 +4183,7 @@ Bootloader : $_BOOTLOADER\n\
 	LFS=$false
 	LPARTITION=$false
 	if [ "$rootfound" -eq 0 ]; then
-		${DIALOG} --colors --msgbox "${BOLD}${RED}ERROR:${RESET} the mount point for the root filesystem (/) has not yet been configured." 8 75
+		${DIALOG} --colors --msgbox "${BOLD}${RED}ERRO:${RESET} o ponto de montagem do sistema de arquivos raiz (/) ainda não foi configurado." 8 75
 		return 1
 	elif [ $LEFI == "true" -a "$bootfound" -eq 0 ]; then
 		info "=== UEFI ===" "\n\
@@ -4493,6 +4504,8 @@ sh_main_menu() {
       $LGRUB      && MENU_BOOTLOADER="${YELLOW}[${_BOOTLOADER}]${RST} ● "           || MENU_BOOTLOADER="${RED}[not defined]${RST} ● "
       $LKEYMAP    && MENU_KEYMAP="${YELLOW}[${AConfLocale[_KEYMAP]}]${RST} ● "      || MENU_KEYMAP="${RED}[not defined]${RST} ● "
       $LTIMEZONE  && MENU_TIMEZONE="${YELLOW}[${AConfLocale[_TIMEZONE]}]${RST} ● "  || MENU_TIMEZONE="${RED}[not defined]${RST} ● "
+      $LAUDIO     && MENU_AUDIO="${YELLOW}[${AConfAudio[_AUDIOSERVER]}]${RST} ● "   || MENU_AUDIO="${RED}[not defined]${RST} ● "
+      $LWM        && MENU_WM="${YELLOW}[${_WINDOWMANAGER[*]}]${RST} ● "             || MENU_WM="${RED}[not defined]${RST} ● "
 
 		menu=$(${DIALOG} \
 			--backtitle "$ccabec" \
@@ -4511,9 +4524,9 @@ sh_main_menu() {
 			"FileSystem" "${cmsg_descFileSystem[LC_DEFAULT]}" \
 			"${cmsg_Teclado[$LC_DEFAULT]}" "${MENU_KEYMAP}${cmsg_descTeclado[LC_DEFAULT]}" \
 			"Timezone" "${MENU_TIMEZONE}${cmsg_descTimezone[LC_DEFAULT]}" \
-			"Wm" "${cmsg_descWm[LC_DEFAULT]}" \
+			"Wm" "${MENU_WM}${cmsg_descWm[LC_DEFAULT]}" \
 			"Extra" "${cmsg_descExtra[LC_DEFAULT]}" \
-			"Audio"  "${RED}[$_AUDIOSERVER]${RST} ● ${cmsg_DefinirAudioServer[LC_DEFAULT]}" \
+			"Audio"  "${MENU_AUDIO}${cmsg_DefinirAudioServer[LC_DEFAULT]}" \
 			"${cmsg_Instalar[$LC_DEFAULT]}" "${cmsg_descInstalar[$LC_DEFAULT]}" \
 			"Fde" "Full-Disk Encryption + Lvm (optional)" \
 			"Lvm" "Logical Volume Management (optional)" \
@@ -4671,7 +4684,7 @@ sh_confLvm() {
 		LCONFIGFDE=$false
 	fi
 
-	if ! ((LDISK)); then
+	if ! $LDISK; then
 		alerta "${RED}${REVERSE}$ctitlemenu ${cmsg_TitleDisco[LC_DEFAULT]}" "${RED}${REVERSE}${cmsg_NotConfDisco[LC_DEFAULT]^^}"
 		DEFITEM="${cmsg_Disco[$LC_DEFAULT]}"
 		return 1
