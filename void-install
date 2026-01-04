@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: dom 28 dez 2025 11:55:45 -04
+#  Updated: dom 04 jan 2026 07:19:54 -04
 #
 #  Copyright (c) 2022-2025, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -47,7 +47,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='2.25.12.28-20251228'
+readonly _VERSION_='3.01.04-20260104'
 readonly distro=$(uname -n)
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 #                      cfdisk gdisk sfdisk efivar mkfs.ext2 mkfs.ext3 mkfs.ext4 mkfs.btrfs mkfs.xfs mkfs.f2fs mkfs.jfs mkfs.reiserfs)
@@ -213,7 +213,7 @@ EOF
 }
 
 sh_update_self() {
-  local repo_url="https://raw.githubusercontent.com/voidlinux-br/void-installer/main/void-install"
+  local repo_url="https://raw.githubusercontent.com/voidlinuxbr/void-installer/main/void-install"
   local local_script="$0"
   local temp_file
   local remote_hash
@@ -368,9 +368,9 @@ sh_setEnvironment() {
   #readonly _TARBALL_ROOTFS=void-x86_64-base-voidstrap-current.tar.xz
   #readonly _TARBALL_ROOTFS=void-x86_64-base-system-current.tar.xz
   readonly _TARBALL_ROOTFS=void-x86_64-base-custom-current.tar.xz
-	#readonly url_tarball="https://github.com/voidlinux-br/void-installer/raw/master/${_TARBALL_ROOTFS}"
-	readonly url_tarball="https://raw.githubusercontent.com/voidlinux-br/void-installer/refs/heads/main/${_TARBALL_ROOTFS}"
-	readonly url_tarball_md5="https://raw.githubusercontent.com/voidlinux-br/void-installer/refs/heads/main/${_TARBALL_ROOTFS}.md5"
+	#readonly url_tarball="https://github.com/voidlinuxbr/void-installer/raw/master/${_TARBALL_ROOTFS}"
+	readonly url_tarball="https://raw.githubusercontent.com/voidlinuxbr/void-installer/refs/heads/main/${_TARBALL_ROOTFS}"
+	readonly url_tarball_md5="https://raw.githubusercontent.com/voidlinuxbr/void-installer/refs/heads/main/${_TARBALL_ROOTFS}.md5"
 	readonly true=1
 	readonly false=0
 	readonly err_fatal=$true
@@ -378,7 +378,7 @@ sh_setEnvironment() {
 	readonly BOOTLOG="/tmp/void-install-$(sh_diahora).log"
 	readonly LOGGER='/dev/tty8'
 	shell='/bin/sh'
-	: "${ccabec="$APP v${_VERSION_} - https://github.com/voidlinux-br/void-installer"}"
+	: "${ccabec="$APP v${_VERSION_} - https://github.com/voidlinuxbr/void-installer"}"
 	: "${ccabecmin="$APP v${_VERSION_}"}"
 	: "${DIALOG=${DIALOG:-dialog}}"
 	: ${ARCH:=x86_64}
@@ -2510,13 +2510,21 @@ sh_chooseMirror() {
 	local -i FLD_LOCATION=3
 	local -i FLD_TIER=4
 
-	declare -gA Amirror=([voidlinux.com.br]="https://voidlinux.com.br/repo/|South and Central America|Ouro Preto, Brazil|2"
-		[void.chililinux.com]="http://void.chililinux.com/voidlinux/|South and Central America|Pimenta Bueno, Brazil|2"
-		[void.chililinux.com_2]="https://void.chililinux.com/voidlinux/|South and Central America|Pimenta Bueno, Brazil|2"
-		[void.chilios.com.br]="http://void.chilios.com.br/voidlinux/|South and Central America|Pimenta Bueno, Brazil|2"
-		[void.chilios.com.br_2]="https://void.chilios.com.br/voidlinux/|South and Central America|Pimenta Bueno, Brazil|2"
-		[mirror.sjtu.edu.cn]="https://mirror.sjtu.edu.cn/voidlinux/|Asia|Shanghai, China|2"
+#		[void.chilios.com.br]="http://void.chilios.com.br/voidlinux/|South and Central America|Pimenta Bueno, Brazil|2"
+#		[void.chilios.com.br_2]="https://void.chilios.com.br/voidlinux/|South and Central America|Pimenta Bueno, Brazil|2"
+#		[void.chililinux.com_2]="http://void.chililinux.com/voidlinux/|South and Central America|Pimenta Bueno, Brazil|2"
+#  	[voidlinux.com.br]="https://voidlinux.com.br/repo/|South and Central America|Ouro Preto, Brazil|2"
+
+	declare -gA Amirror=(
+		[repo.fi.voidlinux.org]="https://repo-fi.voidlinux.org/|Europe|Helsinki, Finland|1"
+		[repo.de.voidlinux.org]="https://repo-de.voidlinux.org/|Europe|Frankfurt, Germany|1"
+		[repo.fastly.voidlinux.org]="https://repo-fastly.voidlinux.org/|Globally Available|Fastly Global CDN|1"
+		[mirrors.summithq.com]="https://mirrors.summithq.com/voidlinux/|North America|Chicago, USA|1"
 		[mirrors.servercentral.com]="https://mirrors.servercentral.com/voidlinux/|North America|Chicago, USA|1"
+
+		[mirrors.cicku.me]="https://mirrors.cicku.me/voidlinux/|Globally Available|Cloudflare Global CDN|2"
+		[void.chililinux.com]="https://void.chililinux.com/voidlinux/|South and Central America|Pimenta Bueno, Brazil|2"
+		[mirror.sjtu.edu.cn]="https://mirror.sjtu.edu.cn/voidlinux/|Asia|Shanghai, China|2"
 		[mirror.clarkson.edu]="https://mirror.clarkson.edu/voidlinux/|North America/|New York, USA|2"
 		[void.webconverger.org]="https://void.webconverger.org/|Asia|Singapore|2"
 		[ftp.swin.edu.au]="https://ftp.swin.edu.au/voidlinux/|Oceania|Melbourne, Australia|2"
@@ -2528,20 +2536,18 @@ sh_chooseMirror() {
 		[quantum - mirror.hu]="https://quantum-mirror.hu/mirrors/pub/voidlinux/|Europe|Hungary|2"
 		[void.cijber.net]="https://void.cijber.net/|Europe/|Amsterdam, Netherlands|2"
 		[mirror.puzzle.ch]="https://mirror.puzzle.ch/voidlinux/|Europe|Bern, Switzerland|2"
-		[repo - fi.voidlinux.org]="https://repo-fi.voidlinux.org/|Europe|Helsinki, Finland|1"
 		[mirrors.dotsrc.org]="https://mirrors.dotsrc.org/voidlinux/|Europe|Denmark|2"
 		[mirrors.bfsu.edu.cn]="https://mirrors.bfsu.edu.cn/voidlinux/|Asia|Beijing, China|2"
 		[void.sakamoto.pl]="https://void.sakamoto.pl/|Europe|Warsaw, Poland|2"
 		[mirrors.cnnic.cn]="https://mirrors.cnnic.cn/voidlinux/|Asia|Beijing, China|2"
 		[mirror.vofr.net]="https://mirror.vofr.net/voidlinux/|North America|California, USA|2"
 		[mirror.aarnet.edu.au]="https://mirror.aarnet.edu.aupub/voidlinux/|Oceania|Canberra, Australia|2"
-		[repo - fastly.voidlinux.org]="https://repo-fastly.voidlinux.org/|Globally Available|Fastly Global CDN|1"
 		[mirror.ps.kz]="https://mirror.ps.kz/voidlinux/|Asia|Almaty, Kazakhstan|2"
 		[voidlinux.mirror.garr.it]="https://voidlinux.mirror.garr.it/|Europe|Italy|2"
 		[mirror2.sandyriver.net]="https://mirror2.sandyriver.net/pub/voidlinux/|North America|Kentucky, USA|2"
 		[mirror.accum.se]="https://mirror.accum.se/mirror/voidlinux/|Europe|Sweden|2"
 		[mirrors.tuna.tsinghua.edu.cn]="https://mirrors.tuna.tsinghua.edu.cn/voidlinux/|Asia|Beijing, China|2"
-		[repo - de.voidlinux.org]="https://repo-de.voidlinux.org/|Europe|Frankfurt, Germany|1")
+   )
 
 	while true; do
 		array=()
@@ -2570,7 +2576,7 @@ sh_chooseMirror() {
 			--ok-label "${cmsg_Aceitar[$LC_DEFAULT]}" \
 			--extra-button --extra-label "void-testmirror" \
 			--radiolist "${cmsg_MENU[$LC_DEFAULT]}" \
-			0 0 0 "${array[@]}")
+			24 0 2 "${array[@]}")
 
 		exit_status=$?
 		case $exit_status in
@@ -4472,6 +4478,11 @@ sh_main_menu() {
 		if [ -z "$DEFITEM" ]; then
 			DEFITEM="${cmsg_Mirror[$LC_DEFAULT]}"
 		fi
+#      read -r term_h term_w < <(stty size)
+#      win_h=$(( term_h * 80 / 100 ))
+#      win_w=$(( term_w * 60 / 100 ))
+#      menu_h=$(( win_h - 8 ))
+#      (( menu_h < 5 )) && menu_h=5
 
 		menu=$(${DIALOG} \
 			--backtitle "$ccabec" \
@@ -4482,7 +4493,7 @@ sh_main_menu() {
 			--cancel-label "${cmsg_Sair[$LC_DEFAULT]}" \
 			--extra-button --extra-label "${cmsg_Definicoes[$LC_DEFAULT]}" \
 			--title "$APP - ${cmsg_MenuInstalacao[$LC_DEFAULT]} $(sh_getparamfile)" \
-			--menu "${RESET}${cmsg_MENU[$LC_DEFAULT]}" 9 100 0 \
+			--menu "${RESET}${cmsg_MENU[$LC_DEFAULT]}" 24 100 2 \
 			"${cmsg_Mirror[$LC_DEFAULT]}" "${cmsg_descMirror[LC_DEFAULT]}" \
 			"${cmsg_Source[$LC_DEFAULT]}" "${cmsg_DefinirInstalacaoDeOrigem[LC_DEFAULT]}" \
 			"${cmsg_Disco[$LC_DEFAULT]}" "${cmsg_descDisco[LC_DEFAULT]}" \
