@@ -46,7 +46,7 @@ reset=$(tput sgr0)
 #export PS4='${red}${0##*/}${green}[$FUNCNAME]${pink}[$LINENO]${reset} '
 export PS4='${red}${0##*/}${green}[${FUNCNAME[0]:-MAIN}]${pink}[$LINENO]${reset} '
 #set -x
-set -euo pipefail
+set -eo pipefail
 shopt -s extglob
 
 #system
