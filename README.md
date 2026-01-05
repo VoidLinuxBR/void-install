@@ -15,7 +15,7 @@
 	- curl -O https://raw.githubusercontent.com/voidlinux-br/void-installer/master/install.sh
 	- wget https://raw.githubusercontent.com/voidlinux-br/void-installer/master/install.sh
 	- chmod +x install.sh
-	- ./install.sh
+	- bash ./install.sh
 
 ## Installation (after download):
 - 1 - using make
