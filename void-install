@@ -40,9 +40,13 @@ export TEXTDOMAIN=void-install
 #debug
 red=$(tput bold)$(tput setaf 196)
 green=$(tput bold)$(tput setaf 2)
-export PS4='${red}${0##*/}${green}[$FUNCNAME]${pink}[$LINENO]${reset} '
+pink=$(tput setaf 5)
+cyan=$(tput setaf 6)
+reset=$(tput sgr0)
+#export PS4='${red}${0##*/}${green}[$FUNCNAME]${pink}[$LINENO]${reset} '
+export PS4='${red}${0##*/}${green}[${FUNCNAME[0]:-MAIN}]${pink}[$LINENO]${reset} '
 #set -x
-#set -e
+set -euo pipefail
 shopt -s extglob
 
 #system
@@ -50,8 +54,7 @@ readonly APP="${0##*/}"
 readonly _VERSION_='3.01.04-20260104'
 readonly distro=$(uname -n)
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
-#                      cfdisk gdisk sfdisk efivar mkfs.ext2 mkfs.ext3 mkfs.ext4 mkfs.btrfs mkfs.xfs mkfs.f2fs mkfs.jfs mkfs.reiserfs)
-#
+#                      cfdisk gdisk  efivar mkfs.ext2 mkfs.ext3 mkfs.ext4 mkfs.btrfs mkfs.xfs mkfs.f2fs mkfs.jfs mkfs.reiserfs)
 declare LCUSTOM=false
 declare LEFI=false
 declare LGRUB=false
@@ -62,11 +65,25 @@ declare LKEYMAP=true
 declare LTIMEZONE=true
 declare LAUDIO=true
 declare LWM=true
+declare LAUTO=true
+declare LMKPARTED=false
+declare LFS=false
+declare LPARTITION=false
+declare LBIND=false
+declare LBIOS=true
+declare LOSPROBER=false
+declare LCHROOT=false
+declare LINSTALL=false
+declare HYPRLAND=false
+declare LVM=false
+declare LFDE=false
+declare LONLY_TTY=true
+declare -ga _PKGS=''
+declare -ga _EXTRAS=''
+declare DEFITEM=''
 #
 declare -gi ncounter=0 njobs=73
 declare -gi quiet=0 grafico=0
-declare -gi LAUTO=1 LINSTALL=0 LCHROOT=0 LBIND=0 LMKPART=0 LBIOS=1 LMKPARTED=0 LOSPROBER=0 LFDE=0 LVM=0 LFS=0 LPARTITION=0 LTABLE=0
-declare -gi HYPRLAND=0
 declare -gA AsUser=([cpass]='voidlinux' [cpassroot]='voidlinux' [chostname]='voidlinux' [cgroups]='wheel,audio,video,floppy,cdrom,optical,kvm,xbuilder')
 declare -gA Amntpoint
 declare -gA AmntpointFDE
@@ -74,8 +91,23 @@ declare -gA Amkfs
 declare -gA AARRAY_DSK_DEVICES
 declare -gA AARRAY_PART_DEVICES
 declare -gA AARRAY_VG_DEVICES
-declare -gA AConfFde=([partition]='' [vg]='voidvm' [passphrase]='voidlinux' [verifypassphrase]='voidlinux' [lvroot]='25%' [lvswap]='2%' [lvvar]='' [lvhome]='100%')
-declare -gA AConfDisk=([_DEVICE]='/dev/sdX' [_FILESYSTEM]='ext4' [_DISKTABLE]='' [_BOOTLOADER]='/dev/sdX' [_OSPROBER]=0)
+declare -gA AConfFde=(
+	[partition]=''
+	[vg]='voidvm'
+	[passphrase]='voidlinux'
+	[verifypassphrase]='voidlinux'
+	[lvroot]='25%'
+	[lvswap]='2%'
+	[lvvar]=''
+	[lvhome]='100%'
+)
+declare -gA AConfDisk=(
+	[_DEVICE]='/dev/sdX'
+	[_FILESYSTEM]='ext4'
+	[_DISKTABLE]=''
+	[_BOOTLOADER]='/dev/sdX'
+	[_OSPROBER]=false
+)
 declare -gA AConfLocale=([_TIMEZONE]='America/Sao_Paulo' [_KEYMAP]='br-abnt2' [_CLOCK]='UTC' [_FONT]='default8x16' [_FONT_OLD]='Lat2-Terminus16')
 declare -gA AConfMirror=([_SOURCE]='network' [_MIRROR]='repo.fastly.voidlinux.org' [url_mirror]='https://repo-fastly.voidlinux.org' [location]='Fastly Global CDN')
 declare -gA AConfAudio=([_AUDIOSERVER]='Pulseaudio')
@@ -83,6 +115,7 @@ declare -gA AConfWifi=([_NETWORK]='wifi_ssid' [_PASSWORD]='wifi_password')
 declare -gA Alanguage=([pt_BR]=0 [en_US]=1 [de_DE]=2 [fr_FR]=3 [es_ES]=4 [it_IT]=5)
 declare -gA Alocale=([0]=pt_BR [1]=en_US [2]=de_DE [3]=fr_FR [4]=es_ES [5]=it_IT)
 declare dialogRcFile="$HOME/.dialogrc"
+#
 
 readconf() {
 	if [[ $LC_DEFAULT -eq 0 ]]; then
@@ -168,11 +201,6 @@ sh_checkDependencies() {
 	fi
 }
 
-cleanup() {
-	rm -f "$dialogRcFile"
-}
-#trap cleanup EXIT
-
 sh_create_dialogrc() {
 	cat >"$dialogRcFile" <<-'EOF'
 		screen_color = (white,black,off)
@@ -217,7 +245,7 @@ sh_create_dialogrc() {
 		visit_items = off
 		use_shadow = off
 		use_colors = on
-EOF
+	EOF
 	export DIALOGRC="$dialogRcFile"
 }
 
@@ -307,7 +335,6 @@ sh_choose_packages() {
 			_EXTRAS+=' chili-void-tools'
 		fi
 		## end packages
-
 	else
 		## X11
 		declare -ga aIconsAndThemes=('Adapta' 'adwaita-icon-theme')
@@ -337,14 +364,9 @@ sh_choose_packages() {
 	fi
 }
 
-declare _DEVICE='/dev/sdX'
-declare _FILESYSTEM='ext4'
-declare _DISKTABLE=''
-declare _BOOTLOADER="$_DEVICE"
 declare _WINDOWMANAGER=('tty')
 declare _WIFI_NETWORK="wifi_ssid"
 declare _WIFI_PASSWORD="wifi_password"
-declare _ONLY_TTY=1
 #source /usr/bin/gettext.sh
 #declare Interrupted="$(gettext "Interrompido!") $(pgettext "context" "Saindo...")"
 
@@ -390,15 +412,15 @@ sh_setEnvironment() {
 	: "${ccabec="$APP v${_VERSION_} - https://github.com/voidlinuxbr/void-installer"}"
 	: "${ccabecmin="$APP v${_VERSION_}"}"
 	: "${DIALOG=${DIALOG:-dialog}}"
-	: ${ARCH:=x86_64}
-	: ${CACHEDIR:="$(pwd -P)"/xbps-cachedir-${ARCH}}
-	: ${XBPS_INSTALL_CMD:=xbps-install}
-	: ${XBPS_INSTALL_UNPACK_ONLY:=xbps-install -Uy}
-	: ${XBPS_REMOVE_CMD:=xbps-remove}
-	: ${XBPS_QUERY_CMD:=xbps-query}
-	: ${XBPS_RINDEX_CMD:=xbps-rindex}
-	: ${XBPS_UHELPER_CMD:=xbps-uhelper}
-	: ${XBPS_RECONFIGURE_CMD:=xbps-reconfigure}
+	: "${ARCH:=x86_64}"
+	: "${CACHEDIR:="$(pwd -P)"/xbps-cachedir-${ARCH}}"
+	: "${XBPS_INSTALL_CMD:=xbps-install}"
+	: "${XBPS_INSTALL_UNPACK_ONLY:=xbps-install -Uy}"
+	: "${XBPS_REMOVE_CMD:=xbps-remove}"
+	: "${XBPS_QUERY_CMD:=xbps-query}"
+	: "${XBPS_RINDEX_CMD:=xbps-rindex}"
+	: "${XBPS_UHELPER_CMD:=xbps-uhelper}"
+	: "${XBPS_RECONFIGURE_CMD:=xbps-reconfigure}"
 
 	# flag disk info
 	: "${DSK_NAME=1}"
@@ -412,6 +434,7 @@ sh_setEnvironment() {
 	: "${DSK_PARTTYPENAME=9}"
 
 	# flag languages
+	: "${pt_BR=0}"
 	: "${PT_BR=0}"
 	: "${EN_US=1}"
 	: "${DE_DE=2}"
@@ -461,10 +484,8 @@ sh_setEnvironment() {
 
 	size=$(stty size)
 	read -r MAXROW MAXCOL <<<"$size"
-	if [[ -z "${COLUMNS}" ]]; then
-		COLUMNS=$(stty size)
-		COLUMNS=${COLUMNS##* }
-	fi
+	COLUMNS=$(stty size)
+	COLUMNS=${COLUMNS##* }
 	if [[ "${COLUMNS}" = "0" ]]; then
 		COLUMNS=80
 	fi
@@ -480,17 +501,16 @@ sh_touchConf() {
 		# void-install.conf
 		# Gerado por void-install
 		######################################################################
-		BOOTLOADER=$_BOOTLOADER
-		DISKTABLE=$_DISKTABLE
 		WIFI_NETWORK=$_WIFI_NETWORK
 		WIFI_PASSWORD=$_WIFI_PASSWORD
 		PKGS="$_PKGS"
 		EXTRAS="$_EXTRAS"
-EOF
+	EOF
 	{
-		declare -p _DEVICE
-		declare -p _BOOTLOADER
-		declare -p _DISKTABLE
+		declare -p LDISK
+		declare -p LEFI
+		declare -p LGRUB
+		declare -p LBIOS
 		declare -p _WIFI_NETWORK
 		declare -p _WIFI_PASSWORD
 		declare -p _WINDOWMANAGER
@@ -506,9 +526,6 @@ EOF
 		declare -p AConfFde
 		declare -p LCUSTOM
 		declare -p HYPRLAND
-		declare -p LEFI
-		declare -p LGRUB
-		declare -p LBIOS
 		#	declare -p AARRAY_DSK_DEVICES
 		#	declare -p AARRAY_PART_DEVICES
 		#	} | sed 's/declare -/&g/' >>"$app_conf"
@@ -1116,7 +1133,7 @@ notconf() {
 sh_testDisk() {
 	local result=0
 
-	fdisk -l "$_DEVICE" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
+	fdisk -l "${AConfDisk[_DEVICE]}" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 	result="${PIPESTATUS[0]}"
 	if ! ((quiet)); then
 		evaluate_retval "$result"
@@ -1125,111 +1142,118 @@ sh_testDisk() {
 }
 
 sh_mkparted() {
-	local nchoice=$false
-	local withswap=$true
+	local nchoice=false
+	local withswap=true
 	local label_type='gpt'
 	local ext=$(sh_getNvme)
 	local cini=''
 	local cpart=''
 	local CSCRIPT=''
 
-	last_msg="${cmsg_TestandoDisco[$LC_DEFAULT]} ${_DEVICE}"
+	last_msg="${cmsg_TestandoDisco[$LC_DEFAULT]} ${AConfDisk[_DEVICE]}"
 	msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
 	if ! sh_testDisk; then
-		die "${cmsg_ErroLeituraDisco[$LC_DEFAULT]}: $_DEVICE."
+		die "${cmsg_ErroLeituraDisco[$LC_DEFAULT]}: ${AConfDisk[_DEVICE]}."
 	fi
 
 	if ! ((grafico)); then
 		if ! ((quiet)); then
 			replicate "=" "$COLUMNS"
-			if ! fdisk -l "$_DEVICE"; then
-				die "${cmsg_ErroLeituraDisco[$LC_DEFAULT]}: $_DEVICE."
+			if ! fdisk -l "${AConfDisk[_DEVICE]}"; then
+				die "${cmsg_ErroLeituraDisco[$LC_DEFAULT]}: ${AConfDisk[_DEVICE]}."
 			fi
 			replicate "=" "$COLUMNS"
-			if ! ((LMKPARTED)); then
+			if ! $LMKPARTED; then
 				echo "${yellow}${cwarning[$LC_DEFAULT]} ${red}${cmsg_todos_os_dados_serao_perdidos[$LC_DEFAULT]}${reset}"
 			fi
 		fi
 	fi
 
-	if ((LMKPARTED)); then
+	if $LMKPARTED; then
 		return 0
 	fi
 
 	if ! ((grafico)); then
-		if readconf "${red}${cmsg_ContinuarParticionamento[$LC_DEFAULT]} ${yellow}${_DEVICE} ${reset}?"; then
-			nchoice=$true
+		if readconf "${red}${cmsg_ContinuarParticionamento[$LC_DEFAULT]} ${yellow}${AConfDisk[_DEVICE]} ${reset}?"; then
+			nchoice=true
 		fi
 	else
-		if [[ $(sh_toBytes "$(sh_splitarray "${AARRAY_DSK_DEVICES[$_DEVICE]}" 2)") -lt $(sh_toBytes "4G") ]]; then
-			if ! infoconf "${cmsg_Disco[$LC_DEFAULT]}" "$(fdisk -l "$_DEVICE")" \
-				"${YELLOW}${cmsg_CriandoParticoes[$LC_DEFAULT]} ${_DEVICE}" \
+		if [[ $(sh_toBytes "$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_DEVICE]}]}" 2)") -lt $(sh_toBytes "4G") ]]; then
+			if ! infoconf "${cmsg_Disco[$LC_DEFAULT]}" "$(fdisk -l "${AConfDisk[_DEVICE]}")" \
+				"${YELLOW}${cmsg_CriandoParticoes[$LC_DEFAULT]} ${AConfDisk[_DEVICE]}" \
 				"\n${cmsg_TamanhoInsuficiente[$LC_DEFAULT]}\n${cmsg_DesejaProsseguir[$LC_DEFAULT]}"; then
 				return 1
 			fi
-			withswap=$false
+			withswap=false
 		else
-			if ! infoconf "${cmsg_Disco[$LC_DEFAULT]}" "$(fdisk -l "$_DEVICE")" \
-				"${YELLOW}${cmsg_CriandoParticoes[$LC_DEFAULT]} ${_DEVICE}" \
+			if ! infoconf "${cmsg_Disco[$LC_DEFAULT]}" "$(fdisk -l "${AConfDisk[_DEVICE]}")" \
+				"${YELLOW}${cmsg_CriandoParticoes[$LC_DEFAULT]} ${AConfDisk[_DEVICE]}" \
 				"\n${cmsg_DesejaCriarParticaoSwap[LC_DEFAULT]}"; then
-				withswap=$false
+				withswap=false
 			fi
 		fi
 
 		if ! conf "${YELLOW}${cwarning[$LC_DEFAULT]}" \
-			"DEVICE  : ${RED}$_DEVICE${RESET}\n" \
+			"DEVICE  : ${RED}${AConfDisk[_DEVICE]}${RESET}\n" \
 			"MODEL  : ${RED}$MODEL_ORIGEM${RESET}\n" \
 			"\n${RED}${cmsg_todos_os_dados_serao_perdidos[$LC_DEFAULT]}${RESET}" \
-			"\n${cmsg_ContinuarParticionamento[$LC_DEFAULT]} ${_DEVICE} ?\n"; then
+			"\n${cmsg_ContinuarParticionamento[$LC_DEFAULT]} ${AConfDisk[_DEVICE]} ?\n"; then
 			return 1
 		fi
-		nchoice=$true
+		nchoice=true
 	fi
 
-	if ((nchoice)); then
-		last_msg="${cmsg_CriandoParticoes[$LC_DEFAULT]} ${_DEVICE}"
+	if $nchoice; then
+		last_msg="${cmsg_CriandoParticoes[$LC_DEFAULT]} ${AConfDisk[_DEVICE]}"
 		msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
 
 		Amntpoint=()
-		[[ "$_DISKTABLE" = "EFI" || "$_DISKTABLE" = "GPT_BIOS" ]] && label_type='gpt' || label_type='msdos'
+		[[ "${AConfDisk[_DISKTABLE]}" = "EFI" || "${AConfDisk[_DISKTABLE]}" = "GPT_BIOS" ]] && label_type='gpt' || label_type='msdos'
 		CSCRIPT+="mklabel $label_type "
 		if [[ "$label_type" = "gpt" ]]; then
 			CSCRIPT+='mkpart primary fat32 1MiB   2MiB set 1 bios_grub on name 1 BIOS '
 			CSCRIPT+='mkpart primary fat32 2MiB 258MiB set 2 esp on       name 2 EFI  '
-			#			Amntpoint+=(["$_DEVICE${ext}1"]="||0")
-			Amntpoint+=(["$_DEVICE${ext}2"]="/boot/efi|vfat|1")
+			#			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}1"]="||0")
+			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}2"]="/boot/efi|vfat|1")
 			cini='258MiB'
 			cpart='3'
-			if ((withswap)); then
+			if $withswap; then
 				CSCRIPT+="mkpart primary linux-swap $cini 3G name $cpart SWAP "
-				Amntpoint+=(["$_DEVICE${ext}$cpart"]="none|swap|1")
+				Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}$cpart"]="none|swap|1")
 				cini='3G'
 				cpart='4'
 			fi
 			CSCRIPT+="mkpart primary $cini 100% name $cpart ROOT "
-			Amntpoint+=(["$_DEVICE${ext}$cpart"]="/|ext4|1")
+			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}$cpart"]="/|ext4|1")
 		else
 			cini='1MiB'
 			cpart='1'
-			if ((withswap)); then
+			if $withswap; then
 				CSCRIPT+="mkpart primary linux-swap $cini 3G "
-				Amntpoint+=(["$_DEVICE${ext}$cpart"]="none|swap|1")
+				Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}$cpart"]="none|swap|1")
 				cini='3G'
 				cpart='2'
 			fi
 			CSCRIPT+="mkpart primary $cini 100% set $cpart boot on "
-			Amntpoint+=(["$_DEVICE${ext}$cpart"]="/|ext4|1")
+			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}$cpart"]="/|ext4|1")
 		fi
 		CSCRIPT+='align-check optimal 1'
-		parted --script "$_DEVICE" -- "$CSCRIPT" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
-		evaluate_retval="${PIPESTATUS[0]}"
-		parted --script "$_DEVICE" -- print 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
+		CSCRIPT+='align-check optimal 2'
+		CSCRIPT+='align-check optimal 3'
+
+		if $withswap; then
+			CSCRIPT+='align-check optimal 4'
+		fi
+
+		parted --script "${AConfDisk[_DEVICE]}" -- "$CSCRIPT" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
+		evaluate_retval "${PIPESTATUS[0]}"
+		parted --script "${AConfDisk[_DEVICE]}" -- print 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 		Amkfs+=(["vfat"]="mkfs.vfat")
 		Amkfs+=(["swap"]="mkswap")
 		Amkfs+=(["ext4"]="mkfs.ext4")
-		LMKPARTED=$true
-		LFS=$true
-		LPARTITION=$true
+		LMKPARTED=true
+		LFS=true
+		LPARTITION=true
 		#		sync 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 		#		partprobe 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 	else
@@ -1251,7 +1275,7 @@ sh_update_mirror() {
 		#repository=https://void.chililinux.com/voidlinux/current/nonfree
 		#repository=https://void.chililinux.com/voidlinux/current/multilib
 		#repository=https://void.chililinux.com/voidlinux/current/multilib/nonfree
-EOF
+	EOF
 	evaluate_retval "$?"
 }
 
@@ -1268,7 +1292,7 @@ sh_update_sshd() {
 		PasswordAuthentication Yes
 		ChallengeResponseAuthentication Yes
 		UsePAM yes
-EOF
+	EOF
 	evaluate_retval "$?" "$err_not_fatal"
 }
 
@@ -1289,7 +1313,7 @@ sh_update_locale() {
 		LANGUAGE=$lc
 		LC_COLLATE=C
 		LC_ALL=$lc
-EOF
+	EOF
 	evaluate_retval "$?" "$err_not_fatal"
 }
 
@@ -1309,7 +1333,7 @@ sh_update_rc_local() {
 		#TIMEZONE="${AConfLocale[_TIMEZONE]}"
 		#KEYMAP="${AConfLocale[_KEYMAP]}"
 		#hwclock --systohc
-EOF
+	EOF
 	evaluate_retval "$?" "$err_not_fatal"
 }
 
@@ -1460,7 +1484,7 @@ sh_update_Xkeymap() {
 			Option "XkbVariant" "abnt2"
 			Option "XKbOptions" ""
 		EndSection
-EOF
+	EOF
 	evaluate_retval "$?" "$err_not_fatal"
 }
 
@@ -1516,7 +1540,7 @@ sh_make_fs() {
 		fi
 	done
 
-	if ((LVM)); then
+	if $LVM; then
 		sh_make_fsLvm
 	fi
 }
@@ -1525,7 +1549,7 @@ sh_umount_fs() {
 	last_msg="${cmsg_DismountFileSystem[$LC_DEFAULT]} ${cmsg_Em[$LC_DEFAULT]} $dir_install"
 	msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
 	umount -frl "$dir_install" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
-	LBIND=$false
+	LBIND=false
 	evaluate_retval "${PIPESTATUS[0]}" "$err_not_fatal"
 }
 
@@ -1560,7 +1584,7 @@ sh_mount_bind() {
 sh_init_bind() {
 	local nchoice
 
-	if ! ((LBIND)); then
+	if ! $LBIND; then
 		last_msg="${cmsg_MontandoAmbiente[$LC_DEFAULT]} chroot"
 		msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
 		for i in /proc /sys /dev /dev/pts /dev/shm /run /tmp; do
@@ -1578,9 +1602,9 @@ sh_init_bind() {
 			sh_mount_bind tmp "${dir_install}/tmp" -t tmpfs -o mode=1777,strictatime,nodev,nosuid
 		evaluate_retval
 		nchoice=$?
-		[[ $nchoice -eq 0 ]] && LBIND=$true
+		[[ $nchoice -eq 0 ]] && LBIND=true
 	fi
-	[[ $LBIND -eq $true ]] && return 0 || return 1
+	$LBIND && return 0 || return 1
 }
 
 sh_stop_bind() {
@@ -1601,8 +1625,8 @@ sh_stop_bind() {
 	nchoice="${PIPESTATUS[0]}"
 	evaluate_retval 0
 
-	[[ $nchoice -eq 0 ]] && LBIND=$false
-	[[ $LBIND -eq $false ]] && return 0 || return 1
+	[[ $nchoice -eq 0 ]] && LBIND=false
+	$LBIND && return 1 || return 0
 }
 
 sh_cmd_job() {
@@ -1692,7 +1716,7 @@ sh_make_fstab() {
 	local mntpoint
 	local fsorder=1
 
-	if ! ((LVM)); then
+	if ! $LVM; then
 		last_msg="${cmsg_Gerando[$LC_DEFAULT]} fstab pass1 ${cmsg_Em[$LC_DEFAULT]} $dir_install"
 		msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
 
@@ -1775,7 +1799,7 @@ sh_activating_services() {
 			"$level"
 	done
 
-	if [[ $_ONLY_TTY -eq $false ]]; then
+	if ! $LONLY_TTY; then
 		for service in "${aServicesX[@]}"; do
 			sh_chroot_job "${cmsg_AtivandoServico[$LC_DEFAULT]} $service ${cmsg_Em[$LC_DEFAULT]} $dir_install" \
 				"ln -sf /etc/sv/$service /etc/runit/runsvdir/current/" \
@@ -1823,7 +1847,7 @@ sh_mount_fs() {
 	local mntpoint
 	local fstype
 
-	if ! ((LVM)); then
+	if ! $LVM; then
 		for i in "${!Amntpoint[@]}"; do
 			_part="$i"
 			mntpoint="$(sh_splitarray "${Amntpoint[$i]}" 1)"
@@ -1899,7 +1923,7 @@ sh_X11minimal() {
 	local apkgs=()
 	local aMedia=()
 
-	if ! ((HYPRLAND)); then
+	if ! $HYPRLAND; then
 		apkgs+=("${aXorg[@]}")
 	fi
 	apkgs+=("${aFont[@]}")
@@ -1927,7 +1951,7 @@ sh_X11minimal() {
 	apkgs+=("${aEditorX[@]}")
 
 	#	sh_chroot_job "${cmsg_InstalandoMetaPacotes[$LC_DEFAULT]} ${cmsg_Em[$LC_DEFAULT]} $dir_install"               "LC_ALL=C ${XBPS_INSTALL_UNPACK_ONLY} ${apkgs[*]}"
-	if ! ((HYPRLAND)); then
+	if ! $HYPRLAND; then
 		sh_chroot_job "${cmsg_InstalandoMetaPacotes[$LC_DEFAULT]} Xorg ${cmsg_Em[$LC_DEFAULT]} $dir_install" "LC_ALL=C ${XBPS_INSTALL_UNPACK_ONLY} ${aXorg[*]}"
 	fi
 	sh_chroot_job "${cmsg_InstalandoMetaPacotes[$LC_DEFAULT]} Font's ${cmsg_Em[$LC_DEFAULT]} $dir_install" "LC_ALL=C ${XBPS_INSTALL_UNPACK_ONLY} ${aFont[*]}" "$err_not_fatal"
@@ -2325,7 +2349,7 @@ sh_chooseSource() {
 			if [[ "$src" = "local" ]]; then
 				if ! sh_getIso; then
 					info "$ccabec" "\n\n$cextra"
-               continue
+					continue
 				else
 					LSOURCE=true
 					AConfMirror[_SOURCE]=$src
@@ -2360,7 +2384,7 @@ sh_choosefstype() {
 	Afs[swap]="Linux swap"
 
 	if [[ -z "$oldfstype" ]]; then
-		oldfstype=$_FILESYSTEM
+		oldfstype=${AConfDisk[_FILESYSTEM]}
 	fi
 
 	for x in "${!Afs[@]}"; do
@@ -2384,8 +2408,8 @@ sh_choosefstype() {
 		return 1
 		;;
 	esac
-	LFS=$true
-	_FILESYSTEM=$mkfs
+	LFS=true
+	AConfDisk[_FILESYSTEM]=$mkfs
 	return 0
 }
 
@@ -2395,16 +2419,16 @@ sh_chooseaudioserver() {
 	local x
 	local caudio
 
-   case "${AConfAudio[_AUDIOSERVER]:-Pulseaudio}" in
-     Pulseaudio)
-       array+=("Pulseaudio" "Pulseaudio" "on")
-       array+=("Pipewire"   "Pipewire"   "off")
-       ;;
-     Pipewire)
-       array+=("Pulseaudio" "Pulseaudio" "off")
-       array+=("Pipewire"   "Pipewire"   "on")
-       ;;
-   esac
+	case "${AConfAudio[_AUDIOSERVER]:-Pulseaudio}" in
+	Pulseaudio)
+		array+=("Pulseaudio" "Pulseaudio" "on")
+		array+=("Pipewire" "Pipewire" "off")
+		;;
+	Pipewire)
+		array+=("Pulseaudio" "Pulseaudio" "off")
+		array+=("Pipewire" "Pipewire" "on")
+		;;
+	esac
 
 	caudio=$(${DIALOG} \
 		--title "${cmsg_DefinirAudioServer[$LC_DEFAULT]}" \
@@ -2632,7 +2656,7 @@ sh_chooseMirror() {
 					repository=${url_mirror}current/nonfree
 					repository=${url_mirror}current/multilib
 					repository=${url_mirror}current/multilib/nonfree
-EOF
+				EOF
 				evaluate_retval "$?"
 			fi
 		fi
@@ -2653,10 +2677,10 @@ sh_testcommand() {
 sh_execUtilDisk() {
 	local exit_status
 	${DIALOG} \
-		--title "Modify Partition Table on $_DEVICE" \
+		--title "Modify Partition Table on ${AConfDisk[_DEVICE]}" \
 		--colors \
 		--msgbox "\n
-${BOLD}${software} $(gettext "será executado no disco") $_DEVICE.${RESET}\n\n
+${BOLD}${software} $(gettext "será executado no disco") ${AConfDisk[_DEVICE]}.${RESET}\n\n
 $(gettext "Para sistemas BIOS, ")\
 $(gettext "tabelas de partições MBR (dos) ou GPT são suportadas.")\n
 $(gettext "Para usar o GPT em sistemas de BIOS de PC, ")
@@ -2677,8 +2701,8 @@ ${RESET}\n" 18 80
 	if [ $exit_status -eq 0 ]; then
 		while true; do
 			clear
-			"$software" "$_DEVICE"
-			LAUTO=0
+			"$software" "${AConfDisk[_DEVICE]}"
+			LAUTO=false
 			break
 		done
 	else
@@ -2702,7 +2726,6 @@ sh_menuUtilDisk() {
 	ARRAY_UTIL_DISK+=(["fdisk"]=$([[ -z $(command -v "fdisk") ]] && echo "Not available||" || echo "More advanced|fdisk is a dialog-driven program for creation and manipulation of partition tables|"))
 	ARRAY_UTIL_DISK+=(["gdisk"]=$([[ -z $(command -v "gdisk") ]] && echo "Not available||" || echo "More advanced|GPT fdisk (aka gdisk) is a text-mode menu-driven program for creation and manipulation of partition tables.|"))
 	ARRAY_UTIL_DISK+=(["parted"]=$([[ -z $(command -v "parted") ]] && echo "Not available||" || echo "More advanced|parted is a program to manipulate disk partitions|"))
-	ARRAY_UTIL_DISK+=(["sfdisk"]=$([[ -z $(command -v "sfdisk") ]] && echo "Not available||" || echo "More advanced|sfdisk is a script-oriented tool for partitioning any block device|"))
 
 	for i in $(echo "${!ARRAY_UTIL_DISK[@]}" | tr ' ' '\n' | sort); do
 		array[n++]="$i"
@@ -2716,7 +2739,7 @@ sh_menuUtilDisk() {
 		--ok-label "${cmsg_Aceitar[$LC_DEFAULT]}" \
 		--cancel-label "${cmsg_ButtonBack[$LC_DEFAULT]}" \
 		--menu "${cmsg_MENU[$LC_DEFAULT]}\n\n\
-${BOLD}DEVICE  : ${RESET}${RED}$_DEVICE${RESET}\n\
+${BOLD}DEVICE  : ${RESET}${RED}${AConfDisk[_DEVICE]}${RESET}\n\
 ${BOLD}MODEL   : ${RESET}${RED}$MODEL_ORIGEM${RESET}\n" \
 		0 0 0 "${array[@]}" 2>&1 >/dev/tty)
 
@@ -2730,20 +2753,20 @@ ${BOLD}MODEL   : ${RESET}${RED}$MODEL_ORIGEM${RESET}\n" \
 	case "$software" in
 	"automatic")
 		if sh_chooseTablePartition; then
-			LMKPARTED=$false
+			LMKPARTED=false
 			oldgrafico=$grafico
 			grafico=$true
 			sh_mkparted
 			grafico=$oldgrafico
 			sh_disk_part_info
 		fi
-		LAUTO=1
+		LAUTO=true
 		return 0
 		;;
 	esac
 
 	if sh_execUtilDisk; then
-		LAUTO=0
+		LAUTO=false
 	fi
 	return 0
 }
@@ -2761,7 +2784,7 @@ sh_getNvme() {
 
 sh_getlgrub() {
 	local _device="$1"
-	if [[ "$LGRUB" == "true" && "$_BOOTLOADER" = "$_device" ]]; then
+	if [[ "$LGRUB" == "true" && "${AConfDisk[_BOOTLOADER]}" = "$_device" ]]; then
 		echo '*'
 	else
 		echo ' '
@@ -2806,17 +2829,17 @@ sh_chooseDisk() {
 		done
 		((nlen += 6))
 		sd=$(${DIALOG} \
-			--default-item "$_DEVICE" \
+			--default-item "${AConfDisk[_DEVICE]}" \
 			--backtitle "$ccabec" \
 			--title "$xtitle" \
 			--ok-label "${cmsg_ButtonFeito[$LC_DEFAULT]}" \
 			--cancel-label "${cmsg_ButtonBack[$LC_DEFAULT]}" \
 			--colors \
 			--extra-button \
-			--extra-button --extra-label "${cmsg_Configurar}" \
+			--extra-button --extra-label "${cmsg_Particionar}" \
 			--menu "${cmsg_MENU[$LC_DEFAULT]}\n\n\
 $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "BOOT" "TRAN" "SIZE" "PTTYPE" "LABEL" "MODEL")" \
-			0 0 25 "${array[@]}" 2>&1 >/dev/tty)
+			24 0 2 "${array[@]}" 2>&1 >/dev/tty)
 
 		exit_status=$?
 		case $exit_status in
@@ -2826,19 +2849,17 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 		esac
 
 		if [[ -n "$sd" ]]; then
-			_DEVICE="$sd"
 			AConfDisk[_DEVICE]="$sd"
-			index=$(sh_seekstrarray "${ARRAY_DSK_DEVICES[*]}" "$_DEVICE")
-			NAME_ORIGEM="$(sh_splitarray "${AARRAY_DSK_DEVICES[$_DEVICE]}" "$DSK_NAME")"
-			MODEL_ORIGEM="$(sh_splitarray "${AARRAY_DSK_DEVICES[$_DEVICE]}" "$DSK_MODEL")"
-			SIZE_ORIGEM="$(sh_splitarray "${AARRAY_DSK_DEVICES[$_DEVICE]}" "$DSK_SIZE")"
-			TRAN_ORIGEM="$(sh_splitarray "${AARRAY_DSK_DEVICES[$_DEVICE]}" "$DSK_TRAN")"
+			index=$(sh_seekstrarray "${ARRAY_DSK_DEVICES[*]}" "${AConfDisk[_DEVICE]}")
+			NAME_ORIGEM="$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_DEVICE]}]}" "$DSK_NAME")"
+			MODEL_ORIGEM="$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_DEVICE]}]}" "$DSK_MODEL")"
+			SIZE_ORIGEM="$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_DEVICE]}]}" "$DSK_SIZE")"
+			TRAN_ORIGEM="$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_DEVICE]}]}" "$DSK_TRAN")"
 
 			if ((LCHOOSEBOOTLOADER)); then
-				_BOOTLOADER=$_DEVICE
-				AConfDisk[_BOOTLOADER]=$_BOOTLOADER
+				AConfDisk[_BOOTLOADER]="${AConfDisk[_DEVICE]}"
 				LGRUB=true
-				LOSPROBER=$false
+				LOSPROBER=false
 				LDISK=true
 				return 0
 			fi
@@ -2846,13 +2867,11 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 
 		case $exit_status in
 		"$D_OK")
-			sh_checkdisk "$_DEVICE"
-			sh_backup_partitions "$_DEVICE" "$NAME_ORIGEM"
-			_DEVICE="$sd"
-			_BOOTLOADER=$_DEVICE
-			AConfDisk[_BOOTLOADER]=$_BOOTLOADER
+			sh_checkdisk "${AConfDisk[_DEVICE]}"
+			sh_backup_partitions "${AConfDisk[_DEVICE]}" "$NAME_ORIGEM"
+			AConfDisk[_BOOTLOADER]="${AConfDisk[_DEVICE]}"
 			LGRUB=true
-			LOSPROBER=$false
+			LOSPROBER=false
 			LDISK=true
 			return 0
 			;;
@@ -2868,12 +2887,11 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 
 sh_setBootLoader() {
 	if sh_chooseDisk "=== BOOTLOADER (GRUB) ==="; then
-		_BOOTLOADER=$_DEVICE
-		AConfDisk[_BOOTLOADER]=$_BOOTLOADER
+		AConfDisk[_BOOTLOADER]="${AConfDisk[_DEVICE]}"
 		LGRUB=true
-		LOSPROBER=$false
+		LOSPROBER=false
 		if conf "=== OS-PROBER ===" "\n$(gettext "Detectar outro OS(s) instalado ?")\n\n"; then
-			LOSPROBER=$true
+			LOSPROBER=true
 		fi
 		AConfDisk[_OSPROBER]="$LOSPROBER"
 		return 0
@@ -2900,16 +2918,16 @@ sh_chooseTablePartition() {
 			Aflag[EFI]='on'
 			cextra="${cmsg_ExtraEfi[$LC_DEFAULT]}"
 		fi
-		if [[ -z "$_DISKTABLE" ]]; then
-			[[ "$(sh_getBootEFI)" ]] && _DISKTABLE='EFI' || _DISKTABLE='GPT_BIOS'
+		if [[ -z "${AConfDisk[_DISKTABLE]}" ]]; then
+			[[ "$(sh_getBootEFI)" ]] && AConfDisk[_DISKTABLE]='EFI' || AConfDisk[_DISKTABLE]='GPT_BIOS'
 		fi
-		Aflag[$_DISKTABLE]='on'
+		Aflag["${AConfDisk[_DISKTABLE]}"]='on'
 		array+=("$x" "${Atable[$x]}" "${Aflag[$x]}")
 	done
 
 	table=$(${DIALOG} \
 		--title "$(gettext "=== TABELA DE PARTIÇÕES ===")" \
-		--default-item "$_DISKTABLE" \
+		--default-item "${AConfDisk[_DISKTABLE]}" \
 		--colors \
 		--cancel-label "${cmsg_ButtonBack[$LC_DEFAULT]}" \
 		--ok-label "${cmsg_Aceitar[$LC_DEFAULT]}" \
@@ -2930,7 +2948,6 @@ sh_chooseTablePartition() {
 		fi
 		;;
 	esac
-	_DISKTABLE="$table"
 	AConfDisk[_DISKTABLE]="$table"
 	return 0
 }
@@ -2973,7 +2990,7 @@ sh_confadduser() {
 			"${cmsg_Extra3[$LC_DEFAULT]} (${AsUser[cpass]}): " 3 1 "${AsUser[cpass]}" 3 28 20 0 1 \
 			"${cmsg_Extra4[$LC_DEFAULT]} (${AsUser[cpassroot]}): " 4 1 "${AsUser[cpassroot]}" 4 28 20 0 1 \
 			"Hostname: " 5 1 "${AsUser[chostname]}" 5 28 20 0 0 \
-			"${cmsg_Extra6[$LC_DEFAULT]}: " 6 1 "${_DEVICE}" 6 28 20 0 2 \
+			"${cmsg_Extra6[$LC_DEFAULT]}: " 6 1 "${AConfDisk[_DEVICE]}" 6 28 20 0 2 \
 			"Tam/Model: " 7 1 "$size/$model" 7 28 20 0 2 \
 			"${cmsg_Teclado[$LC_DEFAULT]}: " 8 1 "${AConfLocale[_KEYMAP]}" 8 28 20 0 2 \
 			"Timezone: " 9 1 "${AConfLocale[_TIMEZONE]}" 9 28 20 0 2 \
@@ -3212,9 +3229,9 @@ sh_parseconf() {
 	[[ -n "${AConfMirror[_MIRROR]}" && -n "$url_mirror" ]] && LMIRROR=true
 	[[ -n "${AConfMirror[_SOURCE]}" ]] && LSOURCE=true
 	[[ -n "${AConfAudio[_AUDIOSERVER]}" ]] && LAUDIO=true
-	[[ -n "${Amntpoint[*]}" ]] && LPARTITION=$true
-	[[ -n $_DEVICE ]] && LDISK=true
-	[[ -n $_BOOTLOADER ]] && LGRUB=true
+	[[ -n "${Amntpoint[*]}" ]] && LPARTITION=true
+	[[ -n "${AConfDisk[_DEVICE]}" ]] && LDISK=true
+	[[ -n "${AConfDisk[_BOOTLOADER]}" ]] && LGRUB=true
 	[[ -n ${_WINDOWMANAGER[*]} ]] && LWM=true
 }
 
@@ -3314,7 +3331,7 @@ sh_choosewm() {
 		return
 		;;
 	esac
-	HYPRLAND=$false
+	HYPRLAND=false
 	if conf "=== ${cmsg_Wm[LC_DEFAULT]^^} ===" \
 		"\n${BOLD}${WHITE}$(gettext "Uma instalação customizada irá instalar pacotes extras e também")" \
 		"\n$(gettext "fazer diversas configurações, evitando faze-las manualmente posteriormente.")\n" \
@@ -3325,7 +3342,7 @@ sh_choosewm() {
 	fi
 	_WINDOWMANAGER=($(strtoarray "$wm"))
 	if grep -qi hyprland <<<"${_WINDOWMANAGER[@]}"; then
-		HYPRLAND=$true
+		HYPRLAND=true
 	fi
 	LWM=true
 }
@@ -3447,8 +3464,8 @@ display_config() {
     \n$(padr "${cmsg_senhawifi[$LC_DEFAULT]} (${cmsg_opcional[LC_DEFAULT]}) :" 30 ' ') \Zb\Z0$(sh_gethidden-password "${AConfWifi[_PASSWORD]}")${RESET}\
                                       \n$(padr "${cmsg_Mirror[$LC_DEFAULT]} :" 30 ' ') \Zb\Z0${AConfMirror[url_mirror]} - ${AConfMirror[location]}${RESET}\
                                       \n$(padr "${cmsg_Source[$LC_DEFAULT]} :" 30 ' ') \Zb\Z0${AConfMirror[_SOURCE]}${RESET}\
-                                      \n$(padr "${cmsg_Extra6[$LC_DEFAULT]} :" 30 ' ') \Zb\Z0${AConfDisk[_DEVICE]} | $(sh_splitarray "${AARRAY_DSK_DEVICES[$_BOOTLOADER]}" 2) | $(sh_splitarray "${AARRAY_DSK_DEVICES[$_BOOTLOADER]}" 4)${RESET}\
-                  \n$(padr "${cmsg_BootLoader[$LC_DEFAULT]} (${_DISKTABLE}) :" 30 ' ') \Zb\Z0${AConfDisk[_BOOTLOADER]} | $(sh_splitarray "${AARRAY_DSK_DEVICES[$_BOOTLOADER]}" 2) | $(sh_splitarray "${AARRAY_DSK_DEVICES[$_BOOTLOADER]}" 4)${RESET}\
+                                      \n$(padr "${cmsg_Extra6[$LC_DEFAULT]} :" 30 ' ') \Zb\Z0${AConfDisk[_DEVICE]} | $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 2) | $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 4)${RESET}\
+       \n$(padr "${cmsg_BootLoader[$LC_DEFAULT]} (${AConfDisk[_DISKTABLE]}) :" 30 ' ') \Zb\Z0${AConfDisk[_BOOTLOADER]} | $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 2) | $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 4)${RESET}\
                                           \n$(padr "Detect SO's (os-prober) :" 30 ' ') \Zb\Z0$(sh_getyes "${AConfDisk[_OSPROBER]}")${RESET}\
                                      \n$(padr "${cmsg_Extra11[$LC_DEFAULT]} :" 30 ' ') \Zb\Z0"${_WINDOWMANAGER[*]}"${RESET}\
                                                      \n$(padr "Customizacao :" 30 ' ') \Zb\Z0$(sh_getTrueFalse "$LCUSTOM")${RESET}\
@@ -3532,7 +3549,7 @@ sh_checkInstall() {
 	elif ! sh_validate_filesystem; then
 		DEFITEM="FileSystem"
 		return 1
-	elif ! $LGRUB ]; then
+	elif ! $LGRUB; then
 		alerta "${cmsg_BootLoader[$LC_DEFAULT]^^}" "${cmsg_NotConfBootLoader[$LC_DEFAULT]}"
 		DEFITEM="${cmsg_BootLoader[$LC_DEFAULT]}"
 		return 1
@@ -3574,13 +3591,13 @@ sh_grubInstall() {
 
 	#	echo "GRUB_THEME=/boot/grub/themes/void/theme.txt" >>"$dir_install/etc/default/grub"
 	echo "GRUB_THEME=/boot/grub/themes/chili/theme.txt" >>"$dir_install/etc/default/grub"
-	if ((LOSPROBER)); then
+	if $LOSPROBER; then
 		echo "GRUB_DISABLE_OS_PROBER=false" >>"$dir_install/etc/default/grub"
 	else
 		echo "GRUB_DISABLE_OS_PROBER=true" >>"$dir_install/etc/default/grub"
 	fi
 
-	if ((LFDE)); then
+	if $LFDE; then
 		sh_chroot_job "Alterando /etc/default/grub" "sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=/#&/' /etc/default/grub"
 		xuuidfde=$(blkid -o value -s UUID "${AConfFde[partition]}")
 		{
@@ -3595,16 +3612,16 @@ sh_grubInstall() {
 		echo 'install_items+=" /boot/volume.key /etc/crypttab "' >>"$dir_install/etc/dracut.conf.d/10-crypt.conf"
 	fi
 
-	if ((LBIOS)); then
-		sh_chroot_job "${cmsg_Instalando[$LC_DEFAULT]} GRUB i386-pc ${cmsg_Em[$LC_DEFAULT]} $_BOOTLOADER" \
-			"grub-install $_BOOTLOADER --target=i386-pc --recheck"
+	if $LBIOS; then
+		sh_chroot_job "${cmsg_Instalando[$LC_DEFAULT]} GRUB i386-pc ${cmsg_Em[$LC_DEFAULT]} ${AConfDisk[_BOOTLOADER]}" \
+			"grub-install ${AConfDisk[_BOOTLOADER]} --target=i386-pc --recheck"
 	fi
 	if $LEFI; then
-		sh_chroot_job "${cmsg_Instalando[$LC_DEFAULT]} GRUB EFI ${cmsg_Em[$LC_DEFAULT]} $_BOOTLOADER" \
-			"grub-install $_BOOTLOADER --target=$TARGET_EFI --efi-directory=/boot/efi --boot-directory=/boot --bootloader-id=$cnickefi --removable --recheck"
+		sh_chroot_job "${cmsg_Instalando[$LC_DEFAULT]} GRUB EFI ${cmsg_Em[$LC_DEFAULT]} ${AConfDisk[_BOOTLOADER]}" \
+			"grub-install ${AConfDisk[_BOOTLOADER]} --target=$TARGET_EFI --efi-directory=/boot/efi --boot-directory=/boot --bootloader-id=$cnickefi --removable --recheck"
 		sh_mkefiroaming
 	fi
-	if ! ((LVM)); then
+	if ! $LVM; then
 		sh_chroot_job "${cmsg_Gerando[$LC_DEFAULT]} grub.cfg ${cmsg_Em[$LC_DEFAULT]} $dir_install" "grub-mkconfig -o /boot/grub/grub.cfg"
 	fi
 }
@@ -3624,78 +3641,6 @@ confmulti() {
 	return $nchoice
 }
 
-sh_execcopia() {
-	ORIGEM="/run/rootfsbase/"
-	DESTINO="$dir_install/"
-	DEST="$dir_install"
-	PONT='|/—\' # Ponteiros de um hélice do lado direito
-	nVal=0
-
-	sizeof() { du -s "$1" 2>/dev/null | cut -f1; }
-	running() { ps "$1" | grep "$1" >/dev/null; }
-
-	TITLE="INSTALL"
-	#   INTERVALO=0.001
-	INTERVALO=0.5
-	#   PORCENTO=0
-	DIR_DESTINO="$DESTINO/${ORIGEM##*/}"
-	MSG="Aguarde, instalando... if=$ORIGEM of=$DESTINO"
-	#   MSG=$(eval echo "$MSG")
-	mensagem "Aguarde, computando arquivos para instalar"
-	#   TOTAL=$(unsquashfs -ll "$LIVE_DIR" | awk '{n+=$3} END {print n}')
-	#   TOTAL=$((TOTAL/1024))
-	#  TOTALGB=$((TOTAL/1024))
-	TOTAL=$(sizeof "$ORIGEM")
-	TOTALGB=$((TOTAL / 1024))
-	DISPONIVEL=$(df | grep "${DEST}" | awk '{print $4}' | head -1)
-	DISPONIVEL=$((DISPONIVEL / 1024))
-
-	if ((DISPONIVEL < TOTALGB)); then
-		if ! confmulti "*** WARNING ***" \
-			"\nTamanho da partição destino é menor que o necessário\n" \
-			"\nPartição destino   : ${part}" \
-			"\nTamanho disponível : ${DISPONIVEL}G" \
-			"\nTamanho necessário : ${TOTALGB}G" \
-			"\n\nSistema destino poderá não funcionar, continuar?"; then
-			#           sh_stop_bind
-			#           sh_stop_mount
-			#           sh_main_menu "$@"
-			return 1
-		fi
-	fi
-
-	log="/tmp/${_APP_}.log"
-	[ -e "$log" ] && rm -f "$log"
-
-	rsync -crav "$ORIGEM" "$DESTINO" 1>&2 >"$log" &
-	export CPPID=$!
-
-	#  trap sh_trapErro 2 15
-	#trap "kill $CPPID" 2 15
-	(
-		while running "$CPPID"; do
-			((nval >= 4)) && nval=0
-			COPIADO=$(sizeof "$DIR_DESTINO")
-			PERCENTAGEM=$((COPIADO * 100 / TOTAL))
-			COPIADOMB=$((COPIADO / 1024))
-			LASTFILE=$(tail -n1 "$log")
-			[[ "$PERCENTAGEM" -gt 100 ]] && PERCENTAGEM=100
-			${DIALOG} --colors \
-				--title $TITLE \
-				--gauge "$MSG                                       \nFalta ${RED}${REVERSE}$((100 - PERCENTAGEM))%${RESET} para completar a tarefa \Zb\Z1${PONT:nval:1}\ZB\Zn \
-                                    \n\nDestino    : ${BLUE}${REVERSE}${AConfDisk[_DEVICE]}$dir_install${RESET}
-                                    \nDisponivel : ${DISPONIVEL}MB\
-                                    \nTotal      :  ${TOTALGB}MB\
-                                    \nCopiado    :  ${BLUE}${REVERSE}${COPIADOMB}MB${RESET}\
-                                    \nArquivo    : ${LASTFILE}\
-                                    \n" 13 130 0 <<<$PERCENTAGEM
-			((nval++))
-			#           sleep $INTERVALO
-		done
-	)
-	return 0
-}
-
 sh_cp_rootfs() {
 	local lretval
 	last_msg="${cmsg_Descompactando[$LC_DEFAULT]} ISO ${cmsg_Em[$LC_DEFAULT]} $dir_install"
@@ -3710,27 +3655,6 @@ sh_cp_rootfs() {
 	rm -f $dir_install/etc/issue
 	rm -f $dir_install/etc/motd
 	return "$lretval"
-}
-
-sh_tar_rootfs() {
-	local retval
-	sh_checkTarball || return 1
-	last_msg="${cmsg_Descompactando[$LC_DEFAULT]} rootfs ${cmsg_Em[$LC_DEFAULT]} $dir_install"
-	msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
-	tar xpf "$_TARBALL_ROOTFS" --xattrs-include='*.*' --numeric-owner -C $dir_install 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
-	if [ "${PIPESTATUS[0]}" -eq 0 ]; then
-		evaluate_retval "${PIPESTATUS[0]}"
-		return "${PIPESTATUS[0]}"
-	else
-		evaluate_retval "${PIPESTATUS[0]}" "$err_not_fatal"
-		sh_umount_fs
-		if conf "${YELLOW}${_TARBALL_ROOTFS}" "${cmsg_Tarball_Corrompido[$LC_DEFAULT]}"; then
-			sh_checkIntegrityTarball || return 1
-			sh_install
-		else
-			die "${cmsg_ERRO[LC_DEFAULT]} tar #$?. ${cmsg_ErroTar[LC_DEFAULT]} $_TARBALL_ROOTFS ${cmsg_Em[LC_DEFAULT]} $dir_install"
-		fi
-	fi
 }
 
 #dom 03 mar 2024 09:35:25 -04
@@ -3749,7 +3673,7 @@ sh_touch_keys() {
 			<string>Void Linux</string>
 		</dict>
 		</plist>
-EOF
+	EOF
 
 	cat >keys/76:75:c9:75:f1:97:35:78:3c:f9:73:d4:f6:04:0b:59.plist <<-EOF
 		<?xml version="1.0" encoding="UTF-8"?>
@@ -3764,7 +3688,7 @@ EOF
 			<string>Vilmar Catafesta &lt;vcatafesta@gmail.com&gt;</string>
 		</dict>
 		</plist>
-EOF
+	EOF
 
 	cat >keys/cc:e6:28:46:ff:19:07:a2:f0:4b:14:15:4f:89:1b:bc.plist <<-EOF
 		<?xml version="1.0" encoding="UTF-8"?>
@@ -3779,7 +3703,7 @@ EOF
 			<string>Vilmar Catafesta &lt;vcatafesta@gmail.com&gt;</string>
 		</dict>
 		</plist>
-EOF
+	EOF
 }
 
 #dom 03 mar 2024 09:35:25 -04
@@ -3845,7 +3769,7 @@ sh_install() {
 			agrub+=(efibootmgr)
 		else
 			LEFI=false
-			LBIOS=$true
+			LBIOS=true
 		fi
 	fi
 
@@ -3901,10 +3825,10 @@ sh_install() {
 			sh_chroot_job "${cmsg_Configurando[$LC_DEFAULT]} locales ${cmsg_Em[$LC_DEFAULT]} $dir_install" "xbps-reconfigure --force glibc-locales"
 			sh_update_wpa_suplicant
 
-			_ONLY_TTY=$false
+			LONLY_TTY=false
 			if [[ "${#_WINDOWMANAGER[@]}" -eq 1 ]]; then
 				if [[ "${_WINDOWMANAGER}" = 'tty' ]]; then
-					_ONLY_TTY=$true
+					LONLY_TTY=true
 					:
 				else
 					sh_update_Xkeymap
@@ -3948,10 +3872,10 @@ sh_install() {
 			sh_activating_services
 			sh_chroot_job "${cmsg_RemovendoPacotesAntigosObseletos[$LC_DEFAULT]} ${cmsg_Em[$LC_DEFAULT]} $dir_install" "xbps-remove --clean-cache --remove-orphans --yes"
 			sh_chroot_job "Certificando que todos pacotes estejam configurados corretamente em $dir_install" "xbps-reconfigure --force --all"
-			#			if ((LVM)); then
+			#			if $LVM; then
 			#				sh_chroot_job "Certificando que todos pacotes estejam configurados corretamente em $dir_install" "xbps-reconfigure --force --all"
 			#			fi
-			if ((HYPRLAND)); then
+			if $HYPRLAND; then
 				sh_chroot_job "${cmsg_Instalando[$LC_DEFAULT]} User into group _seatd ${cmsg_Em[$LC_DEFAULT]} $dir_install" "usermod -aG _seatd "$user"}" "$err_not_fatal"
 			fi
 			sh_chmod_tmp
@@ -4094,18 +4018,18 @@ ${BOLD}${WHITE}Partition : ${RED}$_PART\n" 8 75
 		fi
 	done
 
-	if [[ -z "$_BOOTLOADER" || -z "$LGRUB" ]]; then
+	if [[ -z "${AConfDisk[_BOOTLOADER]}" || -z "$LGRUB" ]]; then
 		alerta "${cmsg_BootLoader[$LC_DEFAULT]^^}" "${cmsg_NotConfBootLoader[$LC_DEFAULT]}"
 		DEFITEM="${cmsg_BootLoader[$LC_DEFAULT]}"
 		return 1
 	fi
 
 	[[ "$(sh_getBootEFI)" ]] && LEFI=true || LEFI=false
-	LBIOS=$true
+	LBIOS=true
 
 	if $LEFI; then
-		if [[ "$(sh_splitarray "${AARRAY_DSK_DEVICES[$_BOOTLOADER]}" 7)" != "gpt" ]]; then
-			if ! infoconf "${cmsg_Disco[$LC_DEFAULT]}" "$(fdisk -l "$_BOOTLOADER")" \
+		if [[ "$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 7)" != "gpt" ]]; then
+			if ! infoconf "${cmsg_Disco[$LC_DEFAULT]}" "$(fdisk -l "${AConfDisk[_BOOTLOADER]}")" \
 				"${YELLOW}=== UEFI ===" "\n${BOLD}${RED}NOTICE: ${RESET}\
 The system is enabled for UEFI booting, but the chosen bootloader disk has no gpt table.\n\
 Redo the partition table in gpt or choose another disk.\n\n\
@@ -4118,13 +4042,13 @@ ${BOLD}${WHITE}Continue with installation without UEFI ?"; then
 
 	if $LEFI; then
 		for i in {0..9}; do
-			[[ "$(sh_splitarray "${AARRAY_PART_DEVICES[${_BOOTLOADER}${ext}${i}]}" 8)" = "BIOS boot" ]] && {
-				LBIOS=$true
+			[[ "$(sh_splitarray "${AARRAY_PART_DEVICES[${AConfDisk[_BOOTLOADER]}${ext}${i}]}" 8)" = "BIOS boot" ]] && {
+				LBIOS=true
 				break
-			} || LBIOS=$false
+			} || LBIOS=false
 		done
-		if ! ((LBIOS)); then # alguns device block em lvm não são detectados pelo lsblk
-			[[ -n "$(sh_splitarray "${AARRAY_PART_DEVICES[${_BOOTLOADER}${ext}1]}" 8)" ]] && LBIOS=$true
+		if ! $LBIOS; then # alguns device block em lvm não são detectados pelo lsblk
+			[[ -n "$(sh_splitarray "${AARRAY_PART_DEVICES[${AConfDisk[_BOOTLOADER]}${ext}1]}" 8)" ]] && LBIOS=true
 		fi
 	fi
 
@@ -4166,9 +4090,9 @@ Do you wish to continue install ?"; then
 					fi
 				fi
 			fi
-			if [[ "$dsk" != "$_BOOTLOADER" ]]; then
+			if [[ "$dsk" != "${AConfDisk[_BOOTLOADER]}" ]]; then
 				${DIALOG} --colors --msgbox "${BOLD}${RED}ERROR:${RESET} The bootloader disk is different from the /boot/efi disk.
-Bootloader : $_BOOTLOADER\n\
+Bootloader : ${AConfDisk[_BOOTLOADER]}\n\
 /boot/efi  : $dsk" 8 75
 				return 1
 			fi
@@ -4180,8 +4104,8 @@ Bootloader : $_BOOTLOADER\n\
 		fi
 	done
 
-	LFS=$false
-	LPARTITION=$false
+	LFS=false
+	LPARTITION=false
 	if [ "$rootfound" -eq 0 ]; then
 		${DIALOG} --colors --msgbox "${BOLD}${RED}ERRO:${RESET} o ponto de montagem do sistema de arquivos raiz (/) ainda não foi configurado." 8 75
 		return 1
@@ -4208,14 +4132,26 @@ Create it or define:\n
 		${DIALOG} --colors --msgbox "${BOLD}${RED}ERROR:${RESET} mount point for var (/var) has been configured on more than 1 partition." 8 75
 		return 1
 	fi
-	LFS=$true
-	LPARTITION=$true
+	LFS=true
+	LPARTITION=true
 	return 0
 }
 
 sh_getyes() {
 	local var="$1"
-	[[ "$var" -eq 0 ]] && { echo "${cmsg_nolabel[LC_DEFAULT]}"; } || { echo "${cmsg_yeslabel[LC_DEFAULT]}"; }
+
+	case "$var" in
+	0 | false)
+		echo "${cmsg_nolabel[LC_DEFAULT]}"
+		;;
+	1 | true)
+		echo "${cmsg_yeslabel[LC_DEFAULT]}"
+		;;
+	*)
+		# fallback defensivo (opcional)
+		echo "${cmsg_nolabel[LC_DEFAULT]}"
+		;;
+	esac
 }
 
 sh_choosePartition() {
@@ -4259,7 +4195,7 @@ sh_choosePartition() {
 		done
 		((nlen += 6))
 		part=$(${DIALOG} \
-			--default-item "$_DEVICE" \
+			--default-item "${AConfDisk[_DEVICE]}" \
 			--backtitle "$ccabec" \
 			--title "${cmsg_TitleFileSystem[LC_DEFAULT]}" \
 			--ok-label "${cmsg_Mudar[$LC_DEFAULT]}" \
@@ -4277,8 +4213,8 @@ $(printf "%${nlen}s$sep%-11s$sep%6s$sep%-15s$sep%-20s$sep%-20s$sep%-8s$sep%s" "P
 
 		case $exit_status in
 		"$D_ESC" | "$D_CANCEL")
-			LFS=$true
-			LPARTITION=$true
+			LFS=true
+			LPARTITION=true
 			return 0
 			;;
 		3)
@@ -4292,7 +4228,7 @@ $(printf "%${nlen}s$sep%-11s$sep%6s$sep%-15s$sep%-20s$sep%-20s$sep%-8s$sep%s" "P
 		oldmntpoint="$(sh_splitarray "${Amntpoint[$part]}" 1)"
 
 		if sh_choosefstype "$oldfstype"; then
-			newfstype=$_FILESYSTEM
+			newfstype=${AConfDisk[_FILESYSTEM]}
 		else
 			continue
 		fi
@@ -4359,8 +4295,8 @@ $(gettext "Você deseja criar um novo sistema de arquivos em") $part?" 8 75
 		"swap") Amkfs+=(["swap"]="mkswap") ;;
 		*)
 			Amkfs+=(["$newfstype"]="mkfs.$newfstype")
-			LFS=$true
-			LPARTITION=$true
+			LFS=true
+			LPARTITION=true
 			;;
 		esac
 		continue
@@ -4498,14 +4434,14 @@ sh_main_menu() {
 		#      menu_h=$(( win_h - 8 ))
 		#      (( menu_h < 5 )) && menu_h=5
 
-      $LMIRROR    && MENU_MIRROR="${YELLOW}[${AConfMirror[_MIRROR]}]${RST} ● "      || MENU_MIRROR="${RED}[not defined]${RST} ● "
-      $LSOURCE    && MENU_SOURCE="${YELLOW}[${AConfMirror[_SOURCE]}]${RST} ● "      || MENU_SOURCE="${RED}[not defined]${RST} ● "
-      $LDISK      && MENU_DEVICE="${YELLOW}[${_DEVICE}]${RST} ● "                   || MENU_DEVICE="${RED}[not defined]${RST} ● "
-      $LGRUB      && MENU_BOOTLOADER="${YELLOW}[${_BOOTLOADER}]${RST} ● "           || MENU_BOOTLOADER="${RED}[not defined]${RST} ● "
-      $LKEYMAP    && MENU_KEYMAP="${YELLOW}[${AConfLocale[_KEYMAP]}]${RST} ● "      || MENU_KEYMAP="${RED}[not defined]${RST} ● "
-      $LTIMEZONE  && MENU_TIMEZONE="${YELLOW}[${AConfLocale[_TIMEZONE]}]${RST} ● "  || MENU_TIMEZONE="${RED}[not defined]${RST} ● "
-      $LAUDIO     && MENU_AUDIO="${YELLOW}[${AConfAudio[_AUDIOSERVER]}]${RST} ● "   || MENU_AUDIO="${RED}[not defined]${RST} ● "
-      $LWM        && MENU_WM="${YELLOW}[${_WINDOWMANAGER[*]}]${RST} ● "             || MENU_WM="${RED}[not defined]${RST} ● "
+		$LMIRROR && MENU_MIRROR="${YELLOW}[${AConfMirror[_MIRROR]}]${RST} ● " || MENU_MIRROR="${RED}[not defined]${RST} ● "
+		$LSOURCE && MENU_SOURCE="${YELLOW}[${AConfMirror[_SOURCE]}]${RST} ● " || MENU_SOURCE="${RED}[not defined]${RST} ● "
+		$LDISK && MENU_DEVICE="${YELLOW}[${AConfDisk[_DEVICE]}]${RST} ● " || MENU_DEVICE="${RED}[not defined]${RST} ● "
+		$LGRUB && MENU_BOOTLOADER="${YELLOW}[${AConfDisk[_BOOTLOADER]}]${RST} ● " || MENU_BOOTLOADER="${RED}[not defined]${RST} ● "
+		$LKEYMAP && MENU_KEYMAP="${YELLOW}[${AConfLocale[_KEYMAP]}]${RST} ● " || MENU_KEYMAP="${RED}[not defined]${RST} ● "
+		$LTIMEZONE && MENU_TIMEZONE="${YELLOW}[${AConfLocale[_TIMEZONE]}]${RST} ● " || MENU_TIMEZONE="${RED}[not defined]${RST} ● "
+		$LAUDIO && MENU_AUDIO="${YELLOW}[${AConfAudio[_AUDIOSERVER]}]${RST} ● " || MENU_AUDIO="${RED}[not defined]${RST} ● "
+		$LWM && MENU_WM="${YELLOW}[${_WINDOWMANAGER[*]}]${RST} ● " || MENU_WM="${RED}[not defined]${RST} ● "
 
 		menu=$(${DIALOG} \
 			--backtitle "$ccabec" \
@@ -4526,7 +4462,7 @@ sh_main_menu() {
 			"Timezone" "${MENU_TIMEZONE}${cmsg_descTimezone[LC_DEFAULT]}" \
 			"Wm" "${MENU_WM}${cmsg_descWm[LC_DEFAULT]}" \
 			"Extra" "${cmsg_descExtra[LC_DEFAULT]}" \
-			"Audio"  "${MENU_AUDIO}${cmsg_DefinirAudioServer[LC_DEFAULT]}" \
+			"Audio" "${MENU_AUDIO}${cmsg_DefinirAudioServer[LC_DEFAULT]}" \
 			"${cmsg_Instalar[$LC_DEFAULT]}" "${cmsg_descInstalar[$LC_DEFAULT]}" \
 			"Fde" "Full-Disk Encryption + Lvm (optional)" \
 			"Lvm" "Logical Volume Management (optional)" \
@@ -4580,7 +4516,7 @@ sh_version() {
 		$(gettext 'Licença GPL v3+: GNU GPL versão 3 ou posterior') <https://gnu.org/licenses/gpl.html>
 		$(gettext 'Este é um software livre: você é livre para alterá-lo e redistribuí-lo.')
 		$(gettext 'NÃO HÁ QUALQUER GARANTIA, na máxima extensão permitida em lei.')${reset}
-EOF
+	EOF
 }
 
 sh_init() {
@@ -4617,15 +4553,15 @@ sh_init() {
 			;;
 		-i | -I | --install)
 			sh_checkRoot
-			LINSTALL=$true
+			LINSTALL=true
 			appexec+=('sh_main_menu')
 			;;
 		-c | -C | --chroot)
 			sh_checkRoot
-			LCHROOT=$true
+			LCHROOT=true
 			appexec+=('sh_dryrun')
 			;;
-		*) die "${cmsg_operNotSupported[LC_DEFAULT]}: $1 ($(gettext "usar -h para ajuda"))" ;;
+		*) die "${cmsg_operNotSupported[LC_DEFAULT]}: $1 $(gettext 'usar -h para ajuda')" ;;
 		esac
 		shift
 	done
@@ -4688,7 +4624,7 @@ sh_confLvm() {
 		alerta "${RED}${REVERSE}$ctitlemenu ${cmsg_TitleDisco[LC_DEFAULT]}" "${RED}${REVERSE}${cmsg_NotConfDisco[LC_DEFAULT]^^}"
 		DEFITEM="${cmsg_Disco[$LC_DEFAULT]}"
 		return 1
-	elif ! ((LPARTITION)); then
+	elif ! $LPARTITION; then
 		alerta "${RED}${REVERSE}$ctitlemenu $(gettext "=== PARTIÇÃO ===")" "${RED}${REVERSE}${cmsg_NotConfFileSystem[LC_DEFAULT]^^}"
 		DEFITEM="FileSystem"
 		return 1
@@ -4699,13 +4635,13 @@ sh_confLvm() {
 	VGs="$(vgs --noheadings)"
 	mensagem "=== PVs ===" "\n\n${BOLD}${WHITE}$(gettext "Aguarde... coletando informações sobre PVs")"
 	PVs="$(pvs --noheadings)"
-	disk="${_BOOTLOADER}|\
-$(sh_splitarray "${AARRAY_DSK_DEVICES[$_BOOTLOADER]}" "$DSK_TRAN")|\
-$(sh_splitarray "${AARRAY_DSK_DEVICES[$_BOOTLOADER]}" "$DSK_SIZE")|\
-$(sh_splitarray "${AARRAY_DSK_DEVICES[$_BOOTLOADER]}" "$DSK_PTTYPE")|\
-$(sh_splitarray "${AARRAY_DSK_DEVICES[$_BOOTLOADER]}" "$DSK_MODEL")|\
-$(sh_splitarray "${AARRAY_DSK_DEVICES[$_BOOTLOADER]}" "$DSK_LABEL")|\
-$(sh_splitarray "${AARRAY_DSK_DEVICES[$_BOOTLOADER]}" "$DSK_SERIAL")"
+	disk="${AConfDisk[_BOOTLOADER]}|\
+$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_TRAN")|\
+$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SIZE")|\
+$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_PTTYPE")|\
+$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_MODEL")|\
+$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_LABEL")|\
+$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SERIAL")"
 
 	for i in "${!Amntpoint[@]}"; do
 		_part="$i"
@@ -4724,7 +4660,10 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[$_BOOTLOADER]}" "$DSK_SERIAL")"
 	done
 
 	if [ "$rootfound" -eq 0 ]; then
-		${DIALOG} --colors --msgbox "${BOLD}${RED}ERROR:${RESET} $(gettext "o ponto de montagem para o sistema de arquivos raiz") (/) $(gettext "ainda não foi configurado.")" 8 75
+		${DIALOG} \
+			--colors \
+			--msgbox "${BOLD}${RED}ERROR:${RESET} $(gettext 'o ponto de montagem para o sistema de arquivos raiz (/) ainda não foi configurado.')" \
+			8 75
 		return 1
 	fi
 
@@ -4757,8 +4696,8 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[$_BOOTLOADER]}" "$DSK_SERIAL")"
 		exit_status=$?
 		case $exit_status in
 		"$D_ESC" | "$D_CANCEL")
-			LFDE=$false
-			LVM=$false
+			LFDE=false
+			LVM=false
 			return 1
 			;;
 		"$D_OK")
@@ -4789,8 +4728,8 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[$_BOOTLOADER]}" "$DSK_SERIAL")"
 			if grep -o -q "$_part " <<<"$PVs"; then
 				if ! conf "=== FDE/LVM - $(gettext "Partição") === " \
 					"\n$(gettext "Partição") : '$_part'\n$(gettext "Aparentemente,") $(gettext "a partição escolhida já está atribuída como PV no sistema.")\n\n${BOLD}${WHITE}$(gettext "Continuar de qualquer maneira?")\n\n"; then
-					LFDE=$false
-					LVM=$false
+					LFDE=false
+					LVM=false
 					continue
 				fi
 			fi
@@ -4798,8 +4737,8 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[$_BOOTLOADER]}" "$DSK_SERIAL")"
 			if grep -o -q "${AConfFde[vg]} " <<<"$VGs"; then
 				if ! conf "=== FDE/LVM - $(gettext "Grupo de Volume") === " \
 					"\n$(gettext "Group de Volume") : '${AConfFde[vg]}'\n$(gettext "Aparentemente,") $(gettext "o VG existe no sistema.")\n\n${BOLD}${WHITE}$(gettext "Continuar mesmo assim?")\n\n"; then
-					LFDE=$false
-					LVM=$false
+					LFDE=false
+					LVM=false
 					continue
 				fi
 			fi
@@ -4807,8 +4746,8 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[$_BOOTLOADER]}" "$DSK_SERIAL")"
 			if [[ -z "${AConfFde[vg]}" ]]; then
 				if ! conf "=== FDE/LVM - $(gettext "Grupo de Volume") === " \
 					"\nVolume Group = '${AConfFde[vg]}'\n$(gettext "O nome do grupo de volumes não pode estar vazio.")\n\n${BOLD}${WHITE}$(gettext "Novamente?")\n\n"; then
-					LFDE=$false
-					LVM=$false
+					LFDE=false
+					LVM=false
 					return 1
 				fi
 				continue
@@ -4817,8 +4756,8 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[$_BOOTLOADER]}" "$DSK_SERIAL")"
 			if [[ $maxbytespartition -lt $((byteslvroot + byteslvswap + byteslvhome + byteslvvar)) ]]; then
 				if ! conf "=== FDE/LVM - $(gettext "Volumes lógicos") === " \
 					"\n$(gettext "A soma das partições excede o tamanho total do disco.")\n\n${BOLD}${WHITE}$(gettext "Novamente?")\n\n"; then
-					LFDE=$false
-					LVM=$false
+					LFDE=false
+					LVM=false
 					return 1
 				fi
 				continue
@@ -4827,8 +4766,8 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[$_BOOTLOADER]}" "$DSK_SERIAL")"
 			if [[ -z "$lvunitroot" || "$lvunitroot" != @(K|M|G|T|%) ]]; then
 				if ! conf "=== FDE/LM - $(gettext "Volume lógico raiz") === " \
 					"\nThe logical volume root cannot be empty or minuscule in size and/or units out of scope (K|M|G|T|%)\nex: 25% [1-100]% or 10G [1-n](K|M|G|T).\n\n${BOLD}${WHITE}$(gettext "Novamente?")\n\n"; then
-					LFDE=$false
-					LVM=$false
+					LFDE=false
+					LVM=false
 					return 1
 				fi
 				continue
@@ -4837,8 +4776,8 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[$_BOOTLOADER]}" "$DSK_SERIAL")"
 			if [[ -n "$lvunitswap" && "$lvunitswap" != @(K|M|G|T|%) ]]; then
 				if ! conf "=== FDE/LVM - $("Volume lógico") swap === " \
 					"\nThe logical volume swap cannot be empty or minuscule in size and/or units out of scope (K|M|G|T|%)\nex: 25% [1-100]% or 10G [1-n](K|M|G|T).\n\n${BOLD}${WHITE}$(gettext "Novamente?")\n\n"; then
-					LFDE=$false
-					LVM=$false
+					LFDE=false
+					LVM=false
 					return 1
 				fi
 				continue
@@ -4847,8 +4786,8 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[$_BOOTLOADER]}" "$DSK_SERIAL")"
 			if [[ -n "$lvunithome" && "$lvunithome" != @(K|M|G|T|%) ]]; then
 				if ! conf "=== FDE/LVM - $("Volume lógico") swap === " \
 					"\nThe logical volume swap cannot be empty or minuscule in size and/or units out of scope (K|M|G|T|%)\nex: 25% [1-100]% or 10G [1-n](K|M|G|T).\n\n${BOLD}${WHITE}$(gettext "Novamente?")\n\n"; then
-					LFDE=$false
-					LVM=$false
+					LFDE=false
+					LVM=false
 					return 1
 				fi
 				continue
@@ -4857,8 +4796,8 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[$_BOOTLOADER]}" "$DSK_SERIAL")"
 			if [[ -n "$lvunitvar" && "$lvunitvar" != @(K|M|G|T|%) ]]; then
 				if ! conf "=== FDE/LVM - $("Volume lógico") var === " \
 					"\nThe logical volume var cannot be empty or minuscule in size and/or units out of scope (K|M|G|T|%)\nex: 25% [1-100]% or 10G [1-n](K|M|G|T).\n\n${BOLD}${WHITE}$(gettext "Novamente?")\n\n"; then
-					LFDE=$false
-					LVM=$false
+					LFDE=false
+					LVM=false
 					return 1
 				fi
 				continue
@@ -4867,8 +4806,8 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[$_BOOTLOADER]}" "$DSK_SERIAL")"
 			if [[ -z "${AConfFde[passphrase]}" || "${AConfFde[passphrase]}" != "${AConfFde[verifypassphrase]}" ]]; then
 				if ! conf "=== FDE/LVM - $(gettext "Senha") === " \
 					"\nPassphrases do not match and also not be empty.\n\n${BOLD}${WHITE}$(gettext "Novamente?")\n\n"; then
-					LFDE=$false
-					LVM=$false
+					LFDE=false
+					LVM=false
 					return 1
 				fi
 				continue
@@ -4886,11 +4825,11 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[$_BOOTLOADER]}" "$DSK_SERIAL")"
 		esac
 		exec 3>&-
 		if ((LCONFIGFDE)); then
-			LFDE=$true
-			LVM=$true
+			LFDE=true
+			LVM=true
 		else
-			LFDE=$false
-			LVM=$true
+			LFDE=false
+			LVM=true
 		fi
 		return 0
 	done
@@ -4925,11 +4864,11 @@ sh_make_fsLvm() {
 	local lvunit
 	local aLVs=()
 
-	if ((LFDE)); then
+	if $LFDE; then
 		sh_make_fsFde
 	fi
 
-	if ((LFDE)); then
+	if $LFDE; then
 		:
 	else
 		last_msg="Criando a unidade fisica LVM: ${AConfFde[vg]}"
@@ -4941,7 +4880,7 @@ sh_make_fsLvm() {
 	last_msg="Criando o grupo de volumes LVM: ${AConfFde[vg]}"
 	msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
 
-	if ((LFDE)); then
+	if $LFDE; then
 		vgcreate -ff "${AConfFde[vg]}" "/dev/mapper/${AConfFde[vg]}" 2>&1 | tee -i -a "$BOOTLOG" >"$LOGGER"
 	else
 		vgcreate -ff "${AConfFde[vg]}" "${AConfFde[partition]}" 2>&1 | tee -i -a "$BOOTLOG" >"$LOGGER"
@@ -5126,6 +5065,7 @@ sh_setLanguage() {
 	cmsg_ERRO[pt_BR]=$(gettext "ERRO")
 	cmsg_Aceitar[pt_BR]=$(gettext "Aceitar")
 	cmsg_Configurar[pt_BR]=$(gettext "Configurar")
+	cmsg_Particionar[pt_BR]=$(gettext "Particionar")
 	cmsg_Mudar[pt_BR]=$(gettext "Mudar")
 	cmsg_Sair[pt_BR]=$(gettext "Sair")
 	cmsg_Instalar[pt_BR]=$(gettext "Instalar")
@@ -5262,20 +5202,116 @@ sh_setLanguage() {
 	cmsg_DefinirAudioServer[pt_BR]=$(gettext "Definir servidor de audio")
 }
 
+sh_tar_rootfs() {
+	sh_checkTarball || return 1
+	last_msg="${cmsg_Descompactando[$LC_DEFAULT]} rootfs ${cmsg_Em[$LC_DEFAULT]} $dir_install"
+	msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
+	tar xpf "$_TARBALL_ROOTFS" --xattrs-include='*.*' --numeric-owner -C $dir_install 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
+	ret="${PIPESTATUS[0]}"
+	if [[ "$ret" -eq 0 ]]; then
+		evaluate_retval "$ret"
+		return "$ret"
+	else
+		evaluate_retval "$ret" "$err_not_fatal"
+		sh_umount_fs
+		if conf "${YELLOW}${_TARBALL_ROOTFS}" "${cmsg_Tarball_Corrompido[LC_DEFAULT]}"; then
+			sh_checkIntegrityTarball || return 1
+			sh_install
+		else
+			die "${cmsg_ERRO[LC_DEFAULT]} tar '#'$ret. ${cmsg_ErroTar[LC_DEFAULT]} $_TARBALL_ROOTFS ${cmsg_Em[LC_DEFAULT]} $dir_install"
+		fi
+	fi
+}
+
+sh_execcopia() {
+	ORIGEM="/run/rootfsbase/"
+	DESTINO="$dir_install/"
+	DEST="$dir_install"
+	PONT='|/—\' # Ponteiros de um hélice do lado direito
+	nVal=0
+
+	sizeof() { du -s "$1" 2>/dev/null | cut -f1; }
+	running() { ps "$1" | grep "$1" >/dev/null; }
+
+	TITLE="INSTALL"
+	#   INTERVALO=0.001
+	INTERVALO=0.5
+	#   PORCENTO=0
+	DIR_DESTINO="$DESTINO/${ORIGEM##*/}"
+	MSG="Aguarde, instalando... if=$ORIGEM of=$DESTINO"
+	#   MSG=$(eval echo "$MSG")
+	mensagem "Aguarde, computando arquivos para instalar"
+	#   TOTAL=$(unsquashfs -ll "$LIVE_DIR" | awk '{n+=$3} END {print n}')
+	#   TOTAL=$((TOTAL/1024))
+	#  TOTALGB=$((TOTAL/1024))
+	TOTAL=$(sizeof "$ORIGEM")
+	TOTALGB=$((TOTAL / 1024))
+	DISPONIVEL=$(df | grep "${DEST}" | awk '{print $4}' | head -1)
+	DISPONIVEL=$((DISPONIVEL / 1024))
+
+	if ((DISPONIVEL < TOTALGB)); then
+		if ! confmulti "*** WARNING ***" \
+			"\nTamanho da partição destino é menor que o necessário\n" \
+			"\nPartição destino   : ${part}" \
+			"\nTamanho disponível : ${DISPONIVEL}G" \
+			"\nTamanho necessário : ${TOTALGB}G" \
+			"\n\nSistema destino poderá não funcionar, continuar?"; then
+			#           sh_stop_bind
+			#           sh_stop_mount
+			#           sh_main_menu "$@"
+			return 1
+		fi
+	fi
+
+	log="/tmp/${_APP_}.log"
+	[ -e "$log" ] && rm -f "$log"
+
+	rsync -crav "$ORIGEM" "$DESTINO" 1>&2 >"$log" &
+	export CPPID=$!
+
+	#  trap sh_trapErro 2 15
+	#trap "kill $CPPID" 2 15
+	(
+		while running "$CPPID"; do
+			((nval >= 4)) && nval=0
+			COPIADO=$(sizeof "$DIR_DESTINO")
+			PERCENTAGEM=$((COPIADO * 100 / TOTAL))
+			COPIADOMB=$((COPIADO / 1024))
+			LASTFILE=$(tail -n1 "$log")
+			[[ "$PERCENTAGEM" -gt 100 ]] && PERCENTAGEM=100
+			${DIALOG} --colors \
+				--title $TITLE \
+				--gauge "$MSG                                       \nFalta ${RED}${REVERSE}$((100 - PERCENTAGEM))%${RESET} para completar a tarefa \Zb\Z1${PONT:nval:1}\ZB\Zn \
+                                    \n\nDestino    : ${BLUE}${REVERSE}${AConfDisk[_DEVICE]}$dir_install${RESET}
+                                    \nDisponivel : ${DISPONIVEL}MB\
+                                    \nTotal      :  ${TOTALGB}MB\
+                                    \nCopiado    :  ${BLUE}${REVERSE}${COPIADOMB}MB${RESET}\
+                                    \nArquivo    : ${LASTFILE}\
+                                    \n" 13 130 0 <<<$PERCENTAGEM
+			((nval++))
+			#           sleep $INTERVALO
+		done
+	)
+	return 0
+}
+
 sh_setEnvironment
 sh_getLocale
 sh_setLanguage
 sh_setVarColors
 sh_setAsciiLines
 sh_setLogPrefix
-[[ "$1" = @(-V|--version) ]] && {
-	sh_version
-	exit $(($# ? 0 : 1))
+
+[[ "${1-}" = @(-V|--version) ]] && {
+   sh_version
+   exit $(($# ? 0 : 1))
 }
-[[ -z "$1" || "$1" = @(-h|--help) ]] && {
-	sh_usage
-	exit $(($# ? 0 : 1))
+
+[[ -z "${1-}" || "${1-}" = @(-h|--help) ]] && {
+   sh_usage
+   exit $(($# ? 0 : 1))
 }
+
 sh_checkDependencies
 sh_checkDisplay
 #sh_update_self "$@"
@@ -5284,10 +5320,14 @@ sh_disablePrintk
 sh_init "$@"
 
 # sanity checks
-case $((LINSTALL + LCHROOT)) in
-0) die "${cmsg_Operacao[$LC_DEFAULT]}" ;;
-[^1]) die "${cmsg_OneOperacao[$LC_DEFAULT]}" ;;
-esac
+if ! $LINSTALL && ! $LCHROOT; then
+	die "${cmsg_Operacao[$LC_DEFAULT]}"
+fi
+
+if $LINSTALL && $LCHROOT; then
+	die "${cmsg_OneOperacao[$LC_DEFAULT]}"
+fi
+
 sh_setMknodTty
 #sh_menu_language "$@"
 for x in "${appexec[@]}"; do $x; done
