@@ -2878,6 +2878,7 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 			return 0
 			;;
 		"$D_CONFIG")
+         sh_checkdisk "${AConfDisk[_DEVICE]}"
 			sh_menuUtilDisk
 			continue
 			;;
@@ -2960,12 +2961,25 @@ sh_checkdisk() {
 
 	last_msg="${cmsg_ChecandoParticoesMontadas[$LC_DEFAULT]}: $device"
 	msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
-	dsk=$(df -h | grep "$device" | awk '{print $1, $2, $3, $4, $5, $6, $7}')
 
+   if [[ "$device" == /dev/zram* ]]; then
+		if ! conf "=== CHECKDISK ===" "\n${BOLD}${RED}ERRO:${RESET} o device: '$device' tem partições montadas.Desmontar ?\n\n"; then
+         evaluate_retval "$err_fatal" "$err_fatal" "zram ativo (swap): $device"
+         return 1
+      fi
+      swapoff "$device" 2>/dev/null || {
+         evaluate_retval "$err_fatal" "$err_fatal" "falha ao desativar zram: $device"
+         return 1
+      }
+      return 0
+   fi
+
+	dsk=$(df -h | grep "$device" | awk '{print $1, $2, $3, $4, $5, $6, $7}')
 	if [[ -n "$dsk" ]]; then
 		evaluate_retval "$err_fatal" "$err_fatal" "${cmsg_all_mounted_part[$LC_DEFAULT]}: $dsk"
 		return 1
 	fi
+
 	return 0
 }
 
