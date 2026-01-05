@@ -46,7 +46,7 @@ reset=$(tput sgr0)
 #export PS4='${red}${0##*/}${green}[$FUNCNAME]${pink}[$LINENO]${reset} '
 export PS4='${red}${0##*/}${green}[${FUNCNAME[0]:-MAIN}]${pink}[$LINENO]${reset} '
 #set -x
-set -eo pipefail
+#set -eo pipefail
 shopt -s extglob
 
 #system
@@ -78,6 +78,8 @@ declare HYPRLAND=false
 declare LVM=false
 declare LFDE=false
 declare LONLY_TTY=true
+declare LVALIDATE_FS=false
+#
 declare -ga _PKGS=''
 declare -ga _EXTRAS=''
 declare DEFITEM=''
@@ -1238,12 +1240,12 @@ sh_mkparted() {
 			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}$cpart"]="/|ext4|1")
 		fi
 		CSCRIPT+='align-check optimal 1'
-		CSCRIPT+='align-check optimal 2'
-		CSCRIPT+='align-check optimal 3'
+#		CSCRIPT+='align-check optimal 2'
+#		CSCRIPT+='align-check optimal 3'
 
-		if $withswap; then
-			CSCRIPT+='align-check optimal 4'
-		fi
+#		if $withswap; then
+#			CSCRIPT+='align-check optimal 4'
+#		fi
 
 		parted --script "${AConfDisk[_DEVICE]}" -- "$CSCRIPT" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 		evaluate_retval "${PIPESTATUS[0]}"
@@ -4134,6 +4136,7 @@ Create it or define:\n
 	fi
 	LFS=true
 	LPARTITION=true
+	LVALIDATE_FS=true
 	return 0
 }
 
@@ -4442,6 +4445,7 @@ sh_main_menu() {
 		$LTIMEZONE && MENU_TIMEZONE="${YELLOW}[${AConfLocale[_TIMEZONE]}]${RST} ● " || MENU_TIMEZONE="${RED}[not defined]${RST} ● "
 		$LAUDIO && MENU_AUDIO="${YELLOW}[${AConfAudio[_AUDIOSERVER]}]${RST} ● " || MENU_AUDIO="${RED}[not defined]${RST} ● "
 		$LWM && MENU_WM="${YELLOW}[${_WINDOWMANAGER[*]}]${RST} ● " || MENU_WM="${RED}[not defined]${RST} ● "
+		$LVALIDATE_FS && MENU_WM="${YELLOW}[OK]${RST} ● " || MENU_WM="${RED}[not defined]${RST} ● "
 
 		menu=$(${DIALOG} \
 			--backtitle "$ccabec" \
