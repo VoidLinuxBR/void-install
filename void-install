@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: dom 04 jan 2026 07:19:54 -04
+#  Updated: ter 06 jan 2026 07:19:45 -04
 #
 #  Copyright (c) 2022-2025, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -51,7 +51,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.01.04-20260104'
+readonly _VERSION_='3.01.06-20260106'
 readonly distro=$(uname -n)
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 #                      cfdisk gdisk  efivar mkfs.ext2 mkfs.ext3 mkfs.ext4 mkfs.btrfs mkfs.xfs mkfs.f2fs mkfs.jfs mkfs.reiserfs)
@@ -78,7 +78,7 @@ declare HYPRLAND=false
 declare LVM=false
 declare LFDE=false
 declare LONLY_TTY=true
-declare LVALIDATE_FS=false
+declare LEXTRA=false
 #
 declare -ga _PKGS=''
 declare -ga _EXTRAS=''
@@ -87,9 +87,9 @@ declare DEFITEM=''
 declare -gi ncounter=0 njobs=73
 declare -gi quiet=0 grafico=0
 declare -gA AsUser=([cpass]='voidlinux' [cpassroot]='voidlinux' [chostname]='voidlinux' [cgroups]='wheel,audio,video,floppy,cdrom,optical,kvm,xbuilder')
+declare -gA Amkfs
 declare -gA Amntpoint
 declare -gA AmntpointFDE
-declare -gA Amkfs
 declare -gA AARRAY_DSK_DEVICES
 declare -gA AARRAY_PART_DEVICES
 declare -gA AARRAY_VG_DEVICES
@@ -513,6 +513,7 @@ sh_touchConf() {
 		declare -p LEFI
 		declare -p LGRUB
 		declare -p LBIOS
+		declare -p LMKPARTED
 		declare -p _WIFI_NETWORK
 		declare -p _WIFI_PASSWORD
 		declare -p _WINDOWMANAGER
@@ -1171,9 +1172,9 @@ sh_mkparted() {
 		fi
 	fi
 
-	if $LMKPARTED; then
-		return 0
-	fi
+#	if $LMKPARTED; then
+#		return 0
+#	fi
 
 	if ! ((grafico)); then
 		if readconf "${red}${cmsg_ContinuarParticionamento[$LC_DEFAULT]} ${yellow}${AConfDisk[_DEVICE]} ${reset}?"; then
@@ -2402,7 +2403,7 @@ sh_choosefstype() {
 		--cancel-label "${cmsg_ButtonBack[$LC_DEFAULT]}" \
 		--ok-label "${cmsg_Aceitar[$LC_DEFAULT]}" \
 		--radiolist "${cmsg_MENU[$LC_DEFAULT]}\n\n$cextra" \
-		12 70 0 "${array[@]}" 2>&1 >/dev/tty)
+		24 0 2 "${array[@]}" 2>&1 >/dev/tty)
 
 	exit_status=$?
 	case $exit_status in
@@ -2411,7 +2412,7 @@ sh_choosefstype() {
 		;;
 	esac
 	LFS=true
-	AConfDisk[_FILESYSTEM]=$mkfs
+	AConfDisk[_FILESYSTEM]="$mkfs"
 	return 0
 }
 
@@ -2775,13 +2776,22 @@ ${BOLD}MODEL   : ${RESET}${RED}$MODEL_ORIGEM${RESET}\n" \
 
 sh_getNvme() {
 	local tran
-	tran="$(sh_splitarray "${AARRAY_DSK_DEVICES[$_DEVICE]}" 3)"
-	case "$tran" in
-	nvme) echo 'p' ;;
-	loop) echo 'p' ;;
-	lvm) echo '' ;;
-	*) echo '' ;;
-	esac
+	local name
+
+   name="$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_DEVICE]}]}" $DSK_NAME)"
+   tran="$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_DEVICE]}]}" $DSK_TRAN)"
+
+   case "$tran" in
+      nvme|loop)  echo 'p' ;;
+      lvm)        echo '' ;;
+      *)
+         case "$name" in
+            zram*) echo 'p' ;;
+            nbd*)  echo 'p' ;;
+            *) echo ''  ;;
+         esac
+         ;;
+   esac
 }
 
 sh_getlgrub() {
@@ -2794,6 +2804,8 @@ sh_getlgrub() {
 }
 
 sh_chooseDisk() {
+   local old_device= "${AConfDisk[_DEVICE]}"
+
 	sh_umount_fs
 	while true; do
 		sh_disk_part_info
@@ -2834,7 +2846,7 @@ sh_chooseDisk() {
 			--default-item "${AConfDisk[_DEVICE]}" \
 			--backtitle "$ccabec" \
 			--title "$xtitle" \
-			--ok-label "${cmsg_ButtonFeito[$LC_DEFAULT]}" \
+			--ok-label "${cmsg_ButtonEscolher[$LC_DEFAULT]}" \
 			--cancel-label "${cmsg_ButtonBack[$LC_DEFAULT]}" \
 			--colors \
 			--extra-button \
@@ -2852,29 +2864,35 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 
 		if [[ -n "$sd" ]]; then
 			AConfDisk[_DEVICE]="$sd"
+			AConfDisk[_BOOTLOADER]="$sd"
 			index=$(sh_seekstrarray "${ARRAY_DSK_DEVICES[*]}" "${AConfDisk[_DEVICE]}")
 			NAME_ORIGEM="$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_DEVICE]}]}" "$DSK_NAME")"
 			MODEL_ORIGEM="$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_DEVICE]}]}" "$DSK_MODEL")"
 			SIZE_ORIGEM="$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_DEVICE]}]}" "$DSK_SIZE")"
 			TRAN_ORIGEM="$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_DEVICE]}]}" "$DSK_TRAN")"
+			LDISK=true
 
 			if ((LCHOOSEBOOTLOADER)); then
 				AConfDisk[_BOOTLOADER]="${AConfDisk[_DEVICE]}"
 				LGRUB=true
 				LOSPROBER=false
-				LDISK=true
 				return 0
 			fi
 		fi
 
 		case $exit_status in
 		"$D_OK")
-			sh_checkdisk "${AConfDisk[_DEVICE]}"
-			sh_backup_partitions "${AConfDisk[_DEVICE]}" "$NAME_ORIGEM"
-			AConfDisk[_BOOTLOADER]="${AConfDisk[_DEVICE]}"
+			AConfDisk[_DEVICE]="$sd"
+			AConfDisk[_BOOTLOADER]="$sd"
+			sh_checkdisk "$sd"
+			sh_backup_partitions "$sd" "$NAME_ORIGEM"
+			LDISK=true
 			LGRUB=true
 			LOSPROBER=false
-			LDISK=true
+
+         if [[ "$old_device" != "$sd" ]]; then
+            sh_rebuild_amntpoint_for_new_disk
+         fi
 			return 0
 			;;
 		"$D_CONFIG")
@@ -2963,24 +2981,46 @@ sh_checkdisk() {
 	msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
 
    if [[ "$device" == /dev/zram* ]]; then
-		if ! conf "=== CHECKDISK ===" "\n${BOLD}${RED}ERRO:${RESET} o device: '$device' tem partições montadas.Desmontar ?\n\n"; then
-         evaluate_retval "$err_fatal" "$err_fatal" "zram ativo (swap): $device"
-         return 1
+      if grep -qw "$device" /proc/swaps; then
+         if ! conf "=== CHECKDISK ===" "\n${BOLD}${RED}ERRO:${RESET} o device: '$device' está ativo como swap (zram). Desativar?\n\n"; then
+            evaluate_retval "$err_fatal" "$err_fatal" "zram ativo (swap): $device"
+            return 1
+         fi
+         swapoff "$device" 2>/dev/null || {
+            evaluate_retval "$err_fatal" "$err_fatal" "falha ao desativar zram: $device"
+            return 1
+         }
       fi
-      swapoff "$device" 2>/dev/null || {
-         evaluate_retval "$err_fatal" "$err_fatal" "falha ao desativar zram: $device"
-         return 1
-      }
       return 0
    fi
 
-	dsk=$(df -h | grep "$device" | awk '{print $1, $2, $3, $4, $5, $6, $7}')
-	if [[ -n "$dsk" ]]; then
-		evaluate_retval "$err_fatal" "$err_fatal" "${cmsg_all_mounted_part[$LC_DEFAULT]}: $dsk"
-		return 1
-	fi
-
-	return 0
+   # desmonta qualquer partição do device (loop, sdX, nvme, nbd, etc) usando findmnt corretamente (SOURCE -> TARGET)
+   # coleta todos os mountpoints das partições do device
+   mnts="$(findmnt -rn -o TARGET,SOURCE | awk -v d="$device" '$2 ~ "^"d {print $1}')"
+   if [[ -n "$mnts" ]]; then
+      if ! conf "=== CHECKDISK ===" "\n${BOLD}${RED}ERRO:${RESET} o device: '$device' tem partições montadas! Desmontar?\n\n"; then
+         evaluate_retval "$err_fatal" "$err_fatal" \
+            "${cmsg_all_mounted_part[$LC_DEFAULT]}: $mnts"
+         return 1
+      fi
+      # desmonta em ordem reversa (filho -> pai)
+      while read -r mp; do
+         umount "$mp" 2>/dev/null || {
+            evaluate_retval "$err_fatal" "$err_fatal" "falha ao desmontar $mp"
+            return 1
+         }
+      done <<< "$(printf '%s\n' "$mnts" | sort -r)"
+   fi
+   # desativa swap do device (swap não aparece no findmnt)
+   while read -r sw; do
+      swapoff "$sw" 2>/dev/null || {
+         evaluate_retval "$err_fatal" "$err_fatal" "falha ao desativar swap: $sw"
+         return 1
+      }
+   done < <(
+      swapon --noheadings --raw | awk -v d="$device" '$1 ~ "^"d {print $1}'
+   )
+   return 0
 }
 
 sh_confadduser() {
@@ -3075,7 +3115,7 @@ sh_confadduser() {
 				fi
 				sh_confadduser
 			fi
-			LEXTRA=$true
+			LEXTRA=true
 			;;
 		esac
 		exec 3>&-
@@ -3239,15 +3279,15 @@ sh_parseconf() {
 	msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
 
 	url_mirror="${AConfMirror[url_mirror]}"
-	[[ -n "${AsUser[cuser]}" && -n "${AsUser[cpass]}" && -n "${AsUser[cpassroot]}" && -n "${AsUser[chostname]}" ]] && LEXTRA=$true
+	[[ -n "${AsUser[cuser]}" && -n "${AsUser[cpass]}" && -n "${AsUser[cpassroot]}" && -n "${AsUser[chostname]}" ]] && LEXTRA=true
 	[[ -n "${AConfLocale[_TIMEZONE]}" ]] && LTIMEZONE=true
 	[[ -n "${AConfLocale[_KEYMAP]}" ]] && LKEYMAP=true
 	[[ -n "${AConfMirror[_MIRROR]}" && -n "$url_mirror" ]] && LMIRROR=true
 	[[ -n "${AConfMirror[_SOURCE]}" ]] && LSOURCE=true
 	[[ -n "${AConfAudio[_AUDIOSERVER]}" ]] && LAUDIO=true
 	[[ -n "${Amntpoint[*]}" ]] && LPARTITION=true
-	[[ -n "${AConfDisk[_DEVICE]}" ]] && LDISK=true
-	[[ -n "${AConfDisk[_BOOTLOADER]}" ]] && LGRUB=true
+#	[[ -n "${AConfDisk[_DEVICE]}" ]] && LDISK=true
+#	[[ -n "${AConfDisk[_BOOTLOADER]}" ]] && LGRUB=true
 	[[ -n ${_WINDOWMANAGER[*]} ]] && LWM=true
 }
 
@@ -3585,7 +3625,7 @@ sh_checkInstall() {
 		#		alerta "WIFI" "${cmsg_NotConfWifi[$LC_DEFAULT]}"
 		#		DEFITEM="Wifi"
 		#		return 1
-	elif [ -z "$LEXTRA" ]; then
+	elif ! $LEXTRA; then
 		alerta "EXTRA" "${cmsg_NotConfExtra[$LC_DEFAULT]}"
 		DEFITEM="Extra"
 		return 1
@@ -4150,7 +4190,6 @@ Create it or define:\n
 	fi
 	LFS=true
 	LPARTITION=true
-	LVALIDATE_FS=true
 	return 0
 }
 
@@ -4198,7 +4237,7 @@ sh_choosePartition() {
 				nlen=${#i}
 			fi
 			array[n++]=$(
-				printf "$sep%-11s$sep%6s$sep%-15s$sep%-20s$sep%-20s$sep%-9s$sep%-6s" \
+				printf "$sep%-11s$sep%6s$sep%-20s$sep%-20s$sep%-20s$sep%-9s$sep%-6s" \
 					"${ARRAY_PART_FSTYPE[$nc]}" \
 					"${ARRAY_PART_SIZE[$nc]}" \
 					"${ARRAY_PART_LABEL[$nc]}" \
@@ -4221,8 +4260,16 @@ sh_choosePartition() {
 			--extra-button \
 			--extra-label "${cmsg_info_particao[$LC_DEFAULT]}" \
 			--menu "${cmsg_MENU[$LC_DEFAULT]}\n\n\
-$(printf "%${nlen}s$sep%-11s$sep%6s$sep%-15s$sep%-20s$sep%-20s$sep%-8s$sep%s" "PARTITION" "FSTYPE" "SIZE" "LABEL" "TYPENAME" "MOUNTPOINT" "NEWFSTYPE" "FORMAT?")" \
-			0 0 25 "${array[@]}" 2>&1 >/dev/tty)
+$(printf "%${nlen}s$sep%-11s$sep%6s$sep%-20s$sep%-20s$sep%-20s$sep%-8s$sep%s" \
+         "PARTITION" \
+         "FSTYPE" \
+         "SIZE" \
+         "LABEL" \
+         "TYPENAME" \
+         "MOUNTPOINT" \
+         "NEWFSTYPE" \
+         "FORMAT?")" \
+			24 0 2 "${array[@]}" 2>&1 >/dev/tty)
 
 		exit_status=$?
 		#    	dsk="${part%%?(p)+([0-9])}"
@@ -4445,21 +4492,18 @@ sh_main_menu() {
 		if [ -z "$DEFITEM" ]; then
 			DEFITEM="${cmsg_Mirror[$LC_DEFAULT]}"
 		fi
-		#      read -r term_h term_w < <(stty size)
-		#      win_h=$(( term_h * 80 / 100 ))
-		#      win_w=$(( term_w * 60 / 100 ))
-		#      menu_h=$(( win_h - 8 ))
-		#      (( menu_h < 5 )) && menu_h=5
 
 		$LMIRROR && MENU_MIRROR="${YELLOW}[${AConfMirror[_MIRROR]}]${RST} ● " || MENU_MIRROR="${RED}[not defined]${RST} ● "
 		$LSOURCE && MENU_SOURCE="${YELLOW}[${AConfMirror[_SOURCE]}]${RST} ● " || MENU_SOURCE="${RED}[not defined]${RST} ● "
 		$LDISK && MENU_DEVICE="${YELLOW}[${AConfDisk[_DEVICE]}]${RST} ● " || MENU_DEVICE="${RED}[not defined]${RST} ● "
+
 		$LGRUB && MENU_BOOTLOADER="${YELLOW}[${AConfDisk[_BOOTLOADER]}]${RST} ● " || MENU_BOOTLOADER="${RED}[not defined]${RST} ● "
+		$LMKPARTED && MENU_FS="${YELLOW}[OK]${RST} ● " || MENU_FS="${RED}[not defined]${RST} ● "
 		$LKEYMAP && MENU_KEYMAP="${YELLOW}[${AConfLocale[_KEYMAP]}]${RST} ● " || MENU_KEYMAP="${RED}[not defined]${RST} ● "
 		$LTIMEZONE && MENU_TIMEZONE="${YELLOW}[${AConfLocale[_TIMEZONE]}]${RST} ● " || MENU_TIMEZONE="${RED}[not defined]${RST} ● "
 		$LAUDIO && MENU_AUDIO="${YELLOW}[${AConfAudio[_AUDIOSERVER]}]${RST} ● " || MENU_AUDIO="${RED}[not defined]${RST} ● "
 		$LWM && MENU_WM="${YELLOW}[${_WINDOWMANAGER[*]}]${RST} ● " || MENU_WM="${RED}[not defined]${RST} ● "
-		$LVALIDATE_FS && MENU_WM="${YELLOW}[OK]${RST} ● " || MENU_WM="${RED}[not defined]${RST} ● "
+		$LEXTRA && MENU_EXTRA="${YELLOW}[OK]${RST} ● " || MENU_EXTRA="${RED}[not defined]${RST} ● "
 
 		menu=$(${DIALOG} \
 			--backtitle "$ccabec" \
@@ -4470,16 +4514,17 @@ sh_main_menu() {
 			--cancel-label "${cmsg_Sair[$LC_DEFAULT]}" \
 			--extra-button --extra-label "${cmsg_Definicoes[$LC_DEFAULT]}" \
 			--title "$APP - ${cmsg_MenuInstalacao[$LC_DEFAULT]} $(sh_getparamfile)" \
-			--menu "${RESET}${cmsg_MENU[$LC_DEFAULT]}" 24 100 2 \
+			--menu "${RESET}${cmsg_MENU[$LC_DEFAULT]}" \
+			24 100 2 \
 			"${cmsg_Mirror[$LC_DEFAULT]}" "${MENU_MIRROR}${cmsg_descMirror[LC_DEFAULT]}" \
 			"${cmsg_Source[$LC_DEFAULT]}" "${MENU_SOURCE}${cmsg_DefinirInstalacaoDeOrigem[LC_DEFAULT]}" \
 			"${cmsg_Disco[$LC_DEFAULT]}" "${MENU_DEVICE}${cmsg_descDisco[LC_DEFAULT]}" \
 			"${cmsg_BootLoader[$LC_DEFAULT]}" "${MENU_BOOTLOADER}${cmsg_descBootLoader[LC_DEFAULT]}" \
-			"FileSystem" "${cmsg_descFileSystem[LC_DEFAULT]}" \
+			"FileSystem" "${MENU_FS}${cmsg_descFileSystem[LC_DEFAULT]}" \
 			"${cmsg_Teclado[$LC_DEFAULT]}" "${MENU_KEYMAP}${cmsg_descTeclado[LC_DEFAULT]}" \
 			"Timezone" "${MENU_TIMEZONE}${cmsg_descTimezone[LC_DEFAULT]}" \
 			"Wm" "${MENU_WM}${cmsg_descWm[LC_DEFAULT]}" \
-			"Extra" "${cmsg_descExtra[LC_DEFAULT]}" \
+			"Extra" "${MENU_EXTRA}${cmsg_descExtra[LC_DEFAULT]}" \
 			"Audio" "${MENU_AUDIO}${cmsg_DefinirAudioServer[LC_DEFAULT]}" \
 			"${cmsg_Instalar[$LC_DEFAULT]}" "${cmsg_descInstalar[$LC_DEFAULT]}" \
 			"Fde" "Full-Disk Encryption + Lvm (optional)" \
@@ -4907,7 +4952,6 @@ sh_make_fsLvm() {
 
 	#order required for creation due to issue of 100%
 	aLVs=("/dev/${AConfFde[vg]}/root" "/dev/${AConfFde[vg]}/swap" "/dev/${AConfFde[vg]}/var" "/dev/${AConfFde[vg]}/home")
-	#	for i in "${!AmntpointFDE[@]}"; do
 	for i in "${aLVs[@]}"; do
 		_part="$i"
 		label="$(sh_splitarray "${AmntpointFDE[$i]}" 1)"
@@ -5088,7 +5132,7 @@ sh_setLanguage() {
 	cmsg_Sair[pt_BR]=$(gettext "Sair")
 	cmsg_Instalar[pt_BR]=$(gettext "Instalar")
 	cmsg_Mirror[pt_BR]=$(gettext "Espelho")
-	cmsg_BootLoader[pt_BR]=$(gettext "Carregador de Inicialização (GRUB)")
+	cmsg_BootLoader[pt_BR]=$(gettext "Bootloader (GRUB)")
 	cmsg_FileSystem[pt_BR]=$(gettext "Sistema de Arquivos")
 	cmsg_Disco[pt_BR]=$(gettext "Disco")
 	cmsg_Teclado[pt_BR]=$(gettext "Teclado")
@@ -5113,6 +5157,7 @@ sh_setLanguage() {
 	cmsg_operNotSupported[pt_BR]=$(gettext "erro: operação não suportada")
 	cmsg_ButtonBack[pt_BR]=$(gettext "Voltar")
 	cmsg_ButtonFeito[pt_BR]=$(gettext "Feito")
+	cmsg_ButtonEscolher[pt_BR]=$(gettext "Escolher")
 	cmsg_info_disco[pt_BR]=$(gettext "Info disco")
 	cmsg_info_particao[pt_BR]=$(gettext "Info partição")
 	cmsg_ok[pt_BR]=$(gettext "Ok")
@@ -5313,6 +5358,133 @@ sh_execcopia() {
 	return 0
 }
 
+sh_populate_mountpoints() {
+   local parent="${AConfDisk[_DEVICE]}"
+   local dev fs mp
+   local formatar=1
+
+   # zera o array global
+   Amntpoint=()
+
+   while read -r dev fs mp; do
+      # swap não tem mountpoint
+      if [[ "$fs" == "swap" ]]; then
+         mp="none"
+      fi
+
+      mp="${mp:-none}"
+      fs="${fs:-unknown}"
+      Amntpoint["$dev"]="$mp|$fs|$formatar"
+   done < <(
+      lsblk -lnpo NAME,FSTYPE,MOUNTPOINT "$parent" | tail -n +2
+   )
+}
+
+sh_rebind_amntpoint_device() {
+   local new_device="${AConfDisk[_DEVICE]}"
+   local old_device
+   local dev newdev
+   local -A _new
+
+   # array vazio? nada a fazer
+   ((${#Amntpoint[@]})) || return 0
+
+   # descobre o device antigo a partir da primeira chave
+   for dev in "${!Amntpoint[@]}"; do
+      old_device="${dev%p*}"
+      break
+   done
+
+   # se for o mesmo device, não altera
+   [[ "$old_device" == "$new_device" ]] && return 0
+
+   # copia mudando o prefixo do device
+   for dev in "${!Amntpoint[@]}"; do
+      newdev="${dev/#$old_device/$new_device}"
+      _new["$newdev"]="${Amntpoint[$dev]}"
+   done
+
+   # substitui o array original
+   Amntpoint=()
+   for dev in "${!_new[@]}"; do
+      Amntpoint["$dev"]="${_new[$dev]}"
+   done
+}
+
+sh_rebuild_amntpoint_for_new_disk() {
+   local device="${AConfDisk[_DEVICE]}"
+   local root_set=false
+   local fs
+
+   [[ -n "$device" ]] || return 0
+
+#   # se já existe algo desse device, não refaz
+#   for fs in "${!Amntpoint[@]}"; do
+#      [[ "$fs" == "$device"* ]] && return 0
+#   done
+#
+   Amntpoint=()
+
+   while read -r line; do
+      eval "${line//=/_=}"
+
+      # só partições
+      [[ "$TYPE_" == "part" ]] || continue
+
+      # --- CASO 1: FSTYPE EXISTE ---
+      if [[ -n "$FSTYPE_" ]]; then
+         case "$FSTYPE_" in
+            vfat)
+               Amntpoint["$PATH_"]="/boot/efi|vfat|1"
+               continue
+               ;;
+            swap)
+               Amntpoint["$PATH_"]="none|swap|1"
+               continue
+               ;;
+            *)
+               fs="$FSTYPE_"
+               ;;
+         esac
+
+      # --- CASO 2: FSTYPE VAZIO → PARTTYPENAME ---
+      else
+         case "$PARTTYPENAME_" in
+            *BIOS*)
+               continue
+               ;;
+            *EFI*)
+               Amntpoint["$PATH_"]="/boot/efi|vfat|1"
+               continue
+               ;;
+            *swap*)
+               Amntpoint["$PATH_"]="none|swap|1"
+               continue
+               ;;
+            *"Linux filesystem"*)
+               fs="ext4"
+               ;;
+            *)
+               continue
+               ;;
+         esac
+      fi
+
+      # --- FILESYSTEM NORMAL (ext4, xfs, etc) ---
+      if ! $root_set; then
+         Amntpoint["$PATH_"]="/|$fs|1"
+         root_set=true
+      else
+         Amntpoint["$PATH_"]="none|$fs|0"
+      fi
+
+   done < <(
+      lsblk -fPAo TYPE,NAME,PATH,SIZE,TRAN,MODEL,LABEL,SERIAL,FSTYPE,PARTTYPENAME "$device" \
+      | grep -P 'TYPE="(part)"' \
+      | sort -k5,5 -k2,2
+   )
+}
+
 sh_setEnvironment
 sh_getLocale
 sh_setLanguage
@@ -5335,6 +5507,7 @@ sh_checkDisplay
 #sh_update_self "$@"
 sh_loadSavedConfig
 sh_disablePrintk
+			sh_loadconf
 sh_init "$@"
 
 # sanity checks
