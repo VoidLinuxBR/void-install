@@ -110,7 +110,7 @@ declare -gA AConfDisk=(
 	[_BOOTLOADER]='/dev/sdX'
 	[_OSPROBER]=false
 )
-declare -gA AConfLocale=([_TIMEZONE]='America/Sao_Paulo' [_KEYMAP]='br-abnt2' [_CLOCK]='UTC' [_FONT]='default8x16' [_FONT_OLD]='Lat2-Terminus16')
+declare -gA AConfLocale=([_TIMEZONE]='America/Sao_Paulo' [_KEYMAP]='br-abnt2' [_CLOCK]='UTC' [_FONT]='Lat2-Terminus16')
 declare -gA AConfMirror=([_SOURCE]='network' [_MIRROR]='repo.fastly.voidlinux.org' [url_mirror]='https://repo-fastly.voidlinux.org' [location]='Fastly Global CDN')
 declare -gA AConfAudio=([_AUDIOSERVER]='Pulseaudio')
 declare -gA AConfWifi=([_NETWORK]='wifi_ssid' [_PASSWORD]='wifi_password')
@@ -1723,7 +1723,6 @@ sh_make_fstab() {
 		last_msg="${cmsg_Gerando[$LC_DEFAULT]} fstab pass1 ${cmsg_Em[$LC_DEFAULT]} $dir_install"
 		msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
 
-		#		echo "tmpfs                                           /tmp           tmpfs            defaults,nosuid,nodev 0 0" >"$dir_install/etc/fstab"
 		echo "tmpfs                                           /tmp           tmpfs            defaults,nosuid,nodev,noatime,mode=1777 0 0" >"$dir_install/etc/fstab"
 		echo "tmpfs                                           /var/log       tmpfs            defaults,noatime,mode=0755              0 0" >>"$dir_install/etc/fstab"
 		echo "proc                                            /proc          proc             nodev,noexec,nosuid                     0 0" >>"$dir_install/etc/fstab"
@@ -1737,16 +1736,26 @@ sh_make_fstab() {
 			if [ "$fstype" = "f2fs" -o "$fstype" = "btrfs" -o "$fstype" = "xfs" -o "$fstype" = "reiserfs" ]; then
 				fsorder=0
 			fi
+
 			if [ "$fstype" = "swap" ]; then
 				echo "UUID=$(blkid -o value -s UUID "${_part}")  none          swap         none,nofail      0 0" >>"$dir_install/etc/fstab"
 				continue
 			fi
+
 			if [ -n "$mntpoint" ]; then
 				if [ "$mntpoint" = '/boot/efi' ]; then
 					echo "UUID=$(blkid -o value -s UUID "${_part}")  ${mntpoint}   ${fstype,,}   defaults 0 2" >>"$dir_install/etc/fstab"
 				else
-					#				    echo "UUID=$(blkid -o value -s UUID "${_part}")  ${mntpoint}   ${fstype,,}   defaults 0 $fsorder" >>"$dir_install/etc/fstab"
-					echo "UUID=$(blkid -o value -s UUID "${_part}")  ${mntpoint}   ${fstype,,}   defaults,noatime,discard,lazytime 0 $fsorder" >>"$dir_install/etc/fstab"
+      			if [ "$format" = 0 ]; then
+      				if [ "$mntpoint" = 'none' ]; then
+      				   ((++Npoint))
+      				   mntpoint="/mnt/none${Npoint}"
+      			      mkdir -p "$dir_install/${mntpoint}"
+      		      fi
+     					echo "UUID=$(blkid -o value -s UUID "${_part}")  ${mntpoint}   ${fstype,,}   defaults,nofail,noatime,discard,lazytime 0 $fsorder" >>"$dir_install/etc/fstab"
+	            else
+	   				echo "UUID=$(blkid -o value -s UUID "${_part}")  ${mntpoint}   ${fstype,,}   defaults,noatime,discard,lazytime 0 $fsorder" >>"$dir_install/etc/fstab"
+               fi
 				fi
 			fi
 		done
@@ -2863,6 +2872,12 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 		esac
 
 		if [[ -n "$sd" ]]; then
+			if ((LCHOOSEBOOTLOADER)); then
+				AConfDisk[_BOOTLOADER]="$sd"
+				LGRUB=true
+				LOSPROBER=false
+				return 0
+			fi
 			AConfDisk[_DEVICE]="$sd"
 			AConfDisk[_BOOTLOADER]="$sd"
 			index=$(sh_seekstrarray "${ARRAY_DSK_DEVICES[*]}" "${AConfDisk[_DEVICE]}")
@@ -2871,13 +2886,7 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 			SIZE_ORIGEM="$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_DEVICE]}]}" "$DSK_SIZE")"
 			TRAN_ORIGEM="$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_DEVICE]}]}" "$DSK_TRAN")"
 			LDISK=true
-
-			if ((LCHOOSEBOOTLOADER)); then
-				AConfDisk[_BOOTLOADER]="${AConfDisk[_DEVICE]}"
-				LGRUB=true
-				LOSPROBER=false
-				return 0
-			fi
+			LGRUB=true
 		fi
 
 		case $exit_status in
@@ -2889,10 +2898,8 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 			LDISK=true
 			LGRUB=true
 			LOSPROBER=false
-
-         if [[ "$old_device" != "$sd" ]]; then
-            sh_rebuild_amntpoint_for_new_disk
-         fi
+         sh_rebuild_amntpoint_for_new_disk
+         LMKPARTED=true
 			return 0
 			;;
 		"$D_CONFIG")
@@ -2940,7 +2947,7 @@ sh_chooseTablePartition() {
 			cextra="${cmsg_ExtraEfi[$LC_DEFAULT]}"
 		fi
 		if [[ -z "${AConfDisk[_DISKTABLE]}" ]]; then
-			[[ "$(sh_getBootEFI)" ]] && AConfDisk[_DISKTABLE]='EFI' || AConfDisk[_DISKTABLE]='GPT_BIOS'
+		   sh_getBootEFI && AConfDisk[_DISKTABLE]='EFI' || AConfDisk[_DISKTABLE]='GPT_BIOS'
 		fi
 		Aflag["${AConfDisk[_DISKTABLE]}"]='on'
 		array+=("$x" "${Atable[$x]}" "${Aflag[$x]}")
@@ -3307,12 +3314,15 @@ sh_mkefiroaming() {
 }
 
 sh_getBootEFI() {
-	if [ -e /sys/firmware/efi/systab ]; then
-		TARGET_EFI=x86_64-efi
-		[[ "$(</sys/firmware/efi/fw_platform_size)" -eq 32 ]] && TARGET_EFI=i386-efi
-		return 0
-	fi
-	return 1
+   if [ -d /sys/firmware/efi ]; then
+      TARGET_EFI=x86_64-efi
+      if [ -r /sys/firmware/efi/fw_platform_size ] &&
+         [ "$(cat /sys/firmware/efi/fw_platform_size)" -eq 32 ]; then
+         TARGET_EFI=i386-efi
+      fi
+      return 0
+   fi
+   return 1
 }
 
 sh_choosewm() {
@@ -3509,15 +3519,15 @@ sh_copy_scripts() {
 
 display_config() {
 	sh_disk_part_info
+#                                     \n$(padr "${cmsg_Extra3[$LC_DEFAULT]} :" 30 ' ') \Zb\Z0$(sh_gethidden-password "${AsUser[cpass]}")${RESET}\
+#                                     \n$(padr "${cmsg_Extra4[$LC_DEFAULT]} :" 30 ' ') \Zb\Z0$(sh_gethidden-password "${AsUser[cpassroot]}")${RESET}\
+#   \n$(padr "${cmsg_senhawifi[$LC_DEFAULT]} (${cmsg_opcional[LC_DEFAULT]}) :" 30 ' ') \Zb\Z0$(sh_gethidden-password "${AConfWifi[_PASSWORD]}")${RESET}\
 	SETUP="\
                             			  \n$(padr "${cmsg_Extra2[$LC_DEFAULT]} :" 30 ' ') \Zb\Z0${AsUser[cuser]} - [${AsUser[cfullname]}] ${RESET}\
-                                      \n$(padr "${cmsg_Extra3[$LC_DEFAULT]} :" 30 ' ') \Zb\Z0$(sh_gethidden-password "${AsUser[cpass]}")${RESET}\
-                                      \n$(padr "${cmsg_Extra4[$LC_DEFAULT]} :" 30 ' ') \Zb\Z0$(sh_gethidden-password "${AsUser[cpassroot]}")${RESET}\
                                                          \n$(padr "Hostname :" 30 ' ') \Zb\Z0${AsUser[chostname]}${RESET}\
                                      \n$(padr "${cmsg_Teclado[$LC_DEFAULT]} :" 30 ' ') \Zb\Z0${AConfLocale[_KEYMAP]}${RESET}\
                                                          \n$(padr "Timezone :" 30 ' ') \Zb\Z0${AConfLocale[_TIMEZONE]}${RESET}\
      \n$(padr "${cmsg_redewifi[$LC_DEFAULT]} (${cmsg_opcional[LC_DEFAULT]}) :" 30 ' ') \Zb\Z0${AConfWifi[_NETWORK]}${RESET}\
-    \n$(padr "${cmsg_senhawifi[$LC_DEFAULT]} (${cmsg_opcional[LC_DEFAULT]}) :" 30 ' ') \Zb\Z0$(sh_gethidden-password "${AConfWifi[_PASSWORD]}")${RESET}\
                                       \n$(padr "${cmsg_Mirror[$LC_DEFAULT]} :" 30 ' ') \Zb\Z0${AConfMirror[url_mirror]} - ${AConfMirror[location]}${RESET}\
                                       \n$(padr "${cmsg_Source[$LC_DEFAULT]} :" 30 ' ') \Zb\Z0${AConfMirror[_SOURCE]}${RESET}\
                                       \n$(padr "${cmsg_Extra6[$LC_DEFAULT]} :" 30 ' ') \Zb\Z0${AConfDisk[_DEVICE]} | $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 2) | $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 4)${RESET}\
@@ -3527,7 +3537,7 @@ display_config() {
                                                      \n$(padr "Customizacao :" 30 ' ') \Zb\Z0$(sh_getTrueFalse "$LCUSTOM")${RESET}\
                                                               \n$(padr "Fde :" 30 ' ') \Zb\Z0$(sh_getinfoFde "$LFDE")${RESET}\
                                                               \n$(padr "Lvm :" 30 ' ') \Zb\Z0$(sh_getinfoFde "$LVM")${RESET}\
-                                            \n$(padr "FileSystem/Mountpoint :" 30 ' ') \Zb\Z7↓↓↓\
+                                            \n$(padr "FileSystem/Mountpoint :" 30 ' ') ${BOLD}${GREEN}↓↓↓\
                                                        \n\Zb\Z4$(sh_getmntpoint)${RESET}${RESET}"
 }
 
@@ -3808,6 +3818,7 @@ sh_install() {
 
 	ncounter=0
 	sh_checkInstall || return 1
+
 	#	dialog --title $BOOTLOG --begin 1 0 --tailbox "$BOOTLOG" 20 0 &
 	reset
 	sh_checkNet "$url_mirror" || return 1
@@ -4080,7 +4091,11 @@ ${BOLD}${WHITE}Partition : ${RED}$_PART\n" 8 75
 		return 1
 	fi
 
-	[[ "$(sh_getBootEFI)" ]] && LEFI=true || LEFI=false
+   if [[ -z "${AConfDisk[_DISKTABLE]}" ]]; then
+      sh_getBootEFI && AConfDisk[_DISKTABLE]='EFI' || AConfDisk[_DISKTABLE]='GPT_BIOS'
+   fi
+
+   sh_getBootEFI && LEFI=true || LEFI=false
 	LBIOS=true
 
 	if $LEFI; then
@@ -4302,9 +4317,11 @@ $(printf "%${nlen}s$sep%-11s$sep%6s$sep%-20s$sep%-20s$sep%-20s$sep%-8s$sep%s" \
 				unset 'Amntpoint["$part"]'
 				continue
 			fi
-			if [[ "$(sh_getBootEFI)" && "$newfstype" = "vfat" && -z "$oldmntpoint" ]]; then
-				oldmntpoint='/boot/efi'
-			fi
+
+         if sh_getBootEFI && [[ "$newfstype" == "vfat" && -z "$oldmntpoint" ]]; then
+            oldmntpoint='/boot/efi'
+         fi
+
 			if [[ "$newfstype" != "vfat" && -z "$oldmntpoint" ]]; then
 				oldmntpoint='/'
 			fi
