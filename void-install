@@ -1670,11 +1670,13 @@ sh_chroot_job() {
 	local lretval=0
 
 	last_msg="$cmsg"
-	if [[ -n "$level" ]]; then
-		msg "INFO" "$last_msg" "$(log_info_msg_level "$last_msg")"
-	else
-		msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
-	fi
+	if ! ((grafico)); then
+   	if [[ -n "$level" ]]; then
+   		msg "INFO" "$last_msg" "$(log_info_msg_level "$last_msg")"
+   	else
+   		msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
+   	fi
+   fi
 
 	if ((grafico)); then
       clean_logmessage="$(strip_ansi "$logmessage")"
