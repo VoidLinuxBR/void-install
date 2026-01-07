@@ -3723,53 +3723,83 @@ sh_cp_rootfs() {
 	return "$lretval"
 }
 
-#dom 03 mar 2024 09:35:25 -04
 sh_touch_keys() {
-	sh_cmd_job "Criando chaves ${cmsg_Em[$LC_DEFAULT]} $dir_install" "mkdir -p keys"
-	cat >keys/60:ae:0c:d6:f0:95:17:80:bc:93:46:7a:89:af:a3:2d.plist <<-EOF
-		<?xml version="1.0" encoding="UTF-8"?>
-		<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-		<plist version="1.0">
-		<dict>
-			<key>public-key</key>
-			<data>LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQ0lqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FnOEFNSUlDQ2dLQ0FnRUF2clN6QlpNdmd2T0NJM0FYYk9qYQoycktSa0pTVE0zYy9FalRJZ0NnRFhndW05M0JQQ3RZOE1jRlZvQ1U0T2lYSEdmVG1xMzlCVk5wTHZMSEw5S2sxCnAyNzhTQmhYVk90YkIyRVZtREtudmZJREVUbGRMR3plN3JaTlJKZHR1TjJtWi9UVnJVQjlTMHlRYytJdWY0aHYKMytEOTdWSWRUSkhBN0FTcjA0MjhwcEVHSkd3U1NoWTJYSm05RDVJMEV1R1JXYzE0TUVHN2RJS0ppWWlNMG5FNAp0WW8yL3ZINElGVEhkblZBM2dZaVp5RG5idUNBUi84RVNmVVRVMTNTTkNPZGJ1ZGYzRDVCY3krVWlNREpJM1llCjRNRktCclQ5WmhaK0dzWEJaWTQ4MmxxaVppNkNMNXB0YzlJUUZmOC9lS1phOGphdGtpVkZWZ3JLZU5Sak9UeE4KZldTdTJua3hHTlgrYmhYWXRoaUdXbUpFWThjQ0FQeUZOK0x2NVJldEsyNTZnZGNiMnNrbUVxZWZ2MnpQQyt3VgpXQmJkSDViRDRiWmpuME42Wmw4MXJ2NVJ6RHZudmYrdkQxNGFGVWJaOFFGcXU3NVBiTDR3Nm1ZTTRsZE0vZzBSCjZOWEU4QXo5Qnd4MnREZlllS3V1dHcxRXBQbTJZdkZ5VFViMWNveUF1VEdSeUFhcDFVVEh2ZzlsaFBJSm1oRlEKSjVrQ2cxcUQ3QTMxV2wwUmxuZTZoZ0dvMFpaTko1Y0pNL3YvelNUS0pjdUZnd283SDBoT0dpbDZEZm84OUI0agpHOTZBQ3lQUytEVktQRlhSWXdqL0FrYkhwYVEyZjFGTUFvU3BCcXVEcUhoM3VrazcxS1g2ajE5dDBpRjhEUUxyCnZ0RlNTZElqREEwMmx3ZVY5TmFRcFdzQ0F3RUFBUT09Ci0tLS0tRU5EIFBVQkxJQyBLRVktLS0tLQo=</data>
-			<key>public-key-size</key>
-			<integer>4096</integer>
-			<key>signature-by</key>
-			<string>Void Linux</string>
-		</dict>
-		</plist>
-	EOF
+   sh_cmd_job "Criando chaves ${cmsg_Em[$LC_DEFAULT]} $dir_install" "mkdir -p keys"
+   cat >keys/60:ae:0c:d6:f0:95:17:80:bc:93:46:7a:89:af:a3:2d.plist <<-EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>public-key</key>
+	<data>LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQ0lqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FnOEFNSUlDQ2dLQ0FnRUF2clN6QlpNdmd2T0NJM0FYYk9qYQoycktSa0pTVE0zYy9FalRJZ0NnRFhndW05M0JQQ3RZOE1jRlZvQ1U0T2lYSEdmVG1xMzlCVk5wTHZMSEw5S2sxCnAyNzhTQmhYVk90YkIyRVZtREtudmZJREVUbGRMR3plN3JaTlJKZHR1TjJtWi9UVnJVQjlTMHlRYytJdWY0aHYKMytEOTdWSWRUSkhBN0FTcjA0MjhwcEVHSkd3U1NoWTJYSm05RDVJMEV1R1JXYzE0TUVHN2RJS0ppWWlNMG5FNAp0WW8yL3ZINElGVEhkblZBM2dZaVp5RG5idUNBUi84RVNmVVRVMTNTTkNPZGJ1ZGYzRDVCY3krVWlNREpJM1llCjRNRktCclQ5WmhaK0dzWEJaWTQ4MmxxaVppNkNMNXB0YzlJUUZmOC9lS1phOGphdGtpVkZWZ3JLZU5Sak9UeE4KZldTdTJua3hHTlgrYmhYWXRoaUdXbUpFWThjQ0FQeUZOK0x2NVJldEsyNTZnZGNiMnNrbUVxZWZ2MnpQQyt3VgpXQmJkSDViRDRiWmpuME42Wmw4MXJ2NVJ6RHZudmYrdkQxNGFGVWJaOFFGcXU3NVBiTDR3Nm1ZTTRsZE0vZzBSCjZOWEU4QXo5Qnd4MnREZlllS3V1dHcxRXBQbTJZdkZ5VFViMWNveUF1VEdSeUFhcDFVVEh2ZzlsaFBJSm1oRlEKSjVrQ2cxcUQ3QTMxV2wwUmxuZTZoZ0dvMFpaTko1Y0pNL3YvelNUS0pjdUZnd283SDBoT0dpbDZEZm84OUI0agpHOTZBQ3lQUytEVktQRlhSWXdqL0FrYkhwYVEyZjFGTUFvU3BCcXVEcUhoM3VrazcxS1g2ajE5dDBpRjhEUUxyCnZ0RlNTZElqREEwMmx3ZVY5TmFRcFdzQ0F3RUFBUT09Ci0tLS0tRU5EIFBVQkxJQyBLRVktLS0tLQo=</data>
+	<key>public-key-size</key>
+	<integer>4096</integer>
+	<key>signature-by</key>
+	<string>Void Linux</string>
+</dict>
+</plist>
+EOF
 
-	cat >keys/76:75:c9:75:f1:97:35:78:3c:f9:73:d4:f6:04:0b:59.plist <<-EOF
-		<?xml version="1.0" encoding="UTF-8"?>
-		<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-		<plist version="1.0">
-		<dict>
-			<key>public-key</key>
-			<data>LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQm9qQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FZOEFNSUlCaWdLQ0FZRUFxRlJBUnpFeVJMMlVJdU1GWkMwOApmSURJUWZrUzVNczRxOXFLUFhQdHMyN01mbDdDNFdoSHZYb2h2MnNKSzV1SThlOXM3OEJUL0gvbTJxallMWjZJCnF1NmNrZFJUZzNpakNYbTFqY21wRGh1eVpqVW5xaUdPcnBjZUpaTEtUZEYxQWRvZTI4NGRTTW92ZUZldVdlMkIKbkI1aml1ZGg4Szg2WThPdXptbldTN29PTWgzK3dMMEQrNHlGRVRrTTF0ckZCUC9GOUprZEx2dHVONWwyUmVJUQpYa0I5NHpIQ3l5dXkyUC9USnlQOFphSG0vckRwV2JJbUZLMzhsa05IcEczS1ZWYnl5bnFkZyszenJnTHNlR0ZXCnBnelFSdTdON3ByRGIvbDVQV3JSQ0tEUDJyWCtKZHFyWXBrUXh6SDNvTnpkZTd2cGFqejU2c2tzaDhUaHBIY2MKU2g3eTN2ZEJ3dHpDZFlqMkd0RlJaRzB4S21TY24rQ0hLR3dGQTdwdkkzVlVISXNLMm9IazlkSWlwZjkxbFMxVQp4ZUo5Y3RlQmdYZFJ0S0E3QXVTVTN0VzFRak1pNGJrWWVxZ1NUTFJueUxtbVYvR2MyT3BEMktOQVpuWnBIM2RrCnNtV25ibC9rZ05qa2NLTVQ2Rm5hSjdYNlJNdHZ4Mi9CWlcwMy9jQ25nRTR6QWdNQkFBRT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==</data>
-			<key>public-key-size</key>
-			<integer>3072</integer>
-			<key>signature-by</key>
-			<string>Vilmar Catafesta &lt;vcatafesta@gmail.com&gt;</string>
-		</dict>
-		</plist>
-	EOF
+   cat >keys/76:75:c9:75:f1:97:35:78:3c:f9:73:d4:f6:04:0b:59.plist <<-EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>public-key</key>
+	<data>LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQm9qQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FZOEFNSUlCaWdLQ0FZRUFxRlJBUnpFeVJMMlVJdU1GWkMwOApmSURJUWZrUzVNczRxOXFLUFhQdHMyN01mbDdDNFdoSHZYb2h2MnNKSzV1SThlOXM3OEJUL0gvbTJxallMWjZJCnF1NmNrZFJUZzNpakNYbTFqY21wRGh1eVpqVW5xaUdPcnBjZUpaTEtUZEYxQWRvZTI4NGRTTW92ZUZldVdlMkIKbkI1aml1ZGg4Szg2WThPdXptbldTN29PTWgzK3dMMEQrNHlGRVRrTTF0ckZCUC9GOUprZEx2dHVONWwyUmVJUQpYa0I5NHpIQ3l5dXkyUC9USnlQOFphSG0vckRwV2JJbUZLMzhsa05IcEczS1ZWYnl5bnFkZyszenJnTHNlR0ZXCnBnelFSdTdON3ByRGIvbDVQV3JSQ0tEUDJyWCtKZHFyWXBrUXh6SDNvTnpkZTd2cGFqejU2c2tzaDhUaHBIY2MKU2g3eTN2ZEJ3dHpDZFlqMkd0RlJaRzB4S21TY24rQ0hLR3dGQTdwdkkzVlVISXNLMm9IazlkSWlwZjkxbFMxVQp4ZUo5Y3RlQmdYZFJ0S0E3QXVTVTN0VzFRak1pNGJrWWVxZ1NUTFJueUxtbVYvR2MyT3BEMktOQVpuWnBIM2RrCnNtV25ibC9rZ05qa2NLTVQ2Rm5hSjdYNlJNdHZ4Mi9CWlcwMy9jQ25nRTR6QWdNQkFBRT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==</data>
+	<key>public-key-size</key>
+	<integer>3072</integer>
+	<key>signature-by</key>
+	<string>Vilmar Catafesta &lt;vcatafesta@gmail.com&gt;</string>
+</dict>
+</plist>
+EOF
 
 	cat >keys/cc:e6:28:46:ff:19:07:a2:f0:4b:14:15:4f:89:1b:bc.plist <<-EOF
-		<?xml version="1.0" encoding="UTF-8"?>
-		<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-		<plist version="1.0">
-		<dict>
-			<key>public-key</key>
-			<data>LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQm9qQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FZOEFNSUlCaWdLQ0FZRUEzcXVPbTNUNnc4RXN1ZnY2cnJIZwp6VTQ0S090dXF1M01HMS81Smd2UmJvb1hzS0swdW8wQkpzOFJaY2RLOWZRRWFNbUtHRUxvQVBiVEVQaGlZc0EzCnNkNy95QUR4bFNVcWR2VUl6Unh3M3E1VXFHNjQ5aFJjNnVHMjdxS2pZL0pxSXF5bGV5bmlaNUR0ejI5cm5Mc2wKTUFyT0YrNElsUk5LMnFHMy85RytETmVsVXFDeFRHQTVUd21DUlN5OXRQZ2dPQ3RnYmRuZjdCbHg4anB4MHo4MAo2RHl2ZDhPZ0ZRWEE4R3l5K2Mzc1N3Tm02Y1ZVUTV2clEzcGhCTnVuSzJDbHJzeE5iRGhzQnNXSklGd1JEeFJnCnpYQlJrSmxxL2M1L0crZTV2d0p1TWl6M09WYlh6TWo4WCtNYk5wMExkVzFVRU5tbmRYU1h3aForUllDQTRNMCsKSm1ZV0VRY0xKdnBIelB5cUZnaVhucnFMOUU0Tm4xK2t3TXZYOWEvTVhQcCtjRk12ajBUd01icWRDTTFGeGl2aQpUNkpCbUxOZG0vOXpQbUs5Yzg2UHRGVWNaaCtaV0NRMHBjTmRSWm5NZzJxVmdHUUdkeXFNQVN4QldpeVZrSHdHClkzSUcwZ3VaeVNJVnZmU0cyc0ZsQmZDWk9yK0pqNHNEbWhITXlNdlpoZGdGQWdNQkFBRT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==</data>
-			<key>public-key-size</key>
-			<integer>3072</integer>
-			<key>signature-by</key>
-			<string>Vilmar Catafesta &lt;vcatafesta@gmail.com&gt;</string>
-		</dict>
-		</plist>
-	EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>public-key</key>
+	<data>LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQm9qQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FZOEFNSUlCaWdLQ0FZRUEzcXVPbTNUNnc4RXN1ZnY2cnJIZwp6VTQ0S090dXF1M01HMS81Smd2UmJvb1hzS0swdW8wQkpzOFJaY2RLOWZRRWFNbUtHRUxvQVBiVEVQaGlZc0EzCnNkNy95QUR4bFNVcWR2VUl6Unh3M3E1VXFHNjQ5aFJjNnVHMjdxS2pZL0pxSXF5bGV5bmlaNUR0ejI5cm5Mc2wKTUFyT0YrNElsUk5LMnFHMy85RytETmVsVXFDeFRHQTVUd21DUlN5OXRQZ2dPQ3RnYmRuZjdCbHg4anB4MHo4MAo2RHl2ZDhPZ0ZRWEE4R3l5K2Mzc1N3Tm02Y1ZVUTV2clEzcGhCTnVuSzJDbHJzeE5iRGhzQnNXSklGd1JEeFJnCnpYQlJrSmxxL2M1L0crZTV2d0p1TWl6M09WYlh6TWo4WCtNYk5wMExkVzFVRU5tbmRYU1h3aForUllDQTRNMCsKSm1ZV0VRY0xKdnBIelB5cUZnaVhucnFMOUU0Tm4xK2t3TXZYOWEvTVhQcCtjRk12ajBUd01icWRDTTFGeGl2aQpUNkpCbUxOZG0vOXpQbUs5Yzg2UHRGVWNaaCtaV0NRMHBjTmRSWm5NZzJxVmdHUUdkeXFNQVN4QldpeVZrSHdHClkzSUcwZ3VaeVNJVnZmU0cyc0ZsQmZDWk9yK0pqNHNEbWhITXlNdlpoZGdGQWdNQkFBRT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==</data>
+	<key>public-key-size</key>
+	<integer>3072</integer>
+	<key>signature-by</key>
+	<string>Vilmar Catafesta &lt;vcatafesta@gmail.com&gt;</string>
+</dict>
+</plist>
+EOF
+
+   cat >keys/3d:b9:c0:50:41:a7:68:4c:2e:2c:a9:a2:5a:04:b7:3f.plist <<-EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>public-key</key>
+	<data>LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQ0lqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FnOEFNSUlDQ2dLQ0FnRUFvM1Nrc2p5N01PMmc4UWxsZjdCVQp1aXhFUWlqN3FOSVJrU0hrWWw4SGxxd1hOczFnK1FzbzhGV3dSbDNMbUpTVW5wT1BaOG1sdVdSajd4Y2pLbnVJCnhPRjBtQS8vM0lzTnVId2dYV2RLL0JiT29wNzFLZmt4aEE0WjhwK0hRbmhLMThxUkFPbG9xOGJ6WXZhaGI2NmEKemdWVTVFM1JzRDU4V0M2ZTFOUVdSSGpiMG1TM2h6M1NxVWVWZFVMT20zVzZBRTdYdWlVQVJOSEdyY1ljMXkyKwpxNjBKWHMrVk5sRlMwaGdDdnpqS3phMVg5cWtzQndzTmdaRlhBcXN1MGFKRndYSTEvM2R4ZWxBcUZFbnRMWVFSCjA4NHpaTDFmWDVRMWlacGNEaHVhTWZVREVZQjA4UzdKTTBYKytibkxxVnphVTZzc0RXdGtzbFJaNjNaVStISTUKemk5a0pyc25LcU5Pa3BKSnJTUkRyMGFvRjV2RDRwN20vYWdZKzdTRk5aaDZzOUJ5V0x3NDVFdytwalVVUmp5aQp6T01TSFhEM3YzczhFdzZkV29wbTVQTGUvUEgzZWFiMEVnbG9yVDZhYmRwaCtaVG4zaUxMWVVkSGNmQ1FDN01GCkNmVGl1TWt4SkJpaCtoOEhKaUlBdmpDZjVxdjZiaFpEUHpGRzAwbEpYRUZwNHRpbGp6eTFmbitiMkdLY3BDOWQKUUs4TEc3M0RFaXhacHBmU09IU09MMWYxVlBzZTBRdnl6d2RWc0xzR0dqV0FaZkw4WUdVZDl4Y20yeW5tVzFuNgpKTjl6NE9oZ3lRa21mNUFFUXpYSUxQR0d1MlREUVh5c05IRG0vUnRMMHJPN3cxbFVKSTVYOW1kbEZYd0xUWHI3ClYrU25aK3U5VCtFREg1NTV6WDJDZTgwQ0F3RUFBUT09Ci0tLS0tRU5EIFBVQkxJQyBLRVktLS0tLQo=</data>
+	<key>public-key-size</key>
+	<integer>4096</integer>
+	<key>signature-by</key>
+	<string>Void Linux</string>
+</dict>
+</plist>
+EOF
+
+   cat >keys/7d:45:a3:eb:2a:0d:e7:14:e6:66:65:ce:27:4a:ac:e2.plist <<-EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>public-key</key>
+	<data>LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQ0lqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FnOEFNSUlDQ2dLQ0FnRUFrNFFMWk9vQjI3NndLS1RFaTJDZQpGZnZpY1R4aGttWmVYaGk3WUJWTnZVMzZPeCt5VXZKNndZQ1VJZFNMMUdNdGNRN0dsM2tqOG94RjJRZXVJMisrCjk2SzF4K09WTnlnWXU2cVdZNkZuTEZHVHR2Q3FZK2crd2Fyb29oZFd1OU94RUl1ZVJrUzJndmtieFFYZm55Y2QKa1RSU1o4VzBSdFVXbE5XT3pDdHZ1ZzZMMUFadGlMc1FpblFlZndLb0hZVnJhZlFMS0h2aVI2Z2poaStZOFZwVwpxUFlncU4vU1FSZWhxQkRKNXJuTFpkbDczTTlOSTlPazJaOEZ6NXdFQU45dXNKa2lSRm1zVlRZOXF4dE9yQmc5Cmp6ZC9MaFBDY0VPWnFPSG05K1d4WXFJZzFNQkppRStLL0VEVjhENlBrN0lzZW93Y2FmaW9VSU9NRk5NNUZNV3IKSThlNDFtYVAxVjZ5VlZYM0dVRHlnNlA2bUNYQnNSQU4wOHovQ0RkUVlWakN1ZFhiNWtZK2dJMDhkK0JnTXZlYQpHcFZLMlBrT0tEZ1NmRTlrVDYzbTZYRGg4TnkrNGtDaHBaemR3YnZCTm1CRGQzazR2VVoxSWgwWVF0VEdXTlhGCjZjRTZtV3FpSE10SC9iaUNxYkVDSXR4S2RVdlkyMGxsRE5aaUJGeWNESGpSNTBjeFJjdkEvRW9XdlNlNm9ZT0EKeklnRjNXZDZnOHo3VWJxSE9Rc1FHd2NER3VjV1Q3SlAxN2VTQnYvYkt5N0xVUG9ONnZhOWNjSHhNdjJ5c0YxMQpiSFQxWUk0alpYa2d3OXZIUDdZcm9yN0xyYjIraWFxTWFXR1ZBZWlCY3I0amJnSmxGM3BUU2ljaFF4QjVkUEhJCkoxSGYzYmMwY2ZmRGpKMkoybGRpMk1jQ0F3RUFBUT09Ci0tLS0tRU5EIFBVQkxJQyBLRVktLS0tLQo=</data>
+	<key>public-key-size</key>
+	<integer>4096</integer>
+	<key>signature-by</key>
+	<string/>
+</dict>
+</plist>
+EOF
+
 }
 
 #dom 03 mar 2024 09:35:25 -04
@@ -3857,7 +3887,11 @@ sh_install() {
 
 	{
 		sh_umount_fs
-		if ! sh_make_fs; then die "Erro"; fi
+
+		if ! sh_make_fs; then
+		   die "Erro"
+	   fi
+
 		sh_mount_fs
 		sh_mk_working_dir
 
@@ -5533,7 +5567,7 @@ sh_checkDisplay
 #sh_update_self "$@"
 sh_loadSavedConfig
 sh_disablePrintk
-			sh_loadconf
+sh_loadconf
 sh_init "$@"
 
 # sanity checks
