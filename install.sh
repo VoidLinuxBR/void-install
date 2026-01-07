@@ -171,9 +171,7 @@ msg "Conteúdo de $tmpDir"
 ls -la --color=auto "$tmpDir"
 
 echo
-printf "%b\n" "${BOLD}${GREEN}Pronto!${RESET}"
-echo
-printf "%b\n" "${BOLD}${GREEN}Para continuar:${RESET}"
+printf "%b\n" "${BOLD}${GREEN}Pronto! Para continuar:${RESET}"
 echo
 printf "%b\n" "   ${YELLOW}sudo bash void-install -i${RESET}"
 echo
