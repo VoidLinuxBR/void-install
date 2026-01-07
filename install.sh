@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #  install.sh
 #  Created: 2023/01/10
 #  Altered: 2024/09/23
@@ -33,82 +33,80 @@
 #source <(curl -s -L https://raw.githubusercontent.com/voidlinuxbr/void-installer/master/install.sh)
 #source <(wget -q -O - https://raw.githubusercontent.com/voidlinuxbr/void-installer/master/install.sh)
 
-{
-	oops() {
-		echo "$0:" "$@" >&2
-		exit 1
-	}
-
-	umask 0022
-	url="https://raw.githubusercontent.com/voidlinuxbr/void-installer/master"
-	url_blob="https://github.com/voidlinuxbr/void-installer/blob/master"
-	declare -a files_bin=('void-install' 'void-testmirror' 'void-remove-vg' 'void-clonedisk')
-	declare -a files_home=('LICENSE' 'README.md')
-	declare -a files_lang=('void-install' 'void-testmirror' 'void-remove-vg' 'void-clonedisk')
-	declare -a files_blob=('void-x86_64-base-custom-current.tar.xz')
-	declare -a idioma=(en es pt-BR)
-	tmpDir=~/void-installer
-	dir_locale="usr/share/locale"
-
-	[[ ! -d "$tmpDir" ]] && { mkdir -p "$tmpDir" || oops "Unable to create temporary directory to download files"; }
-
-	require_util() {
-		command -v "$1" >/dev/null 2>&1 || oops "you do not have '$1' installed, which is needed to $2"
-	}
-
-	#require_util tar "descompatar o tarball"
-
-	if command -v curl >/dev/null 2>&1; then
-		cmdfetch() { curl --silent --continue-at - --insecure -L "$1" -o "$2"; }
-	elif command -v wget >/dev/null 2>&1; then
-		cmdfetch() { wget --quiet -c "$1" -O "$2"; }
-	else
-		require_util curl "downloader"
-		require_util wget "downloader"
-	fi
-
-	for f in "${files_bin[@]}"; do
-		echo "Downloading $f to '$tmpDir'..."
-		cmdfetch "$url/$f" "$tmpDir/$f" || oops "download failure '$url/$f'"
-	done
-
-	for f in "${files_home[@]}"; do
-		echo "Downloading $f to '$tmpDir'..."
-		cmdfetch "$url/$f" "$tmpDir/$f" || oops "download failure '$url/$f'"
-	done
-
-	for f in "${files_blob[@]}"; do
-		if cmdfetch "$url_blob/$f" "$tmpDir/$f" || oops "download failure '$url/$f'"; then
-			echo "Downloading $f to '$tmpDir'..."
-		fi
-	done
-
-	for lang in "${idioma[@]}"; do
-		for f in "${files_lang[@]}"; do
-			[[ ! -d "$tmpDir/$dir_locale/$lang/LC_MESSAGES/" ]] && {
-				mkdir -p "$tmpDir/$dir_locale/$lang/LC_MESSAGES/" ||
-					oops "Unable to create temporary directory to download files"
-			}
-			if cmdfetch "$url/$dir_locale/$lang/LC_MESSAGES/$f.mo" "$tmpDir/$dir_locale/$lang/LC_MESSAGES/$f.mo"; then
-				echo "Downloading $f.mo to '$tmpDir/$dir_locale/$lang/LC_MESSAGES/'"
-			fi
-		done
-	done
-
-	sudo cp -rfv $tmpDir/usr/share/locale/* /usr/share/locale/
-
-	for file in "${files_bin[@]}"; do
-		sudo chmod +x $tmpDir/$file
-		sudo cp -rfv $tmpDir/$file /usr/bin/
-	done
-
-	ls -la --color=auto $tmpDir
-
-	echo
-	export PATH="$tmpdir:$PATH"
-	echo "digite:"
-	echo "	sudo bash void-install"
-	echo "ou entre em: $tmpDir e digite:"
-	echo "	sudo bash void-install"
+oops() {
+	echo "$0:" "$@" >&2
+	exit 1
 }
 
+umask 0022
+url="https://raw.githubusercontent.com/voidlinuxbr/void-installer/master"
+url_blob="https://github.com/voidlinuxbr/void-installer/blob/master"
+declare -a files_bin=('void-install' 'void-testmirror' 'void-remove-vg' 'void-clonedisk')
+declare -a files_home=('LICENSE' 'README.md')
+declare -a files_lang=('void-install' 'void-testmirror' 'void-remove-vg' 'void-clonedisk')
+declare -a files_blob=('void-x86_64-base-custom-current.tar.xz')
+declare -a idioma=(en es pt-BR)
+tmpDir=~/void-installer
+dir_locale="usr/share/locale"
+
+[[ ! -d "$tmpDir" ]] && { mkdir -p "$tmpDir" || oops "Unable to create temporary directory to download files"; }
+
+require_util() {
+	command -v "$1" >/dev/null 2>&1 || oops "you do not have '$1' installed, which is needed to $2"
+}
+
+#require_util tar "descompatar o tarball"
+
+if command -v curl >/dev/null 2>&1; then
+	cmdfetch() { curl --silent --continue-at - --insecure -L "$1" -o "$2"; }
+elif command -v wget >/dev/null 2>&1; then
+	cmdfetch() { wget --quiet -c "$1" -O "$2"; }
+else
+	require_util curl "downloader"
+	require_util wget "downloader"
+fi
+
+for f in "${files_bin[@]}"; do
+	echo "Downloading $f to '$tmpDir'..."
+	cmdfetch "$url/$f" "$tmpDir/$f" || oops "download failure '$url/$f'"
+done
+
+for f in "${files_home[@]}"; do
+	echo "Downloading $f to '$tmpDir'..."
+	cmdfetch "$url/$f" "$tmpDir/$f" || oops "download failure '$url/$f'"
+done
+
+for f in "${files_blob[@]}"; do
+	if cmdfetch "$url_blob/$f" "$tmpDir/$f" || oops "download failure '$url/$f'"; then
+		echo "Downloading $f to '$tmpDir'..."
+	fi
+done
+
+for lang in "${idioma[@]}"; do
+	for f in "${files_lang[@]}"; do
+		[[ ! -d "$tmpDir/$dir_locale/$lang/LC_MESSAGES/" ]] && {
+			mkdir -p "$tmpDir/$dir_locale/$lang/LC_MESSAGES/" ||
+				oops "Unable to create temporary directory to download files"
+		}
+		if cmdfetch "$url/$dir_locale/$lang/LC_MESSAGES/$f.mo" "$tmpDir/$dir_locale/$lang/LC_MESSAGES/$f.mo"; then
+			echo "Downloading $f.mo to '$tmpDir/$dir_locale/$lang/LC_MESSAGES/'"
+		fi
+	done
+done
+
+sudo cp -rfv $tmpDir/usr/share/locale/* /usr/share/locale/
+
+for file in "${files_bin[@]}"; do
+	sudo chmod +x $tmpDir/$file
+	sudo cp -rfv $tmpDir/$file /usr/bin/
+done
+
+ls -la --color=auto $tmpDir
+
+echo
+export PATH="$tmpdir:$PATH"
+cd "$tmpdir"
+echo "digite:"
+echo "	sudo bash void-install"
+echo "ou entre em: $tmpDir e digite:"
+echo "	sudo bash void-install"
