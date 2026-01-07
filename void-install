@@ -5590,7 +5590,11 @@ sh_checkDisplay
 sh_loadSavedConfig
 sh_disablePrintk
 sh_loadconf
-sh_init -i "$@"
+
+case " $* " in
+   *" -c "*|*" --chroot "*) sh_init "$@" ;;
+   *)                       sh_init -i "$@" ;;
+esac
 
 # sanity checks
 if ! $LINSTALL && ! $LCHROOT; then
