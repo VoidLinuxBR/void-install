@@ -87,7 +87,7 @@ declare DEFITEM=''
 declare -gi njobs=73
 declare -gi ncounter=0
 declare -gi quiet=0
-declare -gi grafico=1
+declare -gi grafico=0
 #
 declare -gA AsUser=([cpass]='voidlinux' [cpassroot]='voidlinux' [chostname]='voidlinux' [cgroups]='wheel,audio,video,floppy,cdrom,optical,kvm,xbuilder')
 declare -gA Amkfs
@@ -5592,8 +5592,8 @@ sh_disablePrintk
 sh_loadconf
 
 case " $* " in
-   *" -c "*|*" --chroot "*) sh_init "$@" ;;
-   *)                       sh_init -i "$@" ;;
+   *" -c "*|*" --chroot "*) grafico=0; sh_init "$@" ;;
+   *)                       grafico=1; sh_init -i "$@" ;;
 esac
 
 # sanity checks
