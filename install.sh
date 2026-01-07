@@ -1,4 +1,6 @@
-#!/usr/bin/env bash
+#!/bin/sh
+# POSIX sh compatible installer
+#
 #  install.sh
 #  Created: 2023/01/10
 #  Altered: 2024/09/23
@@ -34,79 +36,78 @@
 #source <(wget -q -O - https://raw.githubusercontent.com/voidlinuxbr/void-installer/master/install.sh)
 
 oops() {
-	echo "$0:" "$@" >&2
+	echo "$0: $*" >&2
 	exit 1
 }
 
 umask 0022
+
 url="https://raw.githubusercontent.com/voidlinuxbr/void-installer/master"
 url_blob="https://github.com/voidlinuxbr/void-installer/blob/master"
-declare -a files_bin=('void-install' 'void-testmirror' 'void-remove-vg' 'void-clonedisk')
-declare -a files_home=('LICENSE' 'README.md')
-declare -a files_lang=('void-install' 'void-testmirror' 'void-remove-vg' 'void-clonedisk')
-declare -a files_blob=('void-x86_64-base-custom-current.tar.xz')
-declare -a idioma=(en es pt-BR)
-tmpDir=~/void-installer
+
+# listas POSIX (sem array)
+files_bin="void-install void-testmirror void-remove-vg void-clonedisk"
+files_home="LICENSE README.md"
+files_lang="void-install void-testmirror void-remove-vg void-clonedisk"
+files_blob="void-x86_64-base-custom-current.tar.xz"
+idioma="en es pt-BR"
+
+tmpDir="$HOME/void-installer"
 dir_locale="usr/share/locale"
 
-[[ ! -d "$tmpDir" ]] && { mkdir -p "$tmpDir" || oops "Unable to create temporary directory to download files"; }
+[ -d "$tmpDir" ] || mkdir -p "$tmpDir" || oops "Unable to create $tmpDir"
 
 require_util() {
-	command -v "$1" >/dev/null 2>&1 || oops "you do not have '$1' installed, which is needed to $2"
+	command -v "$1" >/dev/null 2>&1 ||
+		oops "you do not have '$1' installed, which is needed to $2"
 }
 
-#require_util tar "descompatar o tarball"
-
 if command -v curl >/dev/null 2>&1; then
-	cmdfetch() { curl --silent --continue-at - --insecure -L "$1" -o "$2"; }
+	cmdfetch() { curl -fsSL "$1" -o "$2"; }
 elif command -v wget >/dev/null 2>&1; then
-	cmdfetch() { wget --quiet -c "$1" -O "$2"; }
+	cmdfetch() { wget -q "$1" -O "$2"; }
 else
-	require_util curl "downloader"
-	require_util wget "downloader"
+	require_util curl downloader
+	require_util wget downloader
 fi
 
-for f in "${files_bin[@]}"; do
+for f in $files_bin; do
 	echo "Downloading $f to '$tmpDir'..."
 	cmdfetch "$url/$f" "$tmpDir/$f" || oops "download failure '$url/$f'"
 done
 
-for f in "${files_home[@]}"; do
+for f in $files_home; do
 	echo "Downloading $f to '$tmpDir'..."
 	cmdfetch "$url/$f" "$tmpDir/$f" || oops "download failure '$url/$f'"
 done
 
-for f in "${files_blob[@]}"; do
-	if cmdfetch "$url_blob/$f" "$tmpDir/$f" || oops "download failure '$url/$f'"; then
-		echo "Downloading $f to '$tmpDir'..."
-	fi
+for f in $files_blob; do
+	echo "Downloading $f to '$tmpDir'..."
+	cmdfetch "$url_blob/$f" "$tmpDir/$f" || oops "download failure '$url_blob/$f'"
 done
 
-for lang in "${idioma[@]}"; do
-	for f in "${files_lang[@]}"; do
-		[[ ! -d "$tmpDir/$dir_locale/$lang/LC_MESSAGES/" ]] && {
-			mkdir -p "$tmpDir/$dir_locale/$lang/LC_MESSAGES/" ||
-				oops "Unable to create temporary directory to download files"
-		}
-		if cmdfetch "$url/$dir_locale/$lang/LC_MESSAGES/$f.mo" "$tmpDir/$dir_locale/$lang/LC_MESSAGES/$f.mo"; then
-			echo "Downloading $f.mo to '$tmpDir/$dir_locale/$lang/LC_MESSAGES/'"
-		fi
+for lang in $idioma; do
+	for f in $files_lang; do
+		target="$tmpDir/$dir_locale/$lang/LC_MESSAGES"
+		[ -d "$target" ] || mkdir -p "$target" || oops "Unable to create $target"
+		echo "Downloading $f.mo ($lang)..."
+		cmdfetch "$url/$dir_locale/$lang/LC_MESSAGES/$f.mo" \
+			"$target/$f.mo" || true
 	done
 done
 
-sudo cp -rfv $tmpDir/usr/share/locale/* /usr/share/locale/
+sudo cp -rf "$tmpDir/usr/share/locale/"* /usr/share/locale/ || oops "locale install failed"
 
-for file in "${files_bin[@]}"; do
-	sudo chmod +x $tmpDir/$file
-	sudo cp -rfv $tmpDir/$file /usr/bin/
+for f in $files_bin; do
+	sudo chmod +x "$tmpDir/$f"
+	sudo cp -f "$tmpDir/$f" /usr/bin/
 done
 
 ls -la --color=auto $tmpDir
 
 echo
-export PATH="$tmpDir:$PATH"
-cd "$tmpDir"
-echo "digite:"
-echo "	sudo bash void-install"
-echo "ou entre em: $tmpDir e digite:"
-echo "	sudo bash void-install"
+echo "Para continuar:"
+echo "   sudo bash void-install"
+echo "ou entre em: $tmpDir"
+echo "  cd $tmpDir"
+echo "  sudo bash void-install"
