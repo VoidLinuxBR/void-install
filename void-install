@@ -84,8 +84,11 @@ declare -ga _PKGS=''
 declare -ga _EXTRAS=''
 declare DEFITEM=''
 #
-declare -gi ncounter=0 njobs=73
-declare -gi quiet=0 grafico=0
+declare -gi njobs=73
+declare -gi ncounter=0
+declare -gi quiet=0
+declare -gi grafico=1
+#
 declare -gA AsUser=([cpass]='voidlinux' [cpassroot]='voidlinux' [chostname]='voidlinux' [cgroups]='wheel,audio,video,floppy,cdrom,optical,kvm,xbuilder')
 declare -gA Amkfs
 declare -gA Amntpoint
