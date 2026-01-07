@@ -2916,7 +2916,6 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 			LGRUB=true
 			LOSPROBER=false
          sh_rebuild_amntpoint_for_new_disk
-         LMKPARTED=true
 			return 0
 			;;
 		"$D_CONFIG")
@@ -3744,7 +3743,7 @@ sh_cp_rootfs() {
 }
 
 sh_touch_keys() {
-   sh_cmd_job "Criando chaves ${cmsg_Em[$LC_DEFAULT]} $dir_install" "mkdir -p keys"
+   sh_cmd_job "Criando chaves ${cmsg_Em[$LC_DEFAULT]} $dir_install" "mkdir -p keys" $err_not_fatal
 
    cat >keys/60:ae:0c:d6:f0:95:17:80:bc:93:46:7a:89:af:a3:2d.plist <<-EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -3828,9 +3827,9 @@ sh_copy_keys() {
    local destdirkeys="$dir_install/var/db/xbps/keys"
 
 	sh_touch_keys
-	sh_cmd_job "Criando diretorio de chaves em $destdirkeys" "mkdir -p $destdirkeys"
-	sh_cmd_job "Copiando chaves da ISO para $destdirkeys" "cp -f /var/db/xbps/keys/*.plist $destdirkeys/"
-	sh_cmd_job "Copiando chaves locais para $destdirkeys" "cp -f keys/*.plist $destdirkeys/"
+	sh_cmd_job "Criando diretorio de chaves em $destdirkeys" "mkdir -p $destdirkeys" $err_not_fatal
+	sh_cmd_job "Copiando chaves da ISO para $destdirkeys" "cp -f /var/db/xbps/keys/*.plist $destdirkeys/" $err_not_fatal
+	sh_cmd_job "Copiando chaves locais para $destdirkeys" "cp -f keys/*.plist $destdirkeys/" $err_not_fatal
 }
 
 sh_install_prereqs() {
@@ -4578,7 +4577,6 @@ sh_main_menu() {
 		$LMIRROR && MENU_MIRROR="${YELLOW}[${AConfMirror[_MIRROR]}]${RST} ● " || MENU_MIRROR="${RED}[not defined]${RST} ● "
 		$LSOURCE && MENU_SOURCE="${YELLOW}[${AConfMirror[_SOURCE]}]${RST} ● " || MENU_SOURCE="${RED}[not defined]${RST} ● "
 		$LDISK && MENU_DEVICE="${YELLOW}[${AConfDisk[_DEVICE]}]${RST} ● " || MENU_DEVICE="${RED}[not defined]${RST} ● "
-
 		$LGRUB && MENU_BOOTLOADER="${YELLOW}[${AConfDisk[_BOOTLOADER]}]${RST} ● " || MENU_BOOTLOADER="${RED}[not defined]${RST} ● "
 		$LMKPARTED && MENU_FS="${YELLOW}[OK]${RST} ● " || MENU_FS="${RED}[not defined]${RST} ● "
 		$LKEYMAP && MENU_KEYMAP="${YELLOW}[${AConfLocale[_KEYMAP]}]${RST} ● " || MENU_KEYMAP="${RED}[not defined]${RST} ● "
@@ -4606,7 +4604,7 @@ sh_main_menu() {
 			"${cmsg_Teclado[$LC_DEFAULT]}" "${MENU_KEYMAP}${cmsg_descTeclado[LC_DEFAULT]}" \
 			"Timezone" "${MENU_TIMEZONE}${cmsg_descTimezone[LC_DEFAULT]}" \
 			"Wm" "${MENU_WM}${cmsg_descWm[LC_DEFAULT]}" \
-			"Extra" "${MENU_EXTRA}${cmsg_descExtra[LC_DEFAULT]}" \
+			"${cmsg_Usuario[$LC_DEFAULT]}" "${MENU_EXTRA}${cmsg_descExtra[LC_DEFAULT]}" \
 			"Audio" "${MENU_AUDIO}${cmsg_DefinirAudioServer[LC_DEFAULT]}" \
 			"${cmsg_Instalar[$LC_DEFAULT]}" "${cmsg_descInstalar[$LC_DEFAULT]}" \
 			"Fde" "Full-Disk Encryption + Lvm (optional)" \
@@ -4631,7 +4629,7 @@ sh_main_menu() {
 		"${cmsg_Teclado[$LC_DEFAULT]}") sh_chooseKeymap && [ -n "$LKEYMAP" ] && DEFITEM="Timezone" ;;
 		"Timezone") sh_chooseTimezone && [ -n "$LTIMEZONE" ] && DEFITEM="Wm" ;;
 		"Wm") sh_choosewm && [ -n "$LWM" ] && DEFITEM="Extra" ;;
-		"Extra") sh_confadduser "$@" && [ -n "$LEXTRA" ] && DEFITEM="Audio" ;;
+		"${cmsg_Usuario[$LC_DEFAULT]}") sh_confadduser "$@" && [ -n "$LEXTRA" ] && DEFITEM="Audio" ;;
 		"Audio") sh_chooseaudioserver "$@" && [ -n "$LAUDIO" ] && DEFITEM="${cmsg_Instalar[$LC_DEFAULT]}" ;;
 		"${cmsg_Instalar[$LC_DEFAULT]}") sh_install ;;
 		"Fde") sh_confLvm && [ -n "$LFDE" ] && DEFITEM="${cmsg_Instalar[$LC_DEFAULT]}" ;;
@@ -5228,6 +5226,7 @@ sh_setLanguage() {
 	cmsg_descWm[pt_BR]=$(gettext "Definir gerenciador de janelas")
 	cmsg_descWifi[pt_BR]=$(gettext "Definir rede e senha wifi (opcional)")
 	cmsg_opcional[pt_BR]=$(gettext "opcional")
+	cmsg_Usuario[pt_BR]=$(gettext "Usuário")
 	cmsg_descExtra[pt_BR]=$(gettext "Definir usuário,senha,hostname")
 	cmsg_descMirror[pt_BR]=$(gettext "Escolher espelho")
 	cmsg_descInstalar[pt_BR]=$(gettext "Iniciar instalação")
@@ -5498,7 +5497,7 @@ sh_rebuild_amntpoint_for_new_disk() {
    local root_set=false
    local fs
 
-   [[ -n "$device" ]] || return 0
+   [[ -n "$device" ]] || return 1
 
 #   # se já existe algo desse device, não refaz
 #   for fs in "${!Amntpoint[@]}"; do
@@ -5565,6 +5564,8 @@ sh_rebuild_amntpoint_for_new_disk() {
       | grep -P 'TYPE="(part)"' \
       | sort -k5,5 -k2,2
    )
+
+   ((${#Amntpoint[@]})) && LMKPARTED=true || LMKPARTED=false
 }
 
 sh_setEnvironment
