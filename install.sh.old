@@ -42,9 +42,9 @@
 	umask 0022
 	url="https://raw.githubusercontent.com/voidlinuxbr/void-installer/master"
 	url_blob="https://github.com/voidlinuxbr/void-installer/blob/master"
-	declare -a files_bin=('void-install' 'void-testmirror' 'void-remove-vg' 'void-clonedisk')
-	declare -a files_home=('LICENSE' 'README.md')
-	declare -a files_lang=('void-install' 'void-testmirror' 'void-remove-vg' 'void-clonedisk')
+	declare -a files_bin=('void-install' 'void-maketar' 'void-mirror' 'void-services' 'void-testmirror' 'void-wifi' 'void-remove-vg' 'void-clonedisk' 'void-xrandr' 'void-runimage' 'void-gitclone' 'void-parted' 'void-chroot' 'void-efivar' 'void-setfont')
+	declare -a files_home=('LICENSE' 'Makefile' 'README.md' 'bashrc.sh' '.dircolors' 'install.sh')
+	declare -a files_lang=('void-clonedisk' 'void-gitclone' 'void-install' 'void-maketar' 'void-mirror' 'void-remove-vg' 'void-services' 'void-testmirror' 'void-wifi' 'void-xrandr' 'void-runimage')
 	declare -a files_blob=('void-x86_64-base-custom-current.tar.xz')
 	declare -a idioma=(bg cs da de el en es et fi fr he hr hu is it ja ko nl no pl pt-PT pt-BR ro ru sk sv tr uk zh fa hi ar)
 	tmpDir=~/void-installer
@@ -105,10 +105,9 @@
 	ls -la --color=auto $tmpDir
 
 	echo
-	export PATH="$tmpdir:$PATH"
 	echo "digite:"
-	echo "	sudo bash void-install"
+	echo "	sudo void-install"
 	echo "ou entre em: $tmpDir e digite:"
-	echo "	sudo bash void-install"
+	echo "	sudo ./void-install"
 }
 
