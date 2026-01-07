@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: qua 07 jan 2026 01:42:24 -04
+#  Updated: qua 07 jan 2026 05:54:53 -04
 #
 #  Copyright (c) 2022-2025, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -632,8 +632,8 @@ sh_disablePrintk() {
 
 sh_loadSavedConfig() {
 	[[ -s "$app_conf" ]] || sh_touchConf
-	# shellcheck source=/dev/null
-	if [[ -f "$app_conf" ]]; then
+	if [ -f "$app_conf" ] && [ -r "$app_conf" ]; then
+      # shellcheck source=/dev/null
 		source "$app_conf"
 	else
 		die "${cmsg_falhaAbertura[$LC_DEFAULT]} $app_conf!"
@@ -3288,8 +3288,9 @@ EOF
 sh_loadconf() {
 	last_msg="$(gettext "Loading configuration file"): $app_conf"
 	msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
-	# shellcheck source=/dev/null
-	if [[ -f "$app_conf" ]]; then
+
+	if [ -f "$app_conf" ] && [ -r "$app_conf" ]; then
+      # shellcheck source=/dev/null
 		source "$app_conf"
 		evaluate_retval "$?"
 		sh_parseconf
