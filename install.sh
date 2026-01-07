@@ -108,6 +108,7 @@ ls -la --color=auto $tmpDir
 echo
 echo "Para continuar:"
 echo "   sudo bash void-install"
+echo
 echo "ou entre em: $tmpDir"
 echo "  cd $tmpDir"
 echo "  sudo bash void-install"
