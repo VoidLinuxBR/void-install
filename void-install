@@ -335,9 +335,10 @@ sh_choose_packages() {
 			_EXTRAS+=' chili-void-grub-theme'
 			_EXTRAS+=' chili-void-tools'
 			_EXTRAS+=' chili-nano-config'
-			_EXTRAS+=' chili-utils'
 			_EXTRAS+=' chili-skel'
-			_EXTRAS+=' chili-void-tools'
+			_EXTRAS+=' chili-utils'
+			_EXTRAS+=' void-utils'
+			_EXTRAS+=' voidbr-plymouth-theme'
 		fi
 		## end packages
 	else
@@ -1815,11 +1816,20 @@ sh_make_fstab() {
 }
 
 sh_activating_services() {
-	local aServicesTTY=(agetty-tty1 agetty-tty2 agetty-tty3 agetty-tty4 agetty-tty5 agetty-tty6 udevd dhcpcd gpm acpid connmand)
-	aServicesTTY+=(wpa_supplicant uuidd dmeventd sshd dbus socklog-unix openntpd irqbalance avahi-daemon)
-	local aServicesX=(NetworkManager dbus elogind lxdm polkitd bluetoothd)
+	local aServicesTTY=(dbus dhcpcd sshd udevd)
+	      aServicesTTY+=(wpa_supplicant uuidd dmeventd socklog-unix openntpd irqbalance avahi-daemon)
+	      aServicesTTY+=(gpm acpid command)
+	local aServicesX=(NetworkManager elogind polkitd bluetoothd)
+	local aDisplayManager=()
 	local service
 	local level=2
+
+   for x in "${aDE[@]}"; do
+      case $x in
+         gnome)   aServicesX+=(gdm);;
+         *)       aServicesX+=(lxdm);;
+      esac
+   done
 
 	for service in "${aServicesTTY[@]}"; do
 		sh_chroot_job "${cmsg_AtivandoServico[$LC_DEFAULT]} $service ${cmsg_Em[$LC_DEFAULT]} $dir_install" \
@@ -2071,12 +2081,18 @@ sh_xfce4minimal() {
 }
 
 sh_gnomeminimal() {
-	local apkgs=(gnome gnome-apps dconf-editor devhelp Endeavour evolution five-or-more four-in-a-row geary
-		gedit ghex glade3 gnome-boxes gnome-builder gnome-chess gnome-connections extension-manager
-		gnome-games-collection gnome-klotski gnome-mahjongg mime-types gnome-multi-writer
+	local apkgs=(gnome gnome-apps gdm gnome-connections extension-manager
+          	    mime-types gnome-terminal gnome-backgrounds)
+
+   if $LCUSTOM; then
+		apkgs+=(dconf-editor devhelp Endeavour evolution five-or-more four-in-a-row geary
+		gedit ghex glade3 gnome-boxes gnome-builder gnome-chess gnome-games-collection
+		gnome-klotski gnome-mahjongg gnome-multi-writer
 		gnome-nettool gnome-nibbles gnome-robots gnome-sound-recorder gnome-sudoku
-		gnome-taquin gnome-terminal gnome-tetravex gnome-tweaks gnome-usage hitori iagno lightsoff
-		polari quadrapassel swell-foop sysprof tali gnome-backgrounds)
+		gnome-taquin gnome-tetravex gnome-tweaks gnome-usage hitori iagno lightsoff
+		polari quadrapassel swell-foop sysprof tali
+		)
+   fi
 	sh_chroot_job "${cmsg_Instalando[$LC_DEFAULT]} Gnome ${cmsg_Em[$LC_DEFAULT]} $dir_install" "LC_ALL=C ${XBPS_INSTALL_UNPACK_ONLY} ${apkgs[*]}"
 }
 
@@ -3970,7 +3986,9 @@ sh_install() {
 				sh_X11minimal
 			fi
 
+		   aDE=()
 			for x in "${_WINDOWMANAGER[@]}"; do
+			   aDE+=("$x")
 				case "$x" in
 				"tty") : ;;
 				"awesome") sh_awesomeminimal ;;
