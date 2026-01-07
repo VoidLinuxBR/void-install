@@ -46,7 +46,7 @@
 	declare -a files_home=('LICENSE' 'README.md')
 	declare -a files_lang=('void-install' 'void-testmirror' 'void-remove-vg' 'void-clonedisk')
 	declare -a files_blob=('void-x86_64-base-custom-current.tar.xz')
-	declare -a idioma=(bg cs da de el en es et fi fr he hr hu is it ja ko nl no pl pt-PT pt-BR ro ru sk sv tr uk zh fa hi ar)
+	declare -a idioma=(en es pt-BR)
 	tmpDir=~/void-installer
 	dir_locale="usr/share/locale"
 
