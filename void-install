@@ -2072,7 +2072,7 @@ sh_xfce4minimal() {
 
 sh_gnomeminimal() {
 	local apkgs=(gnome gnome-apps dconf-editor devhelp Endeavour evolution five-or-more four-in-a-row geary
-		gedit ghex glade3 gnome-boxes gnome-builder gnome-chess gnome-connections
+		gedit ghex glade3 gnome-boxes gnome-builder gnome-chess gnome-connections extension-manager
 		gnome-games-collection gnome-klotski gnome-mahjongg mime-types gnome-multi-writer
 		gnome-nettool gnome-nibbles gnome-robots gnome-sound-recorder gnome-sudoku
 		gnome-taquin gnome-terminal gnome-tetravex gnome-tweaks gnome-usage hitori iagno lightsoff
