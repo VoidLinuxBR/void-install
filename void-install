@@ -1268,10 +1268,10 @@ sh_update_mirror() {
 	last_msg="${cmsg_Configurando[$LC_DEFAULT]} ${cmsg_Mirror[$LC_DEFAULT],,} ${cmsg_Em[$LC_DEFAULT]} $dir_install"
 	msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
 	cat >"$dir_install/etc/xbps.d/00-repository-main.conf" <<-EOF
-		repository=${url_mirror}current
-		repository=${url_mirror}current/nonfree
-		repository=${url_mirror}current/multilib
-		repository=${url_mirror}current/multilib/nonfree
+		repository=${url_mirror}/current
+		repository=${url_mirror}/current/nonfree
+		repository=${url_mirror}/current/multilib
+		repository=${url_mirror}/current/multilib/nonfree
 
 		repository=https://void.chililinux.com/voidlinux/current
 		#repository=https://void.chililinux.com/voidlinux/current/extras
