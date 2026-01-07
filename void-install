@@ -1656,7 +1656,10 @@ sh_cmd_job() {
 }
 
 strip_ansi() {
-   printf '%s' "$1" | sed 's/\x1B\[[0-9;]*[A-Za-z]//g'
+   printf '%s' "$1" |
+      sed \
+         -e 's/\x1B\[[0-9;]*[A-Za-z]//g' \
+         -e 's/\x1B[][()#;?]*[0-9A-Za-z]//g'
 }
 
 sh_chroot_job() {
