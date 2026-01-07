@@ -4541,7 +4541,7 @@ sh_main_menu() {
 			--extra-button --extra-label "${cmsg_Definicoes[$LC_DEFAULT]}" \
 			--title "$APP - ${cmsg_MenuInstalacao[$LC_DEFAULT]} $(sh_getparamfile)" \
 			--menu "${RESET}${cmsg_MENU[$LC_DEFAULT]}" \
-			24 100 2 \
+			26 100 2 \
 			"${cmsg_Mirror[$LC_DEFAULT]}" "${MENU_MIRROR}${cmsg_descMirror[LC_DEFAULT]}" \
 			"${cmsg_Source[$LC_DEFAULT]}" "${MENU_SOURCE}${cmsg_DefinirInstalacaoDeOrigem[LC_DEFAULT]}" \
 			"${cmsg_Disco[$LC_DEFAULT]}" "${MENU_DEVICE}${cmsg_descDisco[LC_DEFAULT]}" \
