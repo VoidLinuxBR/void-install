@@ -133,7 +133,7 @@ check_gettext() {
 	if ! command -v gettext >/dev/null; then
 		if readconf "${red}ERRO: Comando 'gettext' nao encontrado. Instalar pacote ?"; then
 			:
-			xbps-install -Sf gettext
+			xbps-install -Sf gettext rsync parted curl xz
 		else
 			exit 1
 		fi
