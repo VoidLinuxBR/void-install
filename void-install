@@ -1655,6 +1655,10 @@ sh_cmd_job() {
 	return "$lretval"
 }
 
+strip_ansi() {
+   printf '%s' "$1" | sed 's/\x1B\[[0-9;]*[A-Za-z]//g'
+}
+
 sh_chroot_job() {
 	local cmsg="$1"
 	local cjob="$2"
@@ -1670,11 +1674,12 @@ sh_chroot_job() {
 	fi
 
 	if ((grafico)); then
+      clean_logmessage="$(strip_ansi "$logmessage")"
 		chroot "$dir_install" "$shell" -c "$cjob" 2>&1 | tee -i -a "$BOOTLOG" |
          dialog \
            --colors \
    		  --backtitle "$ccabec" \
-           --title "\Zb\Z3Step:$ufmt \Z1==>\Zn \Z7[$logmessage]\Zn \Z6[$(sh_time_elapsed)]\Zn" \
+           --title "\Zb\Z3Step:$ufmt \Z1==>\Zn \Z7[$clean_logmessage]\Zn \Z6[$(sh_time_elapsed)]\Zn" \
            --progressbox $((MAXROW / 2)) $((MAXCOL - 20))
 	else
 		chroot "$dir_install" "$shell" -c "$cjob" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
