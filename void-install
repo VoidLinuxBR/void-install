@@ -1670,13 +1670,11 @@ sh_chroot_job() {
 	local lretval=0
 
 	last_msg="$cmsg"
-	if ! ((grafico)); then
-   	if [[ -n "$level" ]]; then
-   		msg "INFO" "$last_msg" "$(log_info_msg_level "$last_msg")"
-   	else
-   		msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
-   	fi
-   fi
+  	if [[ -n "$level" ]]; then
+  		msg "INFO" "$last_msg" "$(log_info_msg_level "$last_msg")"
+  	else
+  		msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
+  	fi
 
 	if ((grafico)); then
       clean_logmessage="$(strip_ansi "$logmessage")"
@@ -5580,18 +5578,19 @@ sh_setLogPrefix
    exit $(($# ? 0 : 1))
 }
 
-[[ -z "${1-}" || "${1-}" = @(-h|--help) ]] && {
+[[ "${1-}" = @(-h|--help) ]] && {
    sh_usage
    exit $(($# ? 0 : 1))
 }
 
 sh_checkDependencies
+sh_checkRoot
 sh_checkDisplay
 #sh_update_self "$@"
 sh_loadSavedConfig
 sh_disablePrintk
 sh_loadconf
-sh_init "$@"
+sh_init -i "$@"
 
 # sanity checks
 if ! $LINSTALL && ! $LCHROOT; then
