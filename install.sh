@@ -104,8 +104,8 @@ done
 ls -la --color=auto $tmpDir
 
 echo
-export PATH="$tmpdir:$PATH"
-cd "$tmpdir"
+export PATH="$tmpDir:$PATH"
+cd "$tmpDir"
 echo "digite:"
 echo "	sudo bash void-install"
 echo "ou entre em: $tmpDir e digite:"
