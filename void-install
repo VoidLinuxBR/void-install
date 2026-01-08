@@ -369,7 +369,7 @@ sh_choose_packages() {
 		_EXTRAS+=' chili-skel'
 		_EXTRAS+=' chili-utils'
 		_EXTRAS+=' void-utils'
-		_EXTRAS+=' voidbr-plymouth-theme'
+#		_EXTRAS+=' voidbr-plymouth-theme'
    fi
 
    if grep -qi xorg <<<"${_WINDOWMANAGER[@]}"; then
