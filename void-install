@@ -52,9 +52,9 @@ shopt -s extglob
 #system
 readonly APP="${0##*/}"
 readonly _VERSION_='3.01.07-20260107'
-readonly distro=$(uname -n)
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 #                      cfdisk gdisk  efivar mkfs.ext2 mkfs.ext3 mkfs.ext4 mkfs.btrfs mkfs.xfs mkfs.f2fs mkfs.jfs mkfs.reiserfs)
+declare distro=$(uname -n)
 declare LCUSTOM=false
 declare LEFI=false
 declare LGRUB=false
@@ -80,9 +80,9 @@ declare LFDE=false
 declare LONLY_TTY=true
 declare LEXTRA=false
 #
-declare -ga _PKGS=''
-declare -ga _EXTRAS=''
-declare DEFITEM=''
+declare -ga _PKGS
+declare -ga _EXTRAS
+declare DEFITEM
 #
 declare -gi njobs=73
 declare -gi ncounter=0
@@ -158,6 +158,21 @@ declare -gA Alocale=(
 declare dialogRcFile="$HOME/.dialogrc"
 #
 
+detect_distro() {
+   local id=""
+
+   if [[ -r /etc/os-release ]]; then
+      # Lê ID=void|arch|debian|... exatamente como a distro declara
+      id=$(grep -E '^ID=' /etc/os-release | cut -d= -f2 | tr -d '"')
+   elif [[ -r /usr/lib/os-release ]]; then
+      id=$(grep -E '^ID=' /usr/lib/os-release | cut -d= -f2 | tr -d '"')
+   else
+      echo "unknown"
+      return
+   fi
+   echo "$id"
+}
+
 readconf() {
 	if [[ $LC_DEFAULT -eq 0 ]]; then
 		read -r -p "$@ [S/n]"
@@ -169,10 +184,24 @@ readconf() {
 }
 
 check_gettext() {
-	if ! command -v gettext >/dev/null; then
-		if readconf "${red}ERRO: Comando 'gettext' nao encontrado. Instalar pacote ?"; then
-			:
-			xbps-install -Sf bash gettext rsync parted curl xz
+   if ! command -v gettext >/dev/null; then
+      echo "Distro detectada: ${green}$DISTRO${reset}"
+	   if readconf "${red}FALHA$: ${cyan}Pacote/Comando 'gettext' nao encontrado. Instalar pacote ?"; then
+		   :
+         case "$DISTRO" in
+   		void|void-live|voidlinux)
+            if ! xbps-install -Sf bash gettext rsync parted curl xz; then
+               echo "${red}Erro: Download falhou${reset}"
+               exit 1
+            fi
+            ;;
+   		chili|chililinux|arch|manjaro|biglinux)
+            if ! pacman -Sy gettext rsync parted curl xz; then
+               echo "${red}Erro: Download falhou${reset}"
+               exit 1
+            fi
+            ;;
+         esac
 		else
 			exit 1
 		fi
@@ -181,6 +210,7 @@ check_gettext() {
 
 ###########################################################################################################
 # Corte para teste do gettext
+DISTRO=$(detect_distro)
 check_gettext
 ###########################################################################################################
 
@@ -331,6 +361,21 @@ sh_update_self() {
 }
 
 sh_choose_packages() {
+	if sh_checkRepo 'https://void.chililinux.com/voidlinux/current'; then
+		_EXTRAS='nano-syntax-highlighting'
+		_EXTRAS+=' chili-void-grub-theme'
+		_EXTRAS+=' chili-void-tools'
+		_EXTRAS+=' chili-nano-config'
+		_EXTRAS+=' chili-skel'
+		_EXTRAS+=' chili-utils'
+		_EXTRAS+=' void-utils'
+		_EXTRAS+=' voidbr-plymouth-theme'
+   fi
+
+   if grep -qi xorg <<<"${_WINDOWMANAGER[@]}"; then
+     return
+   fi
+
 	## begin packages
 	declare -ga aXorg=(xorg xinit xterm xorg-fonts dbus-x11 elogind dbus-elogind polkit-elogind xdg-user-dirs xrdb)
 	declare -ga aVideo=(mesa-dri linux-firmware-intel xf86-video-amdgpu xf86-video-ati mesa-nouveau-dri)
@@ -365,18 +410,6 @@ sh_choose_packages() {
             		aUtility+=('nvme-cli')
 		declare -ga _PKGS='fastfetch pfetch bc bat fzf bash-completion vpm vsv xtools geoip geoipupdate pigz #geoip-data'
 		#--repository=https://void.chililinux.com/voidlinux/current
-		declare -ga _EXTRAS=''
-
-		if sh_checkRepo 'https://void.chililinux.com/voidlinux/current'; then
-			_EXTRAS='nano-syntax-highlighting'
-			_EXTRAS+=' chili-void-grub-theme'
-			_EXTRAS+=' chili-void-tools'
-			_EXTRAS+=' chili-nano-config'
-			_EXTRAS+=' chili-skel'
-			_EXTRAS+=' chili-utils'
-			_EXTRAS+=' void-utils'
-			_EXTRAS+=' voidbr-plymouth-theme'
-		fi
 		## end packages
 	else
 		## X11
@@ -401,9 +434,9 @@ sh_choose_packages() {
 		declare -ga aUtility=()
 		declare -ga _PKGS=''
 		#--repository=https://void.chililinux.com/voidlinux/current
-		declare -ga _EXTRAS=''
 		## end packages
 	fi
+
 }
 
 declare _WINDOWMANAGER=('tty')
@@ -1438,6 +1471,7 @@ install_skel_user() {
 		case "$x" in
 		"tty") : ;;
 		"awesome") aname+=(config-awesome) ;;
+		"xorg") : ;;
 		"bspwm") aname+=(config-bspwm) ;;
 		"blackbox") aname+=(config-blackbox) ;;
 		"dwm") aname+=(config-dwm) ;;
@@ -1562,21 +1596,25 @@ sh_make_fs() {
 			last_msg="${cmsg_FormatandoParticao[$LC_DEFAULT]} ${_PART} FS ${fstype,,}"
 			msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
 			declare -A fsparms=(
-				[ext2]="-F   -L VOID"
-				[ext3]="-F   -L VOID"
-				[ext4]="-F   -L VOID"
-				[btrfs]="-f   -L VOID"
-				[f2fs]="-f   -l VOID"
-				[xfs]="-f   -L VOID"
-				[jfs]="-f   -L VOID"
+				[ext2]="-F -L VOID"
+				[ext3]="-F -L VOID"
+				[ext4]="-F -L VOID"
+				[btrfs]="-f -L VOID"
+				[f2fs]="-f -l VOID"
+				[xfs]="-f -L VOID"
+				[jfs]="-f -L VOID"
 				[vfat]="-F32 -n EFI"
-				[reiserfs]="-f   -l VOID"
+				[reiserfs]="-f -l VOID"
 			)
+
 			if [[ "$fstype" = "swap" ]]; then
-				mkswap "$_PART" 2>&1 | tee -i -a "$BOOTLOG" >"$LOGGER"
+            wipefs -a "${_PART}"
+				mkswap "${_PART}" 2>&1 | tee -i -a "$BOOTLOG" >"$LOGGER"
 			else
-				mkfs.$fstype ${fsparms[$fstype]} $_PART 2>&1 | tee -i -a "$BOOTLOG" >"$LOGGER"
+            wipefs -a "${_PART}"
+				mkfs.$fstype ${fsparms[$fstype]} ${_PART} 2>&1 | tee -i -a "$BOOTLOG" >"$LOGGER"
 			fi
+
 			evaluate_retval "${PIPESTATUS[0]}"
 		fi
 	done
@@ -2117,6 +2155,13 @@ sh_xfce4minimal() {
 			#apkgs+=(chili-void-xfce-skel)
 		fi
 	fi
+
+   sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
+}
+
+sh_xorgminimal() {
+   local DE='Xorg Minimal'
+   declare apkgs=(xorg-minimal xinit xterm xorg-fonts xorg-video-drivers mesa-dri)
 
    sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -3436,6 +3481,7 @@ sh_choosewm() {
 	fi
 
 	aWm[tty]="${cmsg_tty[LC_DEFAULT]}"
+	aWm[xorg]="Xorg Minimal"
 	aWm[awesome]="Awesome"
 	aWm[blackbox]="Blackbox"
 	aWm[bspwm]="Tiling window manager based on binary space partitioning"
@@ -3470,6 +3516,7 @@ sh_choosewm() {
 		--checklist "${cmsg_MENU[$LC_DEFAULT]}" \
 		0 0 0 \
 		tty "${aWm[tty]}" "${aFlag[tty]}" \
+		xorg "${aWm[xorg]}" "${aFlag[xorg]}" \
 		awesome "${aWm[awesome]}" "${aFlag[awesome]}" \
 		bspwm "${aWm[bspwm]}" "${aFlag[bspwm]}" \
 		dwm "${aWm[dwm]}" "${aFlag[dwm]}" \
@@ -4021,7 +4068,9 @@ sh_install() {
 	if [[ "${AConfMirror[_SOURCE]}" = "network" ]]; then
 		sh_checkTarball
 	fi
+
 	sh_choose_packages
+
 	start_time=$(date +%s) # Obtém o tempo de início em segundos desde a época Unix
 	start_datetime=$(date)
 
@@ -4045,8 +4094,8 @@ sh_install() {
 
 		sh_mount_fs
 		sh_mk_working_dir
-
 		sh_copy_keys
+
 		if sh_extract_root_fs; then
 			sh_init_bind
          sh_cmd_job "${cmsg_Copiando[$LC_DEFAULT]} /etc/resolv.conf ${cmsg_Em[$LC_DEFAULT]} $dir_install" "cp -f /etc/resolv.conf $dir_install/etc/"
@@ -4105,6 +4154,7 @@ sh_install() {
 			   aDE+=("$x")
 				case "$x" in
 				"tty") : ;;
+				"xorg") sh_xorgminimal ;;
 				"awesome") sh_awesomeminimal ;;
 				"bspwm")
 					sh_bspwmminimal
