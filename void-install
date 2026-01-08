@@ -191,13 +191,13 @@ check_gettext() {
          case "$DISTRO" in
    		void|void-live|voidlinux)
             if ! xbps-install -Sf bash gettext rsync parted curl xz; then
-               echo "${red}Erro: Download falhou${reset}"
+               echo "${red}Erro: Instalação falhou${reset}"
                exit 1
             fi
             ;;
    		chili|chililinux|arch|manjaro|biglinux)
-            if ! pacman -Sy gettext rsync parted curl xz; then
-               echo "${red}Erro: Download falhou${reset}"
+            if ! pacman -Sy --needed --noconfirm gettext rsync parted curl xz; then
+               echo "${red}Erro: Instalação falhou${reset}"
                exit 1
             fi
             ;;
