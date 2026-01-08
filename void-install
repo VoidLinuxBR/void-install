@@ -89,13 +89,20 @@ declare -gi ncounter=0
 declare -gi quiet=0
 declare -gi grafico=0
 #
-declare -gA AsUser=([cpass]='voidlinux' [cpassroot]='voidlinux' [chostname]='voidlinux' [cgroups]='wheel,audio,video,floppy,cdrom,optical,kvm,xbuilder')
 declare -gA Amkfs
 declare -gA Amntpoint
 declare -gA AmntpointFDE
 declare -gA AARRAY_DSK_DEVICES
 declare -gA AARRAY_PART_DEVICES
 declare -gA AARRAY_VG_DEVICES
+#
+declare -gA AsUser=(
+   [cpass]='voidlinux'
+   [cpassroot]='voidlinux'
+   [chostname]='voidlinux'
+   [cgroups]='wheel,audio,video,floppy,cdrom,optical,kvm,xbuilder'
+)
+#
 declare -gA AConfFde=(
 	[partition]=''
 	[vg]='voidvm'
@@ -113,12 +120,41 @@ declare -gA AConfDisk=(
 	[_BOOTLOADER]='/dev/sdX'
 	[_OSPROBER]=false
 )
-declare -gA AConfLocale=([_TIMEZONE]='America/Sao_Paulo' [_KEYMAP]='br-abnt2' [_CLOCK]='UTC' [_FONT]='Lat2-Terminus16')
-declare -gA AConfMirror=([_SOURCE]='network' [_MIRROR]='repo.fastly.voidlinux.org' [url_mirror]='https://repo-fastly.voidlinux.org' [location]='Fastly Global CDN')
-declare -gA AConfAudio=([_AUDIOSERVER]='Pipewire')
-declare -gA AConfWifi=([_NETWORK]='wifi_ssid' [_PASSWORD]='wifi_password')
-declare -gA Alanguage=([pt_BR]=0 [en_US]=1 [de_DE]=2 [fr_FR]=3 [es_ES]=4 [it_IT]=5)
-declare -gA Alocale=([0]=pt_BR [1]=en_US [2]=de_DE [3]=fr_FR [4]=es_ES [5]=it_IT)
+declare -gA AConfLocale=(
+   [_TIMEZONE]='America/Sao_Paulo'
+   [_KEYMAP]='br-abnt2'
+   [_CLOCK]='UTC'
+   [_FONT]='Lat2-Terminus16'
+)
+declare -gA AConfMirror=(
+   [_SOURCE]='network'
+   [_MIRROR]='repo.fastly.voidlinux.org'
+   [url_mirror]='https://repo-fastly.voidlinux.org'
+   [location]='Fastly Global CDN'
+)
+declare -gA AConfAudio=(
+   [_AUDIOSERVER]='Pipewire'
+)
+declare -gA AConfWifi=(
+   [_NETWORK]='wifi_ssid'
+   [_PASSWORD]='wifi_password'
+)
+declare -gA Alanguage=(
+   [pt_BR]=0
+   [en_US]=1
+   [de_DE]=2
+   [fr_FR]=3
+   [es_ES]=4
+   [it_IT]=5
+)
+declare -gA Alocale=(
+   [0]=pt_BR
+   [1]=en_US
+   [2]=de_DE
+   [3]=fr_FR
+   [4]=es_ES
+   [5]=it_IT
+)
 declare dialogRcFile="$HOME/.dialogrc"
 #
 
@@ -296,9 +332,11 @@ sh_update_self() {
 
 sh_choose_packages() {
 	## begin packages
-	declare -ga aXorg=('xorg' 'xinit' 'xterm' 'xorg-fonts' 'dbus-x11' 'elogind' 'dbus-elogind' 'polkit-elogind' 'xdg-user-dirs' 'xrdb')
-	declare -ga aPulseaudio=('pulseaudio' 'pavucontrol' 'pasystray' 'gst-plugins-bad1' 'gst-plugins-good1' 'gst-plugins-ugly1' 'gst-plugins-base1')
-	declare -ga aPipewire=('pipewire' 'wireplumber' 'alsa-pipewire' 'pulseaudio-utils' 'pavucontrol' 'libspa-bluetooth' 'libjack-pipewire')
+	declare -ga aXorg=(xorg xinit xterm xorg-fonts dbus-x11 elogind dbus-elogind polkit-elogind xdg-user-dirs xrdb)
+	declare -ga aVideo=(mesa-dri linux-firmware-intel xf86-video-amdgpu xf86-video-ati mesa-nouveau-dri)
+	declare -ga aPulseaudio=(pulseaudio pavucontrol pasystray gst-plugins-bad1 gst-plugins-good1 gst-plugins-ugly1 gst-plugins-base1)
+	declare -ga aPipewire=(pipewire wireplumber alsa-pipewire pulseaudio-utils pavucontrol libspa-bluetooth libjack-pipewire)
+	declare -ga aDisplaymanager=(lxdm lxdm-theme-vdojo)
 
 	if $LCUSTOM; then
 		## X11
@@ -306,11 +344,10 @@ sh_choose_packages() {
 		declare -ga aArchiverX=('xarchiver')
 		declare -ga aBrowser=('firefox' "firefox-i18n-$(sh_get_language_without_utf8)" 'brave-bin')
 		declare -ga aBluetooth=('bluez' 'bluez-alsa' 'bluedevil' 'blueman' 'bluez-cups' 'bluez-deprecated' 'gnome-bluetooth1' 'blueberry')
-		declare -ga aDisplaymanager=('lxdm' 'lxdm-theme-vdojo')
 		declare -ga aFilemanager=('Thunar' 'thunar-archive-plugin' 'thunar-volman' 'pcmanfm' 'octoxbps')
 		declare -ga aFont+=('liberation-fonts-ttf' 'dejavu-fonts-ttf' 'fonts-droid-ttf' 'fonts-croscore-ttf' 'terminus-font' 'ttf-ubuntu-font-family' 'font-iosevka')
-		aFont+=('unicode-emoji' 'noto-fonts-emoji' 'font-emoji-one-color' 'unicode-emoji' 'nerd-fonts-symbols-ttf' 'font-hack-ttf')
-		aFont+=('font-awesome' 'font-awesome5' 'font-awesome6' nerd-fonts-ttf)
+            		aFont+=('unicode-emoji' 'noto-fonts-emoji' 'font-emoji-one-color' 'unicode-emoji' 'nerd-fonts-symbols-ttf' 'font-hack-ttf')
+            		aFont+=('font-awesome' 'font-awesome5' 'font-awesome6' nerd-fonts-ttf)
 		declare -ga aPerfumery=('conky' 'setxkbmap' 'numlockx' 'nitrogen' 'ristretto' 'mate-notification-daemon')
 		declare -ga aPrinter=('cups' 'system-config-printer' 'system-config-printer-udev' 'splix' 'samsung-unified-driver' 'brother-brlaser' 'cups-pdf')
 		declare -ga aTerminal=('rxvt-unicode' 'xfce4-terminal' 'cool-retro-term')
@@ -319,18 +356,18 @@ sh_choose_packages() {
 		declare -ga aNetworkX=('network-manager-applet' 'gvfs' 'gvfs-smb' 'gvfs-cdda')
 		declare -ga aUtilityX=('mate-calc' 'xkill' 'menulibre' 'mugshot' 'ocs-url' 'remmina' 'remmina-kwallet' gparted )
 		## tty
-		declare -ga aDaemons=('NetworkManager' 'acpi' 'acpid' 'gpm' 'connman' 'irqbalance' 'avahi')
+		declare -ga aDaemons=('NetworkManager' 'acpi' 'acpid' 'connman' 'irqbalance' 'avahi')
 		declare -ga aArchiverTty=('unrar' 'zip' 'p7zip' 'unzip' 'bzip2')
-		declare -ga aDownloader=('curl' 'wget' 'git' 'lynx')
-		declare -ga aEditorTxt=('nano')
+		declare -ga aDownloader=('curl' 'wget' 'git')
+		declare -ga aEditorTxt=(nano vim)
 		declare -ga aUtility=('dialog' 'gettext' 'binutils' 'sed' 'grep' 'tree' 'pv' 'parted' 'rsync' 'duf' 'dfc' 'tmate' 'inetutils' 'iputils')
-		aUtility+=('cifs-utils' 'ntfs-3g' 'btop' 'htop' 'parallel' 'evtest' 'bubblewrap' 'pacman' 'fakeroot' 'bsdtar' 'exa' 'cmatrix')
-		aUtility+=('nvme-cli')
+            		aUtility+=('cifs-utils' 'ntfs-3g' 'btop' 'htop' 'parallel' 'evtest' 'bubblewrap' 'pacman' 'fakeroot' 'bsdtar' 'exa' 'cmatrix')
+            		aUtility+=('nvme-cli')
 		declare -ga _PKGS='fastfetch pfetch bc bat fzf bash-completion vpm vsv xtools geoip geoipupdate pigz #geoip-data'
-		#--repository=https://chililinux.com/void/current
+		#--repository=https://void.chililinux.com/voidlinux/current
 		declare -ga _EXTRAS=''
 
-		if sh_checkRepo 'https://chililinux.com/void/current'; then
+		if sh_checkRepo 'https://void.chililinux.com/voidlinux/current'; then
 			_EXTRAS='nano-syntax-highlighting'
 			_EXTRAS+=' chili-void-grub-theme'
 			_EXTRAS+=' chili-void-tools'
@@ -343,28 +380,27 @@ sh_choose_packages() {
 		## end packages
 	else
 		## X11
-		declare -ga aIconsAndThemes=('Adapta' 'adwaita-icon-theme')
+		declare -ga aIconsAndThemes=(Adapta adwaita-icon-theme)
 		declare -ga aArchiverX=()
-		declare -ga aBrowser=('firefox' "firefox-i18n-$(sh_get_language_without_utf8)")
+		declare -ga aBrowser=(firefox firefox-i18n-$(sh_get_language_without_utf8))
 		declare -ga aBluetooth=()
-		declare -ga aDisplaymanager=('lxdm' 'lxdm-theme-vdojo')
-		declare -ga aFilemanager=('Thunar' 'pcmanfm')
+		declare -ga aFilemanager=(Thunar pcmanfm)
 		declare -ga aFont+=()
 		declare -ga aPerfumery=()
 		declare -ga aPrinter=()
-		declare -ga aTerminal=('xfce4-terminal')
+		declare -ga aTerminal=(xfce4-terminal)
 		declare -ga aEditorX=()
 		declare -ga aMicrocode=()
-		declare -ga aNetworkX=('network-manager-applet')
-		declare -ga aUtilityX=('gettext')
+		declare -ga aNetworkX=(network-manager-applet)
+		declare -ga aUtilityX=(gettext)
 		## tty
-		declare -ga aDaemons=('NetworkManager')
+		declare -ga aDaemons=(NetworkManager)
 		declare -ga aArchiverTty=()
 		declare -ga aDownloader=()
 		declare -ga aEditorTxt=()
 		declare -ga aUtility=()
 		declare -ga _PKGS=''
-		#--repository=https://chililinux.com/void/current
+		#--repository=https://void.chililinux.com/voidlinux/current
 		declare -ga _EXTRAS=''
 		## end packages
 	fi
@@ -380,12 +416,12 @@ declare Interrupted="$(gettext "Interrompido! Saindo...")"
 trap 'printf "\n${red}$Interrupted\n"; cleanup; exit 0' INT TERM HUP
 
 errorbeep() {
-	printf '\a' # beep
+   printf '\a' # beep
 }
 
 info_msg() {
-	#	notify-send "$ccabec" "$@"
-	printf "\033[1m$@\n\033[m"
+   #	notify-send "$ccabec" "$@"
+   printf "\033[1m$@\n\033[m"
 }
 
 cleanup() {
@@ -397,15 +433,12 @@ cleanup() {
 
 sh_setEnvironment() {
 	[[ ! -e "$dialogRcFile" ]] && sh_create_dialogrc
+
 	declare url_mirror='https://repo-fastly.voidlinux.org/'
 	declare -g app_conf='/tmp/void-install.conf'
 	readonly cnickefi='Void_install'
 	readonly dir_install='/mnt/voidlinux'
-	#readonly _TARBALL_ROOTFS=void-x86_64-base-minimal-current.tar.xz
-	#readonly _TARBALL_ROOTFS=void-x86_64-base-voidstrap-current.tar.xz
-	#readonly _TARBALL_ROOTFS=void-x86_64-base-system-current.tar.xz
 	readonly _TARBALL_ROOTFS=void-x86_64-base-custom-current.tar.xz
-	#readonly url_tarball="https://github.com/voidlinuxbr/void-installer/raw/master/${_TARBALL_ROOTFS}"
 	readonly url_tarball="https://raw.githubusercontent.com/voidlinuxbr/void-installer/refs/heads/main/${_TARBALL_ROOTFS}"
 	readonly url_tarball_md5="https://raw.githubusercontent.com/voidlinuxbr/void-installer/refs/heads/main/${_TARBALL_ROOTFS}.md5"
 	readonly true=1
@@ -415,6 +448,7 @@ sh_setEnvironment() {
 	readonly BOOTLOG="/tmp/void-install-$(sh_diahora).log"
 	readonly LOGGER='/dev/tty8'
 	shell='/bin/sh'
+
 	: "${ccabec="$APP v${_VERSION_} - https://github.com/voidlinuxbr/void-installer"}"
 	: "${ccabecmin="$APP v${_VERSION_}"}"
 	: "${DIALOG=${DIALOG:-dialog}}"
@@ -1966,6 +2000,8 @@ sh_X11minimal() {
 	if ! $HYPRLAND; then
 		apkgs+=("${aXorg[@]}")
 	fi
+
+	apkgs+=("${aVideo[@]}")
 	apkgs+=("${aFont[@]}")
 	apkgs+=("${aDisplaymanager[@]}")
 	apkgs+=("${aTerminal[@]}")
@@ -1993,6 +2029,8 @@ sh_X11minimal() {
 	if ! $HYPRLAND; then
 		sh_install_pkgs_in_chroot "Instalando Meta Pacote Xorg" "${aXorg[*]}"
 	fi
+
+	sh_install_pkgs_in_chroot "Instalando Meta Pacote Video" "${aVideo[*]}"
 	sh_install_pkgs_in_chroot "Instalando Meta Pacote Font" "${aFont[*]}"
 	sh_install_pkgs_in_chroot "Instalando Meta Pacote Icons" "${aIconsAndThemes[*]}"
 	sh_install_pkgs_in_chroot "Instalando Meta Pacote DM" "${aDisplaymanager[*]}"
@@ -2074,7 +2112,7 @@ sh_xfce4minimal() {
 			xfce4-xkb-plugin
 			plank
 		)
-		if sh_checkRepo 'https://chililinux.com/void/current'; then
+		if sh_checkRepo 'https://void.chililinux.com/voidlinux/current'; then
 			apkgs+=(chili-xfce-config)
 			#apkgs+=(chili-void-xfce-skel)
 		fi
@@ -2207,18 +2245,19 @@ sh_make_bspwm_conf() {
 	local user="${AsUser[cuser]}"
 	shell='/bin/bash'
 
-   sh_chroot_job "${cmsg_Configurando[$LC_DEFAULT]} Bspwm ${cmsg_Em[$LC_DEFAULT]} $dir_install" \
-		"mkdir -p /home/$user/.config/{bspwm,polybar,sxhkd} ;													\
-						cp -R /usr/share/doc/bspwm/examples/* /home/$user/.config/bspwm/;									\
-						cp /usr/share/examples/polybar/config.ini /home/$user/.config/polybar/;							\
-						cp /usr/share/doc/bspwm/examples/sxhkdrc /home/$user/.config/sxhkd/;								\
-						echo '#!/usr/bin/env bash'  >> /home/$user/.config/polybar/launch.sh ; 							\
-						echo 'polybar-msg cmd quit' >> /home/$user/.config/polybar/launch.sh ; 							\
-						echo 'echo "---" | tee -a /tmp/polybar1.log /tmp/polybar2.log' >> /home/$user/.config/polybar/launch.sh ; \
-						echo 'polybar example 2>&1 | tee -a /tmp/polybar1.log & disown' >> /home/$user/.config/polybar/launch.sh ; \
-						echo '~/.config/polybar/launch.sh' >> /home/$user/.config/bspwm/bspwmrc ; \
-						chmod +x $user:$user /home/$user/.config/polybar/launch.sh ; \
-						chown $user:$user /home/$user/.config -R"
+   sh_chroot_job "${cmsg_Configurando[$LC_DEFAULT]} Bspwm ${cmsg_Em[$LC_DEFAULT]} $dir_install" "
+      mkdir -p /home/$user/.config/{bspwm,polybar,sxhkd} &&
+		cp -R /usr/share/doc/bspwm/examples/* /home/$user/.config/bspwm/ &&
+		cp /usr/share/examples/polybar/config.ini /home/$user/.config/polybar/ &&
+		cp /usr/share/doc/bspwm/examples/sxhkdrc /home/$user/.config/sxhkd/ &&
+		echo '#!/usr/bin/env bash'  >> /home/$user/.config/polybar/launch.sh &&
+		echo 'polybar-msg cmd quit' >> /home/$user/.config/polybar/launch.sh &&
+		echo 'echo "---" | tee -a /tmp/polybar1.log /tmp/polybar2.log' >> /home/$user/.config/polybar/launch.sh &&
+		echo 'polybar example 2>&1 | tee -a /tmp/polybar1.log & disown' >> /home/$user/.config/polybar/launch.sh &&
+   	echo '~/.config/polybar/launch.sh' >> /home/$user/.config/bspwm/bspwmrc &&
+	   chmod +x $user:$user /home/$user/.config/polybar/launch.sh &&
+   	chown $user:$user /home/$user/.config -R
+   " "$err_not_fatal"
 }
 
 sh_backup_partitions() {
@@ -3744,9 +3783,11 @@ sh_grubInstall() {
 			"grub-install ${AConfDisk[_BOOTLOADER]} --target=i386-pc"
 	fi
 	if $LEFI; then
+      # --removable   = garante boot universal via Fallback
+      # --no-nvram    = não mexe na BIOS
 		sh_chroot_job "${cmsg_Instalando[$LC_DEFAULT]} GRUB EFI ${cmsg_Em[$LC_DEFAULT]} ${AConfDisk[_BOOTLOADER]}" \
-			"grub-install ${AConfDisk[_BOOTLOADER]} --target=$TARGET_EFI --efi-directory=/boot/efi --boot-directory=/boot --bootloader-id=$cnickefi --removable"
-		sh_mkefiroaming
+			"grub-install ${AConfDisk[_BOOTLOADER]} --target=$TARGET_EFI --efi-directory=/boot/efi --boot-directory=/boot --bootloader-id=$cnickefi --removable --no-nvram"
+#		sh_mkefiroaming
 	fi
 	if ! $LVM; then
 		sh_chroot_job "${cmsg_Gerando[$LC_DEFAULT]} grub.cfg ${cmsg_Em[$LC_DEFAULT]} $dir_install" "grub-mkconfig -o /boot/grub/grub.cfg"
@@ -4042,7 +4083,7 @@ sh_install() {
 			sh_update_rc_conf
 			sh_update_locale
 
-			sh_chroot_job "${cmsg_Configurando[$LC_DEFAULT]} locales ${cmsg_Em[$LC_DEFAULT]} $dir_install" "xbps-reconfigure --force glibc-locales"
+#			sh_chroot_job "${cmsg_Configurando[$LC_DEFAULT]} locales ${cmsg_Em[$LC_DEFAULT]} $dir_install" "xbps-reconfigure --force glibc-locales"
 			sh_update_wpa_suplicant
 
 			LONLY_TTY=false
@@ -4092,8 +4133,10 @@ sh_install() {
 			fi
 
 			sh_activating_services
-			sh_chroot_job "${cmsg_RemovendoPacotesAntigosObseletos[$LC_DEFAULT]} ${cmsg_Em[$LC_DEFAULT]} $dir_install" "xbps-remove --clean-cache --remove-orphans --yes"
 			sh_chroot_job "Certificando que todos pacotes estejam configurados corretamente em $dir_install" "xbps-reconfigure --force --all"
+#			sh_chroot_job "${cmsg_RemovendoPacotesAntigosObseletos[$LC_DEFAULT]} ${cmsg_Em[$LC_DEFAULT]} $dir_install" "xbps-remove --clean-cache --remove-orphans --yes"
+			sh_chroot_job "${cmsg_RemovendoPacotesAntigosObseletos[$LC_DEFAULT]} ${cmsg_Em[$LC_DEFAULT]} $dir_install" "rm -fv /var/cache/xbps/*.xbps"
+			sh_chroot_job "${cmsg_RemovendoPacotesAntigosObseletos[$LC_DEFAULT]} ${cmsg_Em[$LC_DEFAULT]} $dir_install" "rm -fv /var/cache/xbps/*.sig*"
 
 			if $HYPRLAND; then
 				sh_chroot_job "${cmsg_Instalando[$LC_DEFAULT]} User into group _seatd ${cmsg_Em[$LC_DEFAULT]} $dir_install" "usermod -aG _seatd "$user"}" "$err_not_fatal"
