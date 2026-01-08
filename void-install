@@ -3741,11 +3741,11 @@ sh_grubInstall() {
 
 	if $LBIOS; then
 		sh_chroot_job "${cmsg_Instalando[$LC_DEFAULT]} GRUB i386-pc ${cmsg_Em[$LC_DEFAULT]} ${AConfDisk[_BOOTLOADER]}" \
-			"grub-install ${AConfDisk[_BOOTLOADER]} --target=i386-pc --recheck"
+			"grub-install ${AConfDisk[_BOOTLOADER]} --target=i386-pc"
 	fi
 	if $LEFI; then
 		sh_chroot_job "${cmsg_Instalando[$LC_DEFAULT]} GRUB EFI ${cmsg_Em[$LC_DEFAULT]} ${AConfDisk[_BOOTLOADER]}" \
-			"grub-install ${AConfDisk[_BOOTLOADER]} --target=$TARGET_EFI --efi-directory=/boot/efi --boot-directory=/boot --bootloader-id=$cnickefi --removable --recheck"
+			"grub-install ${AConfDisk[_BOOTLOADER]} --target=$TARGET_EFI --efi-directory=/boot/efi --boot-directory=/boot --bootloader-id=$cnickefi --removable"
 		sh_mkefiroaming
 	fi
 	if ! $LVM; then
