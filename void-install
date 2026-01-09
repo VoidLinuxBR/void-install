@@ -190,7 +190,7 @@ check_gettext() {
 		   :
          case "$DISTRO" in
    		void|void-live|voidlinux)
-            if ! xbps-install -Sf bash gettext rsync parted curl xz; then
+            if ! xbps-install -Syf bash gettext rsync parted curl xz; then
                echo "${red}Erro: Instalação falhou${reset}"
                exit 1
             fi
