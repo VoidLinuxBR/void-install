@@ -185,6 +185,8 @@ readconf() {
 
 check_gettext() {
    if ! command -v gettext >/dev/null; then
+      (( EUID != 0 )) || echo "${red}erro: você não pode realizar esta operação a menos que seja root."; exit 1
+
       echo "Distro detectada: ${green}$DISTRO${reset}"
 	   if readconf "${red}FALHA$: ${cyan}Pacote/Comando 'gettext' nao encontrado. Instalar pacote ?"; then
 		   :
