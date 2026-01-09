@@ -3969,7 +3969,7 @@ sh_install_prereqs() {
 	REQUIRED_PKGS="base-voidstrap" # xbps tar xz"
 
 	sh_cmd_job "Instalando bootstrap ${cmsg_Em[$LC_DEFAULT]} $dir_install" \
-		"LC_ALL=C xbps-install --rootdir "$dir_install" --repository=${url_mirror}current -c $CACHEDIR -y $REQUIRED_PKGS -S"
+		"LC_ALL=C xbps-install --rootdir "$dir_install" --repository=${url_mirror}/current -c $CACHEDIR -y $REQUIRED_PKGS -S"
 }
 
 #dom 03 mar 2024 09:35:25 -04
