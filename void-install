@@ -3989,7 +3989,7 @@ sh_install_pkgs_in_chroot() {
 
    [[ -n "$pkgs" ]] || return 1
 
-   sh_chroot_job "$(gettext "$msg") $dir_install" \
+   sh_chroot_job "$(gettext "$msg") -> $dir_install" \
       "LC_ALL=C ${XBPS_INSTALL_UNPACK_ONLY} $pkgs" \
       "$err_not_fatal" \
       "$err_not_fatal"
