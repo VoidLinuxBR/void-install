@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: sex 09 jan 2026 13:31:26 -04
+#  Updated: sáb 10 jan 2026 10:18:43 -04
 #
 #  Copyright (c) 2022-2025, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -51,7 +51,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.01.09-20260109'
+readonly _VERSION_='3.01.10-20260110'
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 #                      cfdisk gdisk  efivar mkfs.ext2 mkfs.ext3 mkfs.ext4 mkfs.btrfs mkfs.xfs mkfs.f2fs mkfs.jfs mkfs.reiserfs)
 declare distro=$(uname -n)
@@ -1369,21 +1369,20 @@ sh_mkparted() {
 }
 
 sh_update_mirror() {
-	last_msg="${cmsg_Configurando[$LC_DEFAULT]} ${cmsg_Mirror[$LC_DEFAULT],,} ${cmsg_Em[$LC_DEFAULT]} $dir_install"
-	msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
-	cat >"$dir_install/etc/xbps.d/00-repository-main.conf" <<-EOF
-		repository=${url_mirror}/current
-		repository=${url_mirror}/current/nonfree
-		repository=${url_mirror}/current/multilib
-		repository=${url_mirror}/current/multilib/nonfree
+	sh_cmd_job "${cmsg_Configurando[$LC_DEFAULT]} ${cmsg_Mirror[$LC_DEFAULT],,} ${cmsg_Em[$LC_DEFAULT]} $dir_install" "
+      cat >"$dir_install/etc/xbps.d/00-repository-main.conf" <<-EOF
+repository=${url_mirror}/current
+repository=${url_mirror}/current/nonfree
+repository=${url_mirror}/current/multilib
+repository=${url_mirror}/current/multilib/nonfree
 
-		repository=https://void.chililinux.com/voidlinux/current
-		#repository=https://void.chililinux.com/voidlinux/current/extras
-		#repository=https://void.chililinux.com/voidlinux/current/nonfree
-		#repository=https://void.chililinux.com/voidlinux/current/multilib
-		#repository=https://void.chililinux.com/voidlinux/current/multilib/nonfree
-	EOF
-	evaluate_retval "$?"
+repository=https://void.chililinux.com/voidlinux/current
+#repository=https://void.chililinux.com/voidlinux/current/extras
+#repository=https://void.chililinux.com/voidlinux/current/nonfree
+#repository=https://void.chililinux.com/voidlinux/current/multilib
+#repository=https://void.chililinux.com/voidlinux/current/multilib/nonfree
+EOF
+   " $err_not_fatal
 }
 
 sh_update_sshd() {
@@ -1904,18 +1903,14 @@ sh_activating_services() {
 }
 
 sh_activating_pipewire() {
-	last_msg="${cmsg_Ajustando[$LC_DEFAULT]} pipewire ${cmsg_Em[$LC_DEFAULT]} $dir_install"
-
-   sh_chroot_job "$last_msg" "
-     mkdir -p /etc/alsa/conf.d &&
-     ln -sf /usr/share/alsa/alsa.conf.d/{50-pipewire.conf,99-pipewire-default.conf} /etc/alsa/conf.d/ &&
-
-     mkdir -p /etc/pipewire/pipewire.conf.d &&
-     ln -sf /usr/share/examples/{wireplumber/10-wireplumber.conf,pipewire/20-pipewire-pulse.conf} /etc/pipewire/pipewire.conf.d/ &&
-
-     mkdir -p /etc/xdg/autostart &&
+   sh_chroot_job "${cmsg_Ajustando[$LC_DEFAULT]} pipewire" "
+     mkdir -p /etc/alsa/conf.d
+     ln -sf /usr/share/alsa/alsa.conf.d/{50-pipewire.conf,99-pipewire-default.conf} /etc/alsa/conf.d/
+     mkdir -p /etc/pipewire/pipewire.conf.d
+     ln -sf /usr/share/examples/{wireplumber/10-wireplumber.conf,pipewire/20-pipewire-pulse.conf} /etc/pipewire/pipewire.conf.d/
+     mkdir -p /etc/xdg/autostart
      ln -sf /usr/share/applications/{pipewire.desktop,pipewire-pulse.desktop,wireplumber.desktop} /etc/xdg/autostart/
-   " "$err_not_fatal"
+   " $err_not_fatal
 }
 
 sh_mk_working_dir() {
@@ -5336,13 +5331,11 @@ sh_clearVg() {
 	lvremove -ff /dev/"$_vg"/* 2>&1 | tee -i -a "$BOOTLOG" >"$LOGGER"
 	evaluate_retval "${PIPESTATUS[0]}" "$err_not_fatal"
 
-	last_msg=$(gettext "Removendo VG (Volume Group)")
-	msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
+	sh_info_msg "$(gettext 'Removendo VG (Volume Group)')"
 	vgremove -ff "$_vg" 2>&1 | tee -i -a "$BOOTLOG" >"$LOGGER"
 	evaluate_retval "${PIPESTATUS[0]}" "$err_not_fatal"
 
-	last_msg=$(gettext "Removendo PVs (Volumes Fisícos)")
-	msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
+	sh_info_msg "$(gettext 'Removendo PVs (Volumes Fisícos)')"
 	pvremove -ff "${AConfFde[partition]}" 2>&1 | tee -i -a "$BOOTLOG" >"$LOGGER"
 	evaluate_retval "${PIPESTATUS[0]}" "$err_not_fatal"
 }
@@ -5593,8 +5586,7 @@ sh_setLanguage() {
 
 sh_tar_rootfs() {
 	sh_checkTarball || return 1
-	last_msg="${cmsg_Descompactando[$LC_DEFAULT]} rootfs ${cmsg_Em[$LC_DEFAULT]} $dir_install"
-	msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
+	sh_info_msg "${cmsg_Descompactando[$LC_DEFAULT]} rootfs ${cmsg_Em[$LC_DEFAULT]} $dir_install"
 	tar xpf "$_TARBALL_ROOTFS" --xattrs-include='*.*' --numeric-owner -C $dir_install 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 	ret="${PIPESTATUS[0]}"
 	if [[ "$ret" -eq 0 ]]; then
