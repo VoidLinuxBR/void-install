@@ -28,10 +28,10 @@ package() {
 	done
 
    # Install binary
-   install -Dm755 void-install "${pkgdir}/usr/bin/"
-   install -Dm755 void-clonedisk "${pkgdir}/usr/bin/"
-   install -Dm755 void-services "${pkgdir}/usr/bin/"
-   install -Dm755 void-dialog-theme-selector "${pkgdir}/usr/bin/"
+   install -Dm755 ${_pkgsrc}/void-install "${pkgdir}/usr/bin/void-install"
+   install -Dm755 ${_pkgsrc}/void-clonedisk "${pkgdir}/usr/bin/void-clonedisk"
+   install -Dm755 ${_pkgsrc}/void-services "${pkgdir}/usr/bin/void-services"
+   install -Dm755 ${_pkgsrc}/void-dialog-theme-selector "${pkgdir}/usr/bin/void-dialog-theme-selector"
 
    # Install license file if present
    if [ -f "LICENSE" ]; then
