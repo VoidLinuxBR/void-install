@@ -26,4 +26,17 @@ package() {
 			cp -a "${_pkgsrc}/${dir}" "$DESTDIR/"
 		fi
 	done
+
+   # Install binary
+   install -Dm755 void-install "${pkgdir}/usr/bin/"
+   install -Dm755 void-clonedisk "${pkgdir}/usr/bin/"
+   install -Dm755 void-services "${pkgdir}/usr/bin/"
+   install -Dm755 void-dialog-theme-selector "${pkgdir}/usr/bin/"
+
+   # Install license file if present
+   if [ -f "LICENSE" ]; then
+      install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+   fi
+
+
 }
