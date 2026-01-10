@@ -334,6 +334,7 @@ sh_update_locale() {
    local cConf_file="${dir_install}/etc/locale.conf"
    local raw="${AConfLocale[_LOCALE]}"
          raw="${raw%%.*}"
+   export base="${raw}.UTF-8"
    export locale="${raw}.UTF-8 UTF-8"
 
    sh_cmd_job "${cmsg_Ajustando[$LC_DEFAULT]} locales [/etc/default/libc-locales, /etc/locale.conf]" "
@@ -342,10 +343,10 @@ sh_update_locale() {
 
       touch "$cConf_file"
       cat > "$cConf_file" <<-EOF
-LANG=$locale
-LANGUAGE=$locale
+LANG=$base
+LANGUAGE=$base
 LC_COLLATE=C
-LC_ALL=$locale
+LC_ALL=$base
 EOF
    " $err_not_fatal
 }
@@ -3444,7 +3445,7 @@ sh_dryrun() {
 #	sh_update_rc_local
 #	sh_activating_services
    export PS1="[chroot $dir_install] $PS1"
-	chroot "$dir_install" "/bin/bash"
+   LC_ALL=C chroot "$dir_install" "/bin/bash"
 	sh_umount_fs
 }
 
