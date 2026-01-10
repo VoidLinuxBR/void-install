@@ -330,20 +330,24 @@ sh_create_dialogrc() {
 }
 
 sh_update_locale() {
+   local f="${dir_install}/etc/default/libc-locales"
    local cConf_file="${dir_install}/etc/locale.conf"
-#	local locale="${LOCALE}.UTF-8"
-	local locale="${AConfLocale[_LOCALE]}"
+   local raw="${AConfLocale[_LOCALE]}"
+         raw="${raw%%.*}"
+   export locale="${raw}.UTF-8 UTF-8"
 
-	sh_cmd_job "${cmsg_Ajustando[$LC_DEFAULT]} locales [/etc/default/libc-locales, /etc/locale.conf]" '
-      sed -e "s|#\?en_US.UTF-8 UTF-8|#en_US.UTF-8 UTF-8|g" -i "${dir_install}/etc/default/libc-locales"
-   	sed -e "/$locale UTF-8/s/^\#//" -i "${dir_install}/etc/default/libc-locales"
-      cat > $cConf_file <<-EOF
+   sh_cmd_job "${cmsg_Ajustando[$LC_DEFAULT]} locales [/etc/default/libc-locales, /etc/locale.conf]" "
+      sed -i '/^[^#]/ s/^/#/' \"$f\"
+      printf '%s\n' \"$locale\" >> \"$f\"
+
+      touch "$cConf_file"
+      cat > "$cConf_file" <<-EOF
 LANG=$locale
 LANGUAGE=$locale
 LC_COLLATE=C
 LC_ALL=$locale
 EOF
-   ' $err_not_fatal
+   " $err_not_fatal
 }
 
 sh_update_self() {
@@ -495,8 +499,8 @@ sh_setEnvironment() {
 
 	declare url_mirror='https://repo-fastly.voidlinux.org/'
 	declare -g app_conf='/tmp/void-install.conf'
+	declare -g dir_install='/mnt/voidlinux'
 	readonly cnickefi='Void_install'
-	readonly dir_install='/mnt/voidlinux'
 	readonly _TARBALL_ROOTFS=void-x86_64-base-custom-current.tar.xz
 	readonly url_tarball="https://raw.githubusercontent.com/voidlinuxbr/void-installer/refs/heads/main/${_TARBALL_ROOTFS}"
 	readonly url_tarball_md5="https://raw.githubusercontent.com/voidlinuxbr/void-installer/refs/heads/main/${_TARBALL_ROOTFS}.md5"
@@ -1639,7 +1643,7 @@ sh_init_bind() {
 	local nchoice
 
 	if ! $LBIND; then
-		sh_info_msg "${cmsg_EntrandoAmbienteChroot[$LC_DEFAULT]} ${cyan}=> ${yellow}${dir_install}"
+		sh_info_msg "${cmsg_MontandoAmbiente[$LC_DEFAULT]} chroot ${cyan}=> ${yellow}${dir_install}"
 		for i in /proc /sys /dev /dev/pts /dev/shm /run /tmp; do
 			mkdir -p "$dir_install$i" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 		done
@@ -3435,7 +3439,7 @@ sh_dryrun() {
 	sh_mount_fs
 	sh_init_bind
 
-#   sh_update_locale
+#  sh_update_locale
 #	sh_update_rc_conf
 #	sh_update_rc_local
 #	sh_activating_services
@@ -3491,8 +3495,6 @@ sh_parseconf() {
 	[[ -n "${AConfMirror[_SOURCE]}" ]] && LSOURCE=true
 	[[ -n "${AConfAudio[_AUDIOSERVER]}" ]] && LAUDIO=true
 	[[ -n "${Amntpoint[*]}" ]] && LPARTITION=true
-#	[[ -n "${AConfDisk[_DEVICE]}" ]] && LDISK=true
-#	[[ -n "${AConfDisk[_BOOTLOADER]}" ]] && LGRUB=true
 	[[ -n ${_WINDOWMANAGER[*]} ]] && LWM=true
    evaluate_retval "${PIPESTATUS[0]}" "$err_not_fatal"
 }
