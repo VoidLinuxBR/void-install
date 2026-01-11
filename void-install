@@ -1470,7 +1470,7 @@ sh_mkparted() {
 }
 
 sh_update_mirror() {
-	sh_cmd_job "${cmsg_Configurando[$LC_DEFAULT]} ${cmsg_Mirror[$LC_DEFAULT],,} ${cmsg_Em[$LC_DEFAULT]} $dir_install" "
+	sh_cmd_job "${cmsg_Configurando[$LC_DEFAULT]} ${cmsg_Mirror,,} ${cmsg_Em[$LC_DEFAULT]} $dir_install" "
       cat >"$dir_install/etc/xbps.d/00-repository-main.conf" <<-EOF
 repository=${url_mirror}/current
 repository=${url_mirror}/current/nonfree
@@ -2995,7 +2995,7 @@ sh_chooseMirror() {
 		done <<<"${sorted_list[@]}"
 
 		mirror=$(${DIALOG} \
-			--title "=== ${cmsg_Mirror[LC_DEFAULT]^^} ===" \
+			--title "=== ${cmsg_Mirror^^} ===" \
 			--stdout \
 			--keep-tite \
 			--aspect 20 \
@@ -3019,15 +3019,15 @@ sh_chooseMirror() {
 			grafico=$true
 			if [[ -n $(command -v void-testmirror) || -n $(command -v ./void-testmirror) ]]; then
 				last_msg="Wait... ${cmsg_Gerando[$LC_DEFAULT]} test with void-testmirror ${xurl}"
-				msg "=== ${cmsg_Mirror[LC_DEFAULT]^^} === void-testmirror" "$last_msg" "$(log_info_msg "$last_msg")"
+				msg "=== ${cmsg_Mirror^^} === void-testmirror" "$last_msg" "$(log_info_msg "$last_msg")"
 				result=$(void-testmirror --nocolor --ping --quiet)
 				evaluate_retval "$?" "$err_not_fatal"
 				[[ -z "$result" ]] && result="${RED}ERRO DESCONHECIDO: void-testmirror não retornou resultado${RESET}"
-				info "=== ${cmsg_Mirror[LC_DEFAULT]^^} === void-testmirror" "\n$result"
+				info "=== ${cmsg_Mirror^^} === void-testmirror" "\n$result"
 			else
 				sh_info_msg "Wait... ${cmsg_Gerando[$LC_DEFAULT]} test with void-mirror ${xurl}"
 				evaluate_retval "1" "$err_not_fatal"
-				info "=== ${cmsg_Mirror[LC_DEFAULT]^^} === void-testmirror" "\n${RED}void-testmirror não foi localizado no \$PATH${RESET}" \
+				info "=== ${cmsg_Mirror^^} === void-testmirror" "\n${RED}void-testmirror não foi localizado no \$PATH${RESET}" \
 					"${RED}void-testmirror não foi localizado em $PWD!${RESET}"
 			fi
 			grafico=$oldgrafico
@@ -3041,7 +3041,7 @@ sh_chooseMirror() {
 		LMIRROR=true
 
 		if [[ "$distro" = @(void|void-live|voidlinux) ]]; then
-			if conf "=== ${cmsg_Mirror[LC_DEFAULT]^^} ===" \
+			if conf "=== ${cmsg_Mirror^^} ===" \
 				"\n${BOLD}$(gettext "Aparentemente, o VOID Linux está sendo usado como host.")\n" \
 				"\n${BOLD}${CYAN}Mirror     : ${AConfMirror[_MIRROR]}" \
 				"\n${BOLD}${CYAN}Url Mirror : $url_mirror" \
@@ -3049,7 +3049,7 @@ sh_chooseMirror() {
 				"\n${BOLD}${CYAN}Location   : $(sh_splitarray "${Amirror[$mirror]}" "$FLD_LOCATION")\n" \
 				"\n${RED}$(gettext "Você também deseja definir/alterar o espelho do host para o escolhido?")${RESET}\n\n"; then
 
-				sh_info_msg "${cmsg_Configurando[$LC_DEFAULT]} ${cmsg_Mirror[$LC_DEFAULT],,} ${cmsg_Em[$LC_DEFAULT]} $dir_install"
+				sh_info_msg "${cmsg_Configurando[$LC_DEFAULT]} ${cmsg_Mirror,,} ${cmsg_Em[$LC_DEFAULT]} $dir_install"
 				mkdir -p "/etc/xbps.d/"
 				cat >"/etc/xbps.d/00-repository-main.conf" <<-EOF
 					repository=${url_mirror}current
@@ -3912,7 +3912,7 @@ display_config() {
                                      \n$(padr "${cmsg_Teclado[$LC_DEFAULT]} :" 30 ' ') \Zb\Z0${AConfLocale[_KEYMAP]}${RESET}\
                                                          \n$(padr "Timezone :" 30 ' ') \Zb\Z0${AConfLocale[_TIMEZONE]}${RESET}\
      \n$(padr "${cmsg_redewifi[$LC_DEFAULT]} (${cmsg_opcional[LC_DEFAULT]}) :" 30 ' ') \Zb\Z0${AConfWifi[_NETWORK]}${RESET}\
-                                      \n$(padr "${cmsg_Mirror[$LC_DEFAULT]} :" 30 ' ') \Zb\Z0${AConfMirror[url_mirror]} - ${AConfMirror[location]}${RESET}\
+                                                   \n$(padr "${cmsg_Mirror} :" 30 ' ') \Zb\Z0${AConfMirror[url_mirror]} - ${AConfMirror[location]}${RESET}\
                                       \n$(padr "${cmsg_Source[$LC_DEFAULT]} :" 30 ' ') \Zb\Z0${AConfMirror[_SOURCE]}${RESET}\
                                       \n$(padr "${cmsg_Extra6[$LC_DEFAULT]} :" 30 ' ') \Zb\Z0${AConfDisk[_DEVICE]} | $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 2) | $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 4)${RESET}\
        \n$(padr "${cmsg_BootLoader[$LC_DEFAULT]} (${AConfDisk[_DISKTABLE]}) :" 30 ' ') \Zb\Z0${AConfDisk[_BOOTLOADER]} | $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 2) | $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 4)${RESET}\
@@ -3985,8 +3985,8 @@ sh_checkInstall() {
 	local cmdsearch
 
 	if ! $LMIRROR; then
-		alerta "${cmsg_Mirror[$LC_DEFAULT]^^}" "${cmsg_Mirror[$LC_DEFAULT]} ${cmsg_NotConfDefault[$LC_DEFAULT]}"
-		DEFITEM="${cmsg_Mirror[$LC_DEFAULT]}"
+		alerta "${cmsg_Mirror^^}" "${cmsg_Mirror} ${cmsg_NotConfDefault[$LC_DEFAULT]}"
+		DEFITEM="${cmsg_Mirror}"
 		return 1
 	elif ! $LSOURCE; then
 		alerta "${cmsg_Source[$LC_DEFAULT]^^}" "${cmsg_Source[$LC_DEFAULT]} ${cmsg_NotConfDefault[$LC_DEFAULT]}"
@@ -4995,7 +4995,7 @@ sh_main_menu() {
 	while true; do
 		sh_touchConf
 		if [ -z "$DEFITEM" ]; then
-			DEFITEM="${cmsg_Mirror[$LC_DEFAULT]}"
+			DEFITEM="${cmsg_Mirror}"
 		fi
 
 		$LMIRROR && MENU_MIRROR="${YELLOW}[${AConfMirror[_MIRROR]}]${RST} ● " || MENU_MIRROR="${RED}[not defined]${RST} ● "
@@ -5022,7 +5022,7 @@ sh_main_menu() {
 			--title "$APP - ${cmsg_MenuInstalacao[$LC_DEFAULT]} $(sh_getparamfile)" \
 			--menu "${RESET}${cmsg_MENU[$LC_DEFAULT]}" \
 			26 100 2 \
-			"${cmsg_Mirror[$LC_DEFAULT]}" "${MENU_MIRROR}${cmsg_descMirror[LC_DEFAULT]}" \
+			"${cmsg_Mirror}" "${MENU_MIRROR}${cmsg_descMirror[LC_DEFAULT]}" \
 			"${cmsg_Source[$LC_DEFAULT]}" "${MENU_SOURCE}${cmsg_DefinirInstalacaoDeOrigem[LC_DEFAULT]}" \
 			"${cmsg_Disco[$LC_DEFAULT]}" "${MENU_DEVICE}${cmsg_descDisco[LC_DEFAULT]}" \
 			"${cmsg_BootLoader[$LC_DEFAULT]}" "${MENU_BOOTLOADER}${cmsg_descBootLoader[LC_DEFAULT]}" \
@@ -5051,7 +5051,7 @@ sh_main_menu() {
 		fi
 
 		case "$menu" in
-		"${cmsg_Mirror[$LC_DEFAULT]}") sh_chooseMirror "$@" && [ -n "$LMIRROR" ] && DEFITEM="${cmsg_Source[$LC_DEFAULT]}" ;;
+		"${cmsg_Mirror}") sh_chooseMirror "$@" && [ -n "$LMIRROR" ] && DEFITEM="${cmsg_Source[$LC_DEFAULT]}" ;;
 		"${cmsg_Source[$LC_DEFAULT]}") sh_chooseSource && [ -n "$LSOURCE" ] && DEFITEM="${cmsg_Disco[$LC_DEFAULT]}" ;;
 		"${cmsg_Disco[$LC_DEFAULT]}") sh_chooseDisk && [ -n "$LDISK" ] && DEFITEM="${cmsg_BootLoader[$LC_DEFAULT]}" ;;
 		"${cmsg_BootLoader[$LC_DEFAULT]}") sh_setBootLoader && [ -n "$LGRUB" ] && DEFITEM="FileSystem" ;;
@@ -5639,7 +5639,7 @@ sh_setLanguage() {
 	cmsg_Mudar[pt_BR]=$(gettext "Mudar")
 	cmsg_Sair[pt_BR]=$(gettext "Sair")
 	cmsg_Instalar[pt_BR]=$(gettext "Instalar")
-	cmsg_Mirror[pt_BR]=$(gettext "Espelho")
+	cmsg_Mirror=$(gettext "Espelho")
 	cmsg_BootLoader[pt_BR]=$(gettext "Bootloader (GRUB)")
 	cmsg_FileSystem[pt_BR]=$(gettext "Sistema de Arquivos")
 	cmsg_Disco[pt_BR]=$(gettext "Disco")
