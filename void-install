@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: sáb 10 jan 2026 10:18:43 -04
+#  Updated: dom 11 jan 2026 12:47:56 -04
 #
 #  Copyright (c) 2022-2025, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -51,7 +51,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.01.10-20260110'
+readonly _VERSION_='3.1.11-20260111'
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 #                      cfdisk gdisk  efivar mkfs.ext2 mkfs.ext3 mkfs.ext4 mkfs.btrfs mkfs.xfs mkfs.f2fs mkfs.jfs mkfs.reiserfs)
 
@@ -216,13 +216,11 @@ check_gettext() {
 	if command -v gettext >/dev/null; then
 		return 0
 	fi
-
 	# 2. Segurança: Operações de pacotes exigem root
 	if ((EUID != 0)); then
 		echo -e "${red}erro: você não pode realizar esta operação a menos que seja root.${reset}"
 		exit 1
 	fi
-
 	echo -e "Distro detectada: ${green}${DISTRO}${reset}"
 
 	# 3. Extração dos dados dos mapas que você definiu
@@ -238,15 +236,12 @@ check_gettext() {
 	# 4. Prompt ao usuário (usando sua função readconf)
 	# Se gettext não existe, as mensagens ainda precisam ser via echo/printf
 	if readconf "${red}FALHA:${reset} ${cyan}Pacote/Comando 'gettext' não encontrado. Instalar dependências base agora?${reset}"; then
-
 		echo -e "${blue}::${reset} Preparando ambiente para ${green}${DISTRO}${reset}..."
-
 		# Execução dinâmica: $cmd (gerenciador) + $pkgs (lista de pacotes)
 		if ! $cmd $pkgs; then
 			echo -e "${red}Erro Crítico:${reset} A instalação dos pacotes básicos falhou."
 			exit 1
 		fi
-
 		echo -e "${green}Sucesso:${reset} Dependências instaladas."
 	else
 		# Se o usuário negar a instalação de ferramentas básicas, o instalador não tem como seguir
@@ -327,20 +322,20 @@ sh_create_dialogrc() {
 	cat >"$dialogRcFile" <<-'EOF'
 		screen_color = (white,black,off)
 		dialog_color = (white,black,off)
-		title_color = (cyan,black,on)
+		title_color = (green,black,on)
 		border_color = dialog_color
 		shadow_color = (black,black,on)
 		button_inactive_color = dialog_color
 		button_key_inactive_color = dialog_color
 		button_label_inactive_color = dialog_color
-		button_active_color = (white,cyan,on)
+		button_active_color = (black,green,on)
 		button_key_active_color = button_active_color
-		button_label_active_color = (black,cyan,on)
-		tag_key_selected_color = (white,cyan,on)
+		button_label_active_color = (white,green,on)
+		tag_key_selected_color = (white,green,on)
 		item_selected_color = tag_key_selected_color
-		form_text_color = (BLUE,black,ON)
-		form_item_readonly_color = (green,black,on)
-		itemhelp_color = (white,cyan,off)
+		form_text_color = (green,black,on)
+		form_item_readonly_color = (cyan,black,on)
+		itemhelp_color = (white,green,off)
 		inputbox_color = dialog_color
 		inputbox_border_color = dialog_color
 		searchbox_color = dialog_color
@@ -402,8 +397,7 @@ sh_update_self() {
 
 	# Cria um arquivo temporário para armazenar a versão remota
 	temp_file=$(mktemp)
-
-	log_msg "Verificando por atualizações do script..."
+	log_msg "$(gettext 'Verificando por atualizações do script')..."
 
 	# Baixa a versão mais recente do repositório
 	if command -v curl >/dev/null 2>&1; then
@@ -411,7 +405,7 @@ sh_update_self() {
 	elif command -v wget >/dev/null 2>&1; then
 		wget -q "$repo_url" -O "$temp_file"
 	else
-		log_msg "Erro: nem curl nem wget estão instalados. Atualização não pode ser realizada."
+		log_msg "$(gettext 'Erro: nem curl nem wget estão instalados. Atualização não pode ser realizada.')"
 		rm -f "$temp_file"
 		return 1
 	fi
@@ -422,13 +416,13 @@ sh_update_self() {
 
 	# Compara os hashes para detectar mudanças
 	if [[ "$remote_hash" != "$local_hash" ]]; then
-		log_msg "Nova versão encontrada. Atualizando o script..."
+		log_msg "$(gettext 'Nova versão encontrada. Atualizando o script...')"
 		mv "$temp_file" "$local_script"
 		chmod +x "$local_script"
-		log_msg "Atualização concluída. Recarregando o script..."
+		log_msg "$(gettext 'Atualização concluída. Recarregando o script...')"
 		exec "$local_script" "$@" # Recarrega o script com os mesmos argumentos
 	else
-		log_msg "O script já está atualizado."
+		log_msg "$(gettext 'O script já está atualizado.')"
 		rm -f "$temp_file"
 	fi
 }
@@ -697,7 +691,7 @@ sh_checkDisplay() {
 	local msg4="$(gettext "você não poderá usar as ferramentas de partição de Disco.")"
 
 	if [ "$(tput cols)" -lt 80 ] || [ "$(tput lines)" -lt 24 ]; then
-		dialog --backtitle "$ccabec" \
+		${DIALOG} --backtitle "$ccabec" \
 			--title "$(gettext "TERMINAL MUITO PEQUENO")" \
 			--msgbox "\n\
 $cms1\n$cmsg2\n\
@@ -1014,7 +1008,7 @@ padr() {
 	printf "%*s\n" "$COLS" "$text" | sed "s/ /$char/g"
 }
 
-msgOLD() {
+msg() {
 	((++ncounter))
 	cinfo="$1"
 	cfmt="$(fmt)"
@@ -1039,36 +1033,36 @@ msgOLD() {
 	fi
 }
 
-msg() {
-   ((++ncounter))
-   local cinfo="$1"
-   local last_msg="$2"
-   # Pega o último argumento para ver se é "silent"
-   local mode="${@: -1}"
+msgNEW() {
+	((++ncounter))
+	local cinfo="$1"
+	local last_msg="$2"
+	# Pega o último argumento para ver se é "silent"
+	local mode="${@: -1}"
 
-   cfmt="$(fmt)"
-   ufmt=$(unfmt "$cfmt")
-   logmessage="$ufmt $last_msg"
-   logmessage=${logmessage/INFO /}
+	cfmt="$(fmt)"
+	ufmt=$(unfmt "$cfmt")
+	logmessage="$ufmt $last_msg"
+	logmessage=${logmessage/INFO /}
 
-   # Seu log original
-   printf "%s\n" "$(timespec) [ $cinfo ]$ufmt ${logmessage}" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
+	# Seu log original
+	printf "%s\n" "$(timespec) [ $cinfo ]$ufmt ${logmessage}" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 
-   if ((grafico)); then
-      # Só abre o infobox se NÃO for silent
-      if [[ "$mode" != "silent" ]]; then
-         logmessage="$last_msg"
-         ${DIALOG} \
-            --no-collapse \
-            --colors \
-            --title "$cinfo" \
-            --backtitle "$ccabec" \
-            --infobox "\nStep:${BOLD}${YELLOW}${ufmt} ${RESET}${BOLD}$logmessage" \
-            8 100
-      fi
-   else
-      log_info_msg "$(fmt) ${last_msg}"
-   fi
+	if ((grafico)); then
+		# Só abre o infobox se NÃO for silent
+		if [[ "$mode" != "silent" ]]; then
+			logmessage="$last_msg"
+			${DIALOG} \
+				--no-collapse \
+				--colors \
+				--title "$cinfo" \
+				--backtitle "$ccabec" \
+				--infobox "\nStep:${BOLD}${YELLOW}${ufmt} ${RESET}${BOLD}$logmessage" \
+				8 100
+		fi
+	else
+		log_info_msg "$(fmt) ${last_msg}"
+	fi
 }
 
 fmt() {
@@ -1821,48 +1815,48 @@ sh_cmd_jobOLD() {
 }
 
 sh_cmd_job() {
-    local cmsg="$1"
-    local cjob="$2"
-    local erro_fatal="$3"
-    local lretval=0
+	local cmsg="$1"
+	local cjob="$2"
+	local erro_fatal="$3"
+	local lretval=0
 
-    # Adiciona contexto à mensagem
-    cmsg+=" ${cmsg_Em[$LC_DEFAULT]} ${yellow}$dir_install"
-    last_msg="$cmsg"
-    
-    # Chama msg() com um flag 'silent' para não abrir um infobox redundante
-    # se o gráfico estiver ligado, já que vamos mostrar no progressbox abaixo.
-    msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")" "silent"
+	# Adiciona contexto à mensagem
+	cmsg+=" ${cmsg_Em[$LC_DEFAULT]} ${yellow}$dir_install"
+	last_msg="$cmsg"
 
-    if ((grafico)); then
-        # Grupo de comandos { ... ; } garante que o echo e o eval entrem no mesmo pipe
-        { 
-            echo -e "${BOLD}${YELLOW}>>> Step: ${ufmt} ${last_msg}${RESET}\n"
-            eval "$cjob" 
-        } 2>&1 | tee -i -a "$BOOTLOG" | dialog \
-            --colors \
-            --backtitle "$ccabec" \
-            --title " [ $cinfo ] " \
-            --begin 10 50 \
-            --progressbox 24 120 \
-            --and-widget
-        
-        lretval="${PIPESTATUS[0]}"
-    else
-        # Se não for gráfico, faz a mesma injeção mas joga para o LOGGER
-        # Assim, no TTY8, você vê o cabeçalho antes das linhas de comando
-        { 
-            echo "-------------------------------------------------------"
-            echo ">>> TASK: $last_msg"
-            echo "-------------------------------------------------------"
-            eval "$cjob"
-        } 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
-        
-        lretval="${PIPESTATUS[0]}"
-    fi
+	# Chama msg() com um flag 'silent' para não abrir um infobox redundante
+	# se o gráfico estiver ligado, já que vamos mostrar no progressbox abaixo.
+	msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")" "silent"
 
-    evaluate_retval "$lretval" "$erro_fatal"
-    return "$lretval"
+	if ((grafico)); then
+		# Grupo de comandos { ... ; } garante que o echo e o eval entrem no mesmo pipe
+		{
+			echo -e "${BOLD}${YELLOW}>>> Step: ${ufmt} ${last_msg}${RESET}\n"
+			eval "$cjob"
+		} 2>&1 | tee -i -a "$BOOTLOG" | dialog \
+			--colors \
+			--backtitle "$ccabec" \
+			--title " [ $cinfo ] " \
+			--begin 10 50 \
+			--progressbox 24 120 \
+			--and-widget
+
+		lretval="${PIPESTATUS[0]}"
+	else
+		# Se não for gráfico, faz a mesma injeção mas joga para o LOGGER
+		# Assim, no TTY8, você vê o cabeçalho antes das linhas de comando
+		{
+			echo "-------------------------------------------------------"
+			echo ">>> TASK: $last_msg"
+			echo "-------------------------------------------------------"
+			eval "$cjob"
+		} 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
+
+		lretval="${PIPESTATUS[0]}"
+	fi
+
+	evaluate_retval "$lretval" "$erro_fatal"
+	return "$lretval"
 }
 
 strip_ansi() {
@@ -1905,40 +1899,39 @@ sh_chroot_jobOLD() {
 }
 
 sh_chroot_job() {
-   local cmsg="$1"
-   local cjob="$2"
-   local erro_fatal="$3"
-   local level="$4"
-   local lretval=0
+	local cmsg="$1"
+	local cjob="$2"
+	local erro_fatal="$3"
+	local level="$4"
+	local lretval=0
 
-   last_msg="$cmsg"
-   
-   # CHAMADA DA MSG: Agora com "silent" para não cagar o progressbox abaixo
-   if [[ -n "$level" ]]; then
-      msg "INFO" "$last_msg" "$(log_info_msg_level "$last_msg")" "silent"
-   else
-      msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")" "silent"
-   fi
+	last_msg="$cmsg"
 
-   if ((grafico)); then
-      clean_logmessage="$(strip_ansi "$logmessage")"
-      # SEU CÓDIGO ORIGINAL ABAIXO
-      chroot "$dir_install" "$shell" -c "$cjob" 2>&1 | tee -i -a "$BOOTLOG" |
-          dialog \
-             --colors \
-             --backtitle "$ccabec" \
-             --title "\Zb\Z3Step:$ufmt \Z1==>\Zn \Z7[$clean_logmessage]\Zn \Z6[$(sh_time_elapsed)]\Zn" \
-             --progressbox $((MAXROW / 2)) $((MAXCOL - 20))
-   else
-      chroot "$dir_install" "$shell" -c "$cjob" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
-   fi
+	# CHAMADA DA MSG: Agora com "silent" para não cagar o progressbox abaixo
+	if [[ -n "$level" ]]; then
+		msg "INFO" "$last_msg" "$(log_info_msg_level "$last_msg")" "silent"
+	else
+		msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")" "silent"
+	fi
 
-   lretval="${PIPESTATUS[0]}"
-   evaluate_retval "$lretval" "$erro_fatal" "" "$level"
-   shell='/bin/sh'
-   return "$lretval"
+	if ((grafico)); then
+		clean_logmessage="$(strip_ansi "$logmessage")"
+		# SEU CÓDIGO ORIGINAL ABAIXO
+		chroot "$dir_install" "$shell" -c "$cjob" 2>&1 | tee -i -a "$BOOTLOG" |
+			dialog \
+				--colors \
+				--backtitle "$ccabec" \
+				--title "\Zb\Z3Step:$ufmt \Z1==>\Zn \Z7[$clean_logmessage]\Zn \Z6[$(sh_time_elapsed)]\Zn" \
+				--progressbox $((MAXROW / 2)) $((MAXCOL - 20))
+	else
+		chroot "$dir_install" "$shell" -c "$cjob" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
+	fi
+
+	lretval="${PIPESTATUS[0]}"
+	evaluate_retval "$lretval" "$erro_fatal" "" "$level"
+	shell='/bin/sh'
+	return "$lretval"
 }
-
 
 sh_make_user() {
 	local user="${AsUser[cuser]}"
@@ -2060,7 +2053,7 @@ sh_make_fstab() {
 
 sh_activating_services() {
 	local aServicesTTY=(dbus dhcpcd sshd nanoklogd chronyd socklog-unix udevd)
-	aServicesTTY+=(wpa_supplicant uuidd dmeventd)
+      	aServicesTTY+=(wpa_supplicant uuidd dmeventd)
 	local aServicesX=(elogind polkitd NetworkManager bluetoothd)
 	local service
 	local level=2
@@ -2235,24 +2228,24 @@ sh_X11minimal() {
 	apkgs+=("${aEditorX[@]}")
 
 	if ! $HYPRLAND; then
-		sh_install_pkgs_in_chroot "Instalando Meta Pacote Xorg" "${aXorg[*]}"
+		sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Xorg')" "${aXorg[*]}"
 	fi
 
-	sh_install_pkgs_in_chroot "Instalando Meta Pacote Video" "${aVideo[*]}"
-	sh_install_pkgs_in_chroot "Instalando Meta Pacote Font" "${aFont[*]}"
-	sh_install_pkgs_in_chroot "Instalando Meta Pacote Icons" "${aIconsAndThemes[*]}"
-	sh_install_pkgs_in_chroot "Instalando Meta Pacote DM" "${aDisplaymanager[*]}"
-	sh_install_pkgs_in_chroot "Instalando Meta Pacote Terminal" "${aTerminal[*]}"
-	sh_install_pkgs_in_chroot "Instalando Meta Pacote FileManager" "${aFilemanager[*]}"
-	sh_install_pkgs_in_chroot "Instalando Meta Pacote Browser" "${aBrowser[*]}"
-	sh_install_pkgs_in_chroot "Instalando Meta Pacote Bluetooth" "${aBluetooth[*]}"
-	sh_install_pkgs_in_chroot "Instalando Meta Pacote Network" "${aNetworkX[*]}"
-	sh_install_pkgs_in_chroot "Instalando Meta Pacote Utility" "${aUtilityX[*]}"
-	sh_install_pkgs_in_chroot "Instalando Meta Pacote Media" "${aMedia[*]}"
-	sh_install_pkgs_in_chroot "Instalando Meta Pacote Printer" "${aPrinter[*]}"
-	sh_install_pkgs_in_chroot "Instalando Meta Pacote Perfumery" "${aPerfumery[*]}"
-	#	sh_install_pkgs_in_chroot "Instalando Meta Pacote Microde" "${aMicrocode[*]}"
-	sh_install_pkgs_in_chroot "Instalando Meta Pacote Archivers" "${aArchiverX[*]}"
+	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Video')" "${aVideo[*]}"
+	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Fontes')" "${aFont[*]}"
+	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Icones')" "${aIconsAndThemes[*]}"
+	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
+	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Terminal')" "${aTerminal[*]}"
+	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote FileManager')" "${aFilemanager[*]}"
+	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Navegadore')" "${aBrowser[*]}"
+	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Bluetooth')" "${aBluetooth[*]}"
+	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Rede')" "${aNetworkX[*]}"
+	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Utilitário')" "${aUtilityX[*]}"
+	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Media')" "${aMedia[*]}"
+	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Impressora')" "${aPrinter[*]}"
+	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Perfumaria')" "${aPerfumery[*]}"
+	#	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Microde')" "${aMicrocode[*]}"
+	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Archivadores')" "${aArchiverX[*]}"
 }
 
 #dom 03 mar 2024 09:35:25 -04
@@ -2525,7 +2518,7 @@ sh_disk_info() {
 	unset ARRAY_DSK_{DISKS,DEVICES,SIZE,TRAN,MODEL,LABEL,SERIAL,PTTYPE,FSTYPE}
 	local {NAME,PATH,SIZE,TRAN,MODEL,LABEL,SERIAL,PTTYPE,FSTYPE}_
 
-	mensagem "$(gettext "=== DISCO ===")" "\n\n${BOLD}${WHITE}$(getext "Aguarde... coletando informações")"
+	mensagem "$(gettext "=== DISCO ===")" "\n\n${BOLD}${WHITE}$(gettext 'Aguarde... coletando informações')"
 	AARRAY_DSK_DEVICES=()
 	while read -r line; do
 		eval "${line//=/_=}"
@@ -4231,7 +4224,7 @@ sh_install_pkgs_in_chroot() {
 
 	[[ -n "$pkgs" ]] || return 1
 
-	sh_chroot_job "$(gettext "$msg") -> $dir_install" \
+	sh_chroot_job "$msg -> $dir_install" \
 		"LC_ALL=C ${XBPS_INSTALL_UNPACK_ONLY} $pkgs" \
 		"$err_not_fatal" \
 		"$err_not_fatal"
@@ -4349,19 +4342,19 @@ sh_install() {
 			sh_chroot_job "${cmsg_AtualizandoRepositorio[$LC_DEFAULT]} ${cmsg_Em[$LC_DEFAULT]} $dir_install" "LC_ALL=C xbps-install --sync --update --yes"
 
 			if [[ "${AConfMirror[_SOURCE]}" = "local" ]]; then
-				sh_install_pkgs_in_chroot "Atualizando Pacotes Base" "${agrub[*]}"
+				sh_install_pkgs_in_chroot "$(gettext 'Atualizando Pacotes Base')" "${agrub[*]}"
 			else
-				sh_install_pkgs_in_chroot "Instalando Kernel" "${akernel[*]}"
-				sh_install_pkgs_in_chroot "Instalando GRUB" "${agrub[*]}"
-				sh_install_pkgs_in_chroot "Atualizando Pacotes Base" "${abase[*]}"
-				#  			sh_install_pkgs_in_chroot "Instalando Wifi Firmware" "${afirmware[*]}"
-				sh_install_pkgs_in_chroot "Atualizando Pacotes Adicionais" "$_PKGS"
-				sh_install_pkgs_in_chroot "Instalando Daemons em" "${aDaemons[*]}"
-				sh_install_pkgs_in_chroot "Instalando Editores texto em" "${aEditorTxt[*]}"
-				sh_install_pkgs_in_chroot "Instalando Downloaders em" "${aDownloader[*]}"
-				sh_install_pkgs_in_chroot "Instalando Utilitário em" "${aUtility[*]}"
-				sh_install_pkgs_in_chroot "Instalando Archiver's tty em" "${aArchiverTty[*]}"
-				sh_install_pkgs_in_chroot "Instalando Extras em" "$_EXTRAS"
+				sh_install_pkgs_in_chroot "$(gettext 'Instalando Kernel')" "${akernel[*]}"
+				sh_install_pkgs_in_chroot "$(gettext 'Instalando') GRUB" "${agrub[*]}"
+				sh_install_pkgs_in_chroot "$(gettext 'Atualizando Pacotes Base')" "${abase[*]}"
+				#  			sh_install_pkgs_in_chroot "$(gettext 'Instalando Wifi Firmware')" "${afirmware[*]}"
+				sh_install_pkgs_in_chroot "$(gettext 'Atualizando Pacotes Adicionais')" "$_PKGS"
+				sh_install_pkgs_in_chroot "$(gettext 'Instalando Daemons')" "${aDaemons[*]}"
+				sh_install_pkgs_in_chroot "$(gettext 'Instalando Editores texto')" "${aEditorTxt[*]}"
+				sh_install_pkgs_in_chroot "$(gettext 'Instalando Downloaders')" "${aDownloader[*]}"
+				sh_install_pkgs_in_chroot "$(gettext 'Instalando Utilitário')" "${aUtility[*]}"
+				sh_install_pkgs_in_chroot "$(gettext 'Instalando Archiver tty')" "${aArchiverTty[*]}"
+				sh_install_pkgs_in_chroot "$(gettext 'Instalando Extras')" "$_EXTRAS"
 			fi
 			sh_update_bashrc
 			sh_grubInstall
@@ -5042,11 +5035,11 @@ sh_main_menu() {
 			"Audio" "${MENU_AUDIO}${cmsg_DefinirAudioServer[LC_DEFAULT]}" \
 			"${cmsg_Instalar[$LC_DEFAULT]}" "${cmsg_descInstalar[$LC_DEFAULT]}" \
 			'↑↓' '↓↑' \
-			"Tema" "Seletor de temas do dialog (opcional)" \
+			"${cmsg_Tema}" "$(gettext 'Seletor de temas do dialog (opcional)')" \
 			"${cmsg_Servicos[$LC_DEFAULT]}" "${cmsg_utilvoidservices[LC_DEFAULT]}" \
-			"Clonedisk" "Utilitário para clonar discos (opcional)" \
-			"Fde" "Full-Disk Encryption + Lvm (optional)" \
-			"Lvm" "Logical Volume Management (optional)" \
+			"Clonedisk" "$(gettext 'Utilitário para clonar discos (opcional)')" \
+			"Fde" "$(gettext 'Criptografia de disco completo + LVM (opcional)')" \
+			"Lvm" "$(gettext 'Gerenciamento de Volume Lógico LVM (opcional)')" \
 			"Vg" "Delete/Clear Volume Group (VG) from LVM (optional)" \
 			"Wifi" "${cmsg_descWifi[LC_DEFAULT]}" \
 			"${cmsg_Sair[$LC_DEFAULT]}" "${cmsg_descSair[LC_DEFAULT]}" 2>&1 >/dev/tty)
@@ -5071,7 +5064,7 @@ sh_main_menu() {
 		"Audio") sh_chooseaudioserver "$@" && [ -n "$LAUDIO" ] && DEFITEM="${cmsg_Instalar[$LC_DEFAULT]}" ;;
 		"${cmsg_Instalar[$LC_DEFAULT]}") sh_install ;;
 		'↑↓') : ;;
-		"Tema") bash void-dialog-theme-selector ;;
+		"${cmsg_Tema}") bash void-dialog-theme-selector ;;
 		"${cmsg_Servicos[$LC_DEFAULT]}") sh_voidServices ;;
 		"Clonedisk") bash void-clonedisk ;;
 		"Fde") sh_confLvm && [ -n "$LFDE" ] && DEFITEM="${cmsg_Instalar[$LC_DEFAULT]}" ;;
@@ -5579,7 +5572,7 @@ sh_chooseVg() {
 		;;
 	esac
 	if ! infoconf "=== VG === " "$(lvs --noheadings "$vg")" \
-		" === VG ===" "${BOLD}${RED}WARNING:${RESET} $(gettext "É importante lembrar que remover um VG")\
+		" === VG ===" "${BOLD}${RED}$(gettext 'AVISO'):${RESET} $(gettext "É importante lembrar que remover um VG")\
 $(gettext "é uma operação irreversível e pode resultar em perda de dados.")\n
 $(gettext "Certifique-se de fazer backup de seus dados.")\n
 $(gettext "Todos os dados do disco serão apagados!")\n\n\
@@ -5599,9 +5592,12 @@ sh_setLanguage() {
 	#	cmsg_LBL_check[pt_BR]=$(gettext "Usar as teclas ${RED}PARA CIMA ${RESET}e ${RED}PARA BAIXO ${RESET}para navegar.\nUsar ${RED}BARRA DE ESPAÇO ${RESET}para selecionar.\nUsar ${RED}TAB ${RESET}para alternar entre os botões e ${RED}ENTER ${RESET}para aceitar.")
 	#	cmsg_Tarball_Corrompido[pt_BR]=$(gettext "\n${RED}Aparentemente o tarball rootfs ${_TARBALL_ROOTFS} está corrompido.\n\n${BOLD}${WHITE}Testar a integridade e reiniciar a instalação ?")
 
-	cmsg_LABEL1[pt_BR]=$(gettext "Usar as setas ${CYAN}↑ ${RST}e ${CYAN}↓ ${RST}para navegar.")
-	cmsg_LABEL2[pt_BR]=$(gettext "Usar ${CYAN}TAB ${RST}para alternar entre os botões.")
-	cmsg_LABEL3[pt_BR]=$(gettext "Usar ${CYAN}ENTER ${RST}ou ${CYAN}BARRA DE ESPAÇO ${RST}para selecionar e aceitar.")
+	#	cmsg_LABEL1[pt_BR]=$(gettext "Usar as setas ${CYAN}↑ ${RST}e ${CYAN}↓ ${RST}para navegar.")
+	#	cmsg_LABEL2[pt_BR]=$(gettext "Usar ${CYAN}TAB ${RST}para alternar entre os botões.")
+	#	cmsg_LABEL3[pt_BR]=$(gettext "Usar ${CYAN}ENTER ${RST}ou ${CYAN}BARRA DE ESPAÇO ${RST}para selecionar e aceitar.")
+	cmsg_LABEL1[pt_BR]=$(gettext "Usar as setas ↑ e ↓ para navegar.")
+	cmsg_LABEL2[pt_BR]=$(gettext "Usar TAB para alternar entre os botões.")
+	cmsg_LABEL3[pt_BR]=$(gettext "Usar ENTER ou BARRA DE ESPAÇO para selecionar e aceitar.")
 	cmsg_MENU[pt_BR]="${cmsg_LABEL1[pt_BR]}\n${cmsg_LABEL2[pt_BR]}\n${cmsg_LABEL3[pt_BR]}"
 
 	cmsg_Tarball_Corrompido0[pt_BR]=$(gettext "Aparentemente o tarball rootfs")
@@ -5750,6 +5746,7 @@ sh_setLanguage() {
 	cmsg_mkfs[pt_BR]=$(gettext "↓ é recomendável ext4 ↓")
 	cmsg_utilvoidservices[pt_BR]=$(gettext "Utilitário void-services (opcional)")
 	cmsg_Servicos[pt_BR]=$(gettext "Serviços")
+	cmsg_Tema[pt_BR]=$(gettext "Tema")
 	cmsg_Usage1[pt_BR]=$(gettext "Instalar")
 	cmsg_Usage2[pt_BR]=$(gettext "Rodar chroot na partição instalada")
 	cmsg_Usage3[pt_BR]=$(gettext "Ativar modo gráfico")
@@ -5826,12 +5823,12 @@ sh_execcopia() {
 	DISPONIVEL=$((DISPONIVEL / 1024))
 
 	if ((DISPONIVEL < TOTALGB)); then
-		if ! confmulti "*** WARNING ***" \
-			"\nTamanho da partição destino é menor que o necessário\n" \
-			"\nPartição destino   : ${part}" \
-			"\nTamanho disponível : ${DISPONIVEL}G" \
-			"\nTamanho necessário : ${TOTALGB}G" \
-			"\n\nSistema destino poderá não funcionar, continuar?"; then
+		if ! confmulti "$(gettext '*** AVISO ***')" \
+			"\n$(gettext 'Tamanho da partição destino é menor que o necessário')\n" \
+			"\n$(gettext 'Partição destino')   : ${part}" \
+			"\n$(gettext 'Tamanho disponível') : ${DISPONIVEL}G" \
+			"\n$(gettext 'Tamanho necessário') : ${TOTALGB}G" \
+			"\n\n$(gettext 'Sistema destino poderá não funcionar, continuar?')"; then
 			#           sh_stop_bind
 			#           sh_stop_mount
 			#           sh_main_menu "$@"
@@ -5857,12 +5854,12 @@ sh_execcopia() {
 			[[ "$PERCENTAGEM" -gt 100 ]] && PERCENTAGEM=100
 			${DIALOG} --colors \
 				--title $TITLE \
-				--gauge "$MSG                                       \nFalta ${RED}${REVERSE}$((100 - PERCENTAGEM))%${RESET} para completar a tarefa \Zb\Z1${PONT:nval:1}\ZB\Zn \
-                                    \n\nDestino    : ${BLUE}${REVERSE}${AConfDisk[_DEVICE]}$dir_install${RESET}
-                                    \nDisponivel : ${DISPONIVEL}MB\
-                                    \nTotal      :  ${TOTALGB}MB\
-                                    \nCopiado    :  ${BLUE}${REVERSE}${COPIADOMB}MB${RESET}\
-                                    \nArquivo    : ${LASTFILE}\
+				--gauge "$MSG                                       \n$(gettext 'Falta') ${RED}${REVERSE}$((100 - PERCENTAGEM))%${RESET} $(gettext 'para completar a tarefa') \Zb\Z1${PONT:nval:1}\ZB\Zn \
+                                    \n\n$(gettext 'Destino')    : ${BLUE}${REVERSE}${AConfDisk[_DEVICE]}$dir_install${RESET}
+                                    \n$(gettext 'Disponivel') : ${DISPONIVEL}MB\
+                                    \n$(gettext 'Total')      :  ${TOTALGB}MB\
+                                    \n$(gettext 'Copiado')    :  ${BLUE}${REVERSE}${COPIADOMB}MB${RESET}\
+                                    \n$(gettext 'Arquivo')    : ${LASTFILE}\
                                     \n" 13 130 0 <<<$PERCENTAGEM
 			((nval++))
 			#           sleep $INTERVALO
