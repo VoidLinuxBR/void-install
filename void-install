@@ -452,7 +452,7 @@ sh_choose_packages() {
 
 	if $LCUSTOM; then
 		## X11
-		if ! $LONLY_TTY; then
+#		if ! $LONLY_TTY; then
 			declare -ga aIconsAndThemes=('Adapta' 'adwaita-icon-theme' 'chili-void-beauty-icons' 'chili-void-wallpapers' 'chili-void-gnome-professional-theme' 'xfwm-axiom-theme')
 			declare -ga aArchiverX=('xarchiver')
 			declare -ga aBrowser=('firefox' "firefox-i18n-$(sh_get_language_without_utf8)" 'brave-bin')
@@ -468,7 +468,7 @@ sh_choose_packages() {
 			declare -ga aMicrocode=('intel-ucode' 'linux-firmware-amd')
 			declare -ga aNetworkX=('network-manager-applet' 'gvfs' 'gvfs-smb' 'gvfs-cdda')
 			declare -ga aUtilityX=('mate-calc' 'xkill' 'menulibre' 'mugshot' 'ocs-url' 'remmina' 'remmina-kwallet' gparted)
-		else
+#		else
 			## tty
 			declare -ga aDaemons=('NetworkManager' 'acpi' 'acpid' 'connman' 'irqbalance' 'avahi')
 			declare -ga aArchiverTty=('unrar' 'zip' 'p7zip' 'unzip' 'bzip2')
@@ -480,9 +480,9 @@ sh_choose_packages() {
 			declare -ga _PKGS='fastfetch pfetch bc bat fzf bash-completion vpm vsv xtools geoip geoipupdate pigz #geoip-data'
 			#--repository=https://void.chililinux.com/voidlinux/current
 			## end packages
-		fi
+#		fi
 	else
-		if ! $LONLY_TTY; then
+#		if ! $LONLY_TTY; then
 			## X11
 			declare -ga aIconsAndThemes=(Adapta adwaita-icon-theme)
 			declare -ga aArchiverX=()
@@ -497,7 +497,7 @@ sh_choose_packages() {
 			declare -ga aMicrocode=()
 			declare -ga aNetworkX=(network-manager-applet)
 			declare -ga aUtilityX=(gettext)
-		else
+#		else
 			## tty
 			declare -ga aDaemons=(NetworkManager)
 			declare -ga aArchiverTty=()
@@ -507,7 +507,7 @@ sh_choose_packages() {
 			declare -ga _PKGS=''
 			#--repository=https://void.chililinux.com/voidlinux/current
 			## end packages
-		fi
+#		fi
 	fi
 
 }
