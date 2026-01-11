@@ -4,6 +4,7 @@
 ```bash
 echo 'repository=https://void.chililinux.com/voidlinux/current' | sudo tee -a /usr/share/xbps.d/00-repository-main.conf
 sudo xbps-install -Syf void-installer
+sudo void-install
 ```
 
 - 1 - using git
