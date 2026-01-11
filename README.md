@@ -3,7 +3,7 @@
 - 0 - using distro VOID
 ```bash
 echo 'repository=https://void.chililinux.com/voidlinux/current' | sudo tee -a /usr/share/xbps.d/00-repository-main.conf
-xbps-install -Syf void-installer
+sudo xbps-install -Syf void-installer
 ```
 
 - 1 - using git
