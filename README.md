@@ -1,7 +1,7 @@
 # void-install - VOID Linux Brazilian installer
 ## Download:
 - 0 - using distro VOID
-   - echo 'repository=https://void.chililinux.com/voidlinux/current' | sudo tee -a /etc/xbps.d/00-repository-main.conf
+   - echo 'repository=https://void.chililinux.com/voidlinux/current' | sudo tee -a /usr/share/xbps.d/00-repository-main.conf
    - xbps-install -Syf void-installer
 
 - 1 - using git
