@@ -3,9 +3,9 @@
 - 0 - using distro VOID
 ```bash
 {
-   echo 'repository=https://repo-fastly.voidlinux.org/current'
-   echo 'repository=https://void.chililinux.com/voidlinux/current'
-} > | sudo tee -a /etc//xbps.d/00-repository-main.conf
+  echo 'repository=https://repo-fastly.voidlinux.org/current'
+  echo 'repository=https://void.chililinux.com/voidlinux/current'
+} | sudo tee /etc/xbps.d/00-repository-main.conf
 sudo xbps-install -u xbps
 sudo xbps-install -Syf xvoid-install
 sudo void-install
