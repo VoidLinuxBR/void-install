@@ -389,7 +389,7 @@ EOF
 }
 
 sh_update_self() {
-	local repo_url="https://raw.githubusercontent.com/voidlinuxbr/void-installer/main/void-install"
+	local repo_url="https://raw.githubusercontent.com/voidlinuxbr/void-install/main/void-install"
 	local local_script="$0"
 	local temp_file
 	local remote_hash
@@ -548,8 +548,8 @@ sh_setEnvironment() {
 	declare -g dir_install='/mnt/voidlinux'
 	readonly cnickefi='Void_install'
 	readonly _TARBALL_ROOTFS=void-x86_64-base-custom-current.tar.xz
-	readonly url_tarball="https://raw.githubusercontent.com/voidlinuxbr/void-installer/refs/heads/main/${_TARBALL_ROOTFS}"
-	readonly url_tarball_md5="https://raw.githubusercontent.com/voidlinuxbr/void-installer/refs/heads/main/${_TARBALL_ROOTFS}.md5"
+	readonly url_tarball="https://raw.githubusercontent.com/voidlinuxbr/void-install/refs/heads/main/${_TARBALL_ROOTFS}"
+	readonly url_tarball_md5="https://raw.githubusercontent.com/voidlinuxbr/void-install/refs/heads/main/${_TARBALL_ROOTFS}.md5"
 	readonly true=1
 	readonly false=0
 	readonly err_fatal=$true
@@ -558,7 +558,7 @@ sh_setEnvironment() {
 	readonly LOGGER='/dev/tty8'
 	shell='/bin/sh'
 
-	: "${ccabec="$APP v${_VERSION_} - https://github.com/voidlinuxbr/void-installer"}"
+	: "${ccabec="$APP v${_VERSION_} - https://github.com/voidlinuxbr/void-install"}"
 	: "${ccabecmin="$APP v${_VERSION_}"}"
 	: "${DIALOG=${DIALOG:-dialog}}"
 	: "${ARCH:=x86_64}"
