@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 # shellcheck shell=bash disable=SC1091,SC2039,SC2166
 #
-#  void-wifi-config
+#  chili-wifi-config - Wrapper configuração wifi para o NetworkManager
 #  Created: 2025/02/06 - 04:53
 #  Altered: 2025/02/06 - 04:53
-#  Updated: sex 07 fev 2025 13:53:54 -04
+#  Updated: dom 11 jan 2026 21:11:33 -04
 #
 #  Copyright (c) 2025-2025, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -32,7 +32,7 @@
 ##############################################################################
 #export LANGUAGE=pt_BR
 export TEXTDOMAINDIR=/usr/share/locale
-export TEXTDOMAIN=void-wifi-config
+export TEXTDOMAIN=chili-wifi-config
 
 # Definir a variável de controle para restaurar a formatação original
 reset=$(tput sgr0)
@@ -73,7 +73,7 @@ shopt -s extglob
 
 #system
 declare APP="${0##*/}"
-declare APPDESC="Wrapper para o NetworkManager Cli"
+declare APPDESC="$(gettext 'Wrapper configuração wifi para o NetworkManager')"
 declare _VERSION_="1.2.07-20250207"
 declare distro="$(uname -n)"
 declare DEPENDENCIES=(tput dialog)
@@ -91,18 +91,8 @@ declare ccabec="${APP} - v${_VERSION_} - ${APPDESC}"
 : "${D_ITEM_HELP=4}"
 : "${D_ESC=255}"
 
-MostraErro() {
-	echo "erro: ${red}$1${reset} => comando: ${cyan}'$2'${reset} => result=${yellow}$3${reset}"
-}
-trap 'MostraErro "$APP[$FUNCNAME][$LINENO]" "$BASH_COMMAND" "$?"; exit 1' ERR
-
-cleanup() {
-	rm -f "$dialogRcFile"
-}
-#trap cleanup EXIT
-
 sh_create_dialogrc() {
-	cat >"$dialogRcFile" <<EOF
+   cat >"$dialogRcFile" <<EOF
 screen_color = (white,black,off)
 dialog_color = (white,black,off)
 title_color = (cyan,black,on)
@@ -270,17 +260,17 @@ check_and_start_service() {
 	# Verifica se o serviço está ativo
 	if ! systemctl is-active --quiet "$service"; then
 		# Se o serviço não estiver ativo, tenta ativá-lo
-		msg_warning "O serviço '$service_name' não está ativo. Tentando ativar..."
+		msg_warning "$(gettext 'O serviço '$service_name' não está ativo. Tentando ativar')..."
 		sudo systemctl start "$service"
 
 		# Verifica novamente se o serviço foi ativado com sucesso
 		if systemctl is-active --quiet "$service"; then
-			msg_ok "O serviço '$service_name' foi ativado com sucesso."
+			msg_ok "$(gettext 'O serviço '$service_name' foi ativado com sucesso.')"
 		else
-			die "Falha ao ativar o serviço '$service_name'."
+			die "$(gettext "Falha ao ativar o serviço '$service_name'")."
 		fi
 	else
-		msg_ok "O serviço '$service_name' já está ativo."
+		msg_ok "$(gettext "O serviço '$service_name' já está ativo.")"
 	fi
 }
 
@@ -293,15 +283,15 @@ get_wifi_interface() {
 	if [[ -z "$interfaces" ]]; then
 		dialog \
 			--backtitle "$ccabec" \
-			--msgbox "Nenhuma interface wifi encontrada. Saindo..." \
+			--msgbox "$(gettext 'Nenhuma interface wifi encontrada. Saindo...')" \
 			6 40
 		exit 1
 	fi
 	# Exibe as interfaces em um menu usando o dialog
 	interface=$(dialog \
 		--backtitle "$ccabec" \
-		--title "Selecione a Interface de Rede" \
-		--menu "Escolha a interface de rede" \
+		--title "$(gettext 'Selecione a Interface de Rede')" \
+		--menu "$(gettext 'Escolha a interface de rede')" \
 		15 50 4 \
 		$(echo "$interfaces" | awk '{print $1, $1}') 3>&1 1>&2 2>&3)
 
@@ -309,7 +299,7 @@ get_wifi_interface() {
 	if [ -z "$interface" ]; then
 		dialog \
 			--backtitle "$ccabec" \
-			--msgbox "Nenhuma interface selecionada. Saindo..." \
+			--msgbox "$(gettext 'Nenhuma interface selecionada. Saindo...')" \
 			6 40
 		exit 1
 	fi
@@ -336,8 +326,8 @@ connect_wifi() {
 	# Solicita ao usuário para selecionar a rede Wi-Fi com o dialog
 	network=$(dialog \
 		--backtitle "$ccabec" \
-		--title "Selecione a Rede Wi-Fi" \
-		--menu "Escolha a rede Wi-Fi" \
+		--title "$(gettext 'Selecione a Rede Wi-Fi')" \
+		--menu "$(gettext 'Escolha a rede Wi-Fi')" \
 		15 50 4 \
 		$(echo "$networks" | sed 's/ / /g') 3>&1 1>&2 2>&3)
 
@@ -345,16 +335,16 @@ connect_wifi() {
 	if [ -z "$network" ]; then
 		dialog \
 			--backtitle "$ccabec" \
-			--msgbox "Nenhuma rede selecionada. Saindo..." 6 40
+			--msgbox "$(gettext 'Nenhuma rede selecionada. Saindo...')" 6 40
 		exit 1
 	fi
 
 	# Solicita ao usuário a senha da rede Wi-Fi
 	password=$(dialog \
 		--backtitle "$ccabec" \
-		--title "Senha da Rede Wi-Fi" \
+		--title "$(gettext 'Senha da Rede Wi-Fi')" \
 		--insecure \
-		--passwordbox "Digite a senha para a rede Wi-Fi '$network'" \
+		--passwordbox "$(gettext "Digite a senha para a rede Wi-Fi '$network'")" \
 		8 40 3>&1 1>&2 2>&3)
 
 	# Verifica se a conexão já existe
@@ -399,8 +389,8 @@ main() {
 	# Exibe uma mensagem inicial
 	dialog \
 		--backtitle "$ccabec" \
-		--title "Configuração Wi-Fi" \
-		--msgbox "Bem-vindo ao assistente de configuração de Wi-Fi!" \
+		--title "$(gettext 'Configuração Wi-Fi')" \
+		--msgbox "$(gettext 'Bem-vindo ao assistente de configuração de Wi-Fi!')" \
 		6 40
 
 	sudo rfkill unblock wifi >/dev/null
@@ -417,7 +407,7 @@ main() {
 	if [ -z "$networks" ]; then
 		dialog \
 			--backtitle "$ccabec" \
-			--msgbox "Nenhuma rede Wi-Fi encontrada. Saindo..." 6 40
+			--msgbox "$(gettext 'Nenhuma rede Wi-Fi encontrada. Saindo...')" 6 40
 		exit 1
 	fi
 
@@ -426,23 +416,23 @@ main() {
 }
 
 sh_check_connection() {
-  # Obtém a interface conectada
-  interface=$(nmcli -t -f DEVICE,STATE d | grep "connected" | cut -d: -f1 | head -n1)
+	# Obtém a interface conectada
+	interface=$(nmcli -t -f DEVICE,STATE d | grep "connected" | cut -d: -f1 | head -n1)
 
-  # Se houver uma interface conectada, exibe os detalhes e pergunta se deseja prosseguir
-  if [[ -n "$interface" ]]; then
-    ip_address=$(ip -4 addr show "$interface" | awk '/inet / {print $2}' | cut -d/ -f1)
-    gateway=$(ip route | awk '/default/ {print $3}')
+	# Se houver uma interface conectada, exibe os detalhes e pergunta se deseja prosseguir
+	if [[ -n "$interface" ]]; then
+		ip_address=$(ip -4 addr show "$interface" | awk '/inet / {print $2}' | cut -d/ -f1)
+		gateway=$(ip route | awk '/default/ {print $3}')
 
-    dialog \
-      --backtitle "$ccabec" \
-      --yesno "Você já está conectado à internet!\n\nInterface: $interface\nIP: $ip_address\nRota padrão: $gateway\n\nDeseja continuar mesmo assim?" 12 60
-    if [ $? -ne 0 ]; then
-      exit 0
-    fi
-  fi
+		dialog \
+			--backtitle "$ccabec" \
+			--yesno "$(gettext 'Você já está conectado à internet!')\n\nInterface: $interface\nIP: $ip_address\n$(gettext 'Rota padrão'): $gateway\n\n$(gettext 'Deseja continuar mesmo assim?')" 12 60
+		if [ $? -ne 0 ]; then
+			exit 0
+		fi
+	fi
 }
 
-sh_create_dialogrc
+[[ ! -e "$dialogRcFile" ]] && sh_create_dialogrc
 sh_check_connection
 main
