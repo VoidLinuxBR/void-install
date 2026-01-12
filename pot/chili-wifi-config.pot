@@ -1,0 +1,78 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-01-11 21:28-0400\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: /chili/chili-wifi-config:76
+msgid "Wrapper configuração wifi para o NetworkManager"
+msgstr ""
+
+#: /chili/chili-wifi-config:286
+msgid "Nenhuma interface wifi encontrada. Saindo..."
+msgstr ""
+
+#: /chili/chili-wifi-config:293
+msgid "Selecione a Interface de Rede"
+msgstr ""
+
+#: /chili/chili-wifi-config:294
+msgid "Escolha a interface de rede"
+msgstr ""
+
+#: /chili/chili-wifi-config:302
+msgid "Nenhuma interface selecionada. Saindo..."
+msgstr ""
+
+#: /chili/chili-wifi-config:329
+msgid "Selecione a Rede Wi-Fi"
+msgstr ""
+
+#: /chili/chili-wifi-config:330
+msgid "Escolha a rede Wi-Fi"
+msgstr ""
+
+#: /chili/chili-wifi-config:338
+msgid "Nenhuma rede selecionada. Saindo..."
+msgstr ""
+
+#: /chili/chili-wifi-config:345
+msgid "Senha da Rede Wi-Fi"
+msgstr ""
+
+#: /chili/chili-wifi-config:392
+msgid "Configuração Wi-Fi"
+msgstr ""
+
+#: /chili/chili-wifi-config:393
+msgid "Bem-vindo ao assistente de configuração de Wi-Fi!"
+msgstr ""
+
+#: /chili/chili-wifi-config:410
+msgid "Nenhuma rede Wi-Fi encontrada. Saindo..."
+msgstr ""
+
+#: /chili/chili-wifi-config:429
+msgid "Você já está conectado à internet!"
+msgstr ""
+
+#: /chili/chili-wifi-config:429
+msgid "Rota padrão"
+msgstr ""
+
+#: /chili/chili-wifi-config:429
+msgid "Deseja continuar mesmo assim?"
+msgstr ""
