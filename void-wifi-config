@@ -279,7 +279,7 @@ get_wifi_interface() {
 	# Obtém as interfaces de rede Wi-Fi disponíveis
 	#	interfaces=$(iw dev | grep Interface | awk '{print $2}')
 	interfaces=$(nmcli device | grep wifi | awk '{print $1}')
-
+	# Verifica se há interfaces Wi-Fi disponíveis
 	if [[ -z "$interfaces" ]]; then
 		dialog \
 			--backtitle "$ccabec" \
@@ -287,6 +287,7 @@ get_wifi_interface() {
 			6 40
 		exit 1
 	fi
+
 	# Exibe as interfaces em um menu usando o dialog
 	interface=$(dialog \
 		--backtitle "$ccabec" \
@@ -378,7 +379,6 @@ connect_wifi() {
 	fi
 }
 
-# Função principal
 main() {
 	# Verifica se o NetworkManager está ativo, e ativa caso não esteja
 	check_and_start_service "NetworkManager" "NetworkManager"
