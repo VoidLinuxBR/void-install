@@ -7,7 +7,7 @@
   echo 'repository=https://void.chililinux.com/voidlinux/current'
 } | sudo tee /etc/xbps.d/00-repository-main.conf
 sudo xbps-install -u xbps
-sudo xbps-install -Syf xvoid-install
+sudo xbps-install -Syf void-install
 sudo void-install
 ```
 
