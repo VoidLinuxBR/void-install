@@ -2,36 +2,32 @@
 ## Download:
 - 0 - using distro VOID
 ```bash
-{
-  echo 'repository=https://repo-fastly.voidlinux.org/current'
-  echo 'repository=https://void.chililinux.com/voidlinux/current'
-} | sudo tee /etc/xbps.d/00-repository-main.conf
-sudo xbps-install -Syu xbps
+echo 'repository=https://void.chililinux.com/voidlinux/current' | sudo tee -a /usr/share/xbps.d/00-repository-main.conf
 sudo xbps-install -Syf void-install
 sudo void-install
 ```
 
 - 1 - using git
-	- git clone --depth=1 https://github.com/voidlinuxbr/void-install
+- git clone --depth=1 https://github.com/voidlinuxbr/void-install
 
 - 2 - using curl/wget stdin
-	- bash <(curl -s -L https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh)
-	- bash <(wget -q -O - https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh)
-	- curl -s -O https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh | bash
-	- wget -q -O - https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh | bash
+- bash <(curl -s -L https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh)
+- bash <(wget -q -O - https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh)
+- curl -s -O https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh | bash
+- wget -q -O - https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh | bash
 
 - 3 - using curl/wget
-	- curl -O https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh
-	- wget https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh
-	- chmod +x install.sh
-	- bash install.sh
+- curl -O https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh
+- wget https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh
+- chmod +x install.sh
+- bash install.sh
 
 ## Installation (after download):
 - 1 - using make
-	- sudo make install
+- sudo make install
 
 - 2 - running in local repo
-	- ./void-install
+- ./void-install
 
 Examples
 --------
