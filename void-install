@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: dom 11 jan 2026 12:47:56 -04
+#  Updated: qua 14 jan 2026 07:52:29 -04
 #
 #  Copyright (c) 2022-2025, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -51,7 +51,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.1.11-20260111'
+readonly _VERSION_='3.1.14-20260114'
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 #                      cfdisk gdisk  efivar mkfs.ext2 mkfs.ext3 mkfs.ext4 mkfs.btrfs mkfs.xfs mkfs.f2fs mkfs.jfs mkfs.reiserfs)
 
@@ -2052,9 +2052,9 @@ sh_make_fstab() {
 }
 
 sh_activating_services() {
-	local aServicesTTY=(dbus dhcpcd sshd nanoklogd chronyd socklog-unix udevd)
+	local aServicesTTY=(dbus NetworkManager dhcpcd sshd nanoklogd chronyd udevd)
       	aServicesTTY+=(wpa_supplicant uuidd dmeventd)
-	local aServicesX=(elogind polkitd NetworkManager bluetoothd)
+	local aServicesX=(elogind polkitd  bluetoothd)
 	local service
 	local level=2
 
