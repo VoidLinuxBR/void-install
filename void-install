@@ -2287,8 +2287,8 @@ sh_plasmaminimal() {
 sh_xfce4minimal() {
 	local DE='Xfce4'
 	local apkgs=(xfce4 Thunar thunar-volman elogind exo mousepad parole ristretto tumbler upower xdg-user-dirs-gtk xfce-polkit)
-	apkgs+=(xfce4-notifyd xfce4-panel xfce4-power-manager xfce4-screensaver xfce4-session xfce4-settings xfce4-taskmanager)
-	apkgs+=(xfce4-terminal xfconf xfdesktop xfwm4-themes xfwm4 xfce4-pulseaudio-plugin)
+      	apkgs+=(xfce4-notifyd xfce4-panel xfce4-power-manager xfce4-screensaver xfce4-session xfce4-settings xfce4-taskmanager)
+      	apkgs+=(xfce4-terminal xfconf xfdesktop xfwm4-themes xfwm4 xfce4-pulseaudio-plugin)
 
 	if $LCUSTOM; then
 		apkgs+=(xfce4-battery-plugin
@@ -2316,10 +2316,13 @@ sh_xfce4minimal() {
 			xfce4-xkb-plugin
 			plank
 		)
+
 		if sh_checkRepo 'https://void.chililinux.com/voidlinux/current'; then
-			apkgs+=(chili-xfce-config)
-			#apkgs+=(chili-void-xfce-skel)
+#			apkgs+=(chili-xfce-config)
+#        apkgs+=(chili-void-xfce-skel)
+         apkgs+=(voidbr-config-xfce-custom)
 		fi
+
 	fi
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
