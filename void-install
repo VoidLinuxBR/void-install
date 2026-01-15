@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: qua 14 jan 2026 07:52:29 -04
+#  Updated: qui 15 jan 2026 15:28:09 -04
 #
 #  Copyright (c) 2022-2025, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -51,7 +51,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.1.14-20260114'
+readonly _VERSION_='3.1.15-20260115'
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 #                      cfdisk gdisk  efivar mkfs.ext2 mkfs.ext3 mkfs.ext4 mkfs.btrfs mkfs.xfs mkfs.f2fs mkfs.jfs mkfs.reiserfs)
 
@@ -658,6 +658,7 @@ sh_touchConf() {
 	{
 		declare -p LDISK
 		declare -p LEFI
+		declare -p LAUDIO
 		declare -p LGRUB
 		declare -p LBIOS
 		declare -p LMKPARTED
@@ -2213,13 +2214,15 @@ sh_X11minimal() {
 	apkgs+=("${aUtilityX[@]}")
 	apkgs+=("${aIconsAndThemes[@]}")
 
-	if [[ "${AConfAudio[_AUDIOSERVER]}" == 'Pulseaudio' ]]; then
-		apkgs+=("${aPulseaudio[@]}")
-		aMedia+=("${aPulseaudio[@]}")
-	else
-		apkgs+=("${aPipewire[@]}")
-		aMedia+=("${aPipewire[@]}")
-	fi
+   if $LAUDIO; then
+   	if [[ "${AConfAudio[_AUDIOSERVER]}" == 'Pulseaudio' ]]; then
+   		apkgs+=("${aPulseaudio[@]}")
+   		aMedia+=("${aPulseaudio[@]}")
+   	else [[ "${AConfAudio[_AUDIOSERVER]}" == 'Pipewire' ]]; then
+   		apkgs+=("${aPipewire[@]}")
+   		aMedia+=("${aPipewire[@]}")
+   	fi
+   fi
 
 	apkgs+=("${aPrinter[@]}")
 	apkgs+=("${aPerfumery[@]}")
@@ -2741,10 +2744,17 @@ sh_chooseaudioserver() {
 	Pulseaudio)
 		array+=("Pulseaudio" "Pulseaudio" "on")
 		array+=("Pipewire" "Pipewire" "off")
+		array+=("None" "None" "off")
 		;;
 	Pipewire)
 		array+=("Pulseaudio" "Pulseaudio" "off")
 		array+=("Pipewire" "Pipewire" "on")
+		array+=("None" "None" "off")
+		;;
+	None)
+		array+=("Pulseaudio" "Pulseaudio" "off")
+		array+=("Pipewire" "Pipewire" "off")
+		array+=("None" "None" "on")
 		;;
 	esac
 
@@ -2763,7 +2773,11 @@ sh_chooseaudioserver() {
 		return 1
 		;;
 	esac
-	LAUDIO=true
+   if [[ "$caudio" == 'None' ]] ; then
+   	LAUDIO=false
+   else
+	   LAUDIO=true
+   fi
 	AConfAudio[_AUDIOSERVER]="$caudio"
 	return 0
 }
