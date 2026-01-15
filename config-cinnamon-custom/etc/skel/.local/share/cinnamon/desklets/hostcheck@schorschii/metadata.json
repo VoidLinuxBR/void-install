@@ -1,0 +1,9 @@
+{
+    "max-instances": "10",
+    "description": "Checks a host via ping or HTTP(S) and displays if it is available.",
+    "name": "Host Check",
+    "version": "1.5.2",
+    "uuid": "hostcheck@schorschii",
+    "author": "schorschii",
+    "last-edited": 1721768817
+}

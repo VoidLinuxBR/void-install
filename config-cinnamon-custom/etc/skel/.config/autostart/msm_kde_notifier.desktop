@@ -1,0 +1,9 @@
+[Desktop Entry]
+Exec=msm_kde_notifier
+Hidden=false
+Name=MSM Notifier
+StartupNotify=false
+Terminal=false
+Type=Application
+X-Deepin-GenerateSource=$HOME/.config/autostart/msm_kde_notifier.desktop
+

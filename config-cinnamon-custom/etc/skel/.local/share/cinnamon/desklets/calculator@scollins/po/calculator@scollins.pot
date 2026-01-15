@@ -1,0 +1,135 @@
+# SOME DESCRIPTIVE TITLE.
+# This file is put in the public domain.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: calculator@scollins 2.1\n"
+"Report-Msgid-Bugs-To: https://github.com/linuxmint/cinnamon-spices-desklets/"
+"issues\n"
+"POT-Creation-Date: 2024-05-14 23:35+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: desklet.js:27 desklet.js:50
+msgid "Back"
+msgstr ""
+
+#: desklet.js:28 desklet.js:52
+msgid "Reset"
+msgstr ""
+
+#: desklet.js:51
+msgid "Clear Entry"
+msgstr ""
+
+#: desklet.js:53
+msgid "Copy to Clipboard"
+msgstr ""
+
+#: desklet.js:54
+msgid "Paste from Clipboard"
+msgstr ""
+
+#: desklet.js:55
+msgid "Inverse"
+msgstr ""
+
+#: desklet.js:58
+msgid "Swap Sign"
+msgstr ""
+
+#: desklet.js:82
+msgid "Scientific Notation"
+msgstr ""
+
+#: desklet.js:791
+msgid "Swap Entries"
+msgstr ""
+
+#: desklet.js:795
+msgid "Reciprocal"
+msgstr ""
+
+#. settings-schema.json->angleMode->options
+#: desklet.js:1056
+msgid "Degrees"
+msgstr ""
+
+#. settings-schema.json->angleMode->options
+#: desklet.js:1064
+msgid "Radians"
+msgstr ""
+
+#: desklet.js:1074
+msgid "RPN"
+msgstr ""
+
+#: desklet.js:1083
+msgid "4-Function"
+msgstr ""
+
+#. settings-schema.json->layout->options
+#: desklet.js:1090
+msgid "Scientific"
+msgstr ""
+
+#: desklet.js:1099
+msgid "Copy"
+msgstr ""
+
+#: desklet.js:1103
+msgid "Paste"
+msgstr ""
+
+#. metadata.json->name
+#: desklet.js:1109
+msgid "Desktop Calculator"
+msgstr ""
+
+#. metadata.json->description
+msgid "A calculator Desklet"
+msgstr ""
+
+#. settings-schema.json->style->description
+#. settings-schema.json->layout->description
+msgid "Style"
+msgstr ""
+
+#. settings-schema.json->style->options
+msgid "Light"
+msgstr ""
+
+#. settings-schema.json->style->options
+msgid "Dark"
+msgstr ""
+
+#. settings-schema.json->angleMode->description
+msgid "Angle Measure"
+msgstr ""
+
+#. settings-schema.json->rpn->description
+msgid "Use Reverse-Polish Notation"
+msgstr ""
+
+#. settings-schema.json->layout->options
+msgid "4-function"
+msgstr ""
+
+#. settings-schema.json->precision->description
+msgid "Precision"
+msgstr ""
+
+#. settings-schema.json->precision->units
+msgid "digits"
+msgstr ""
+
+#. settings-schema.json->raiseKey->description
+msgid "Raise to top shorcut key"
+msgstr ""
