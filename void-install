@@ -2218,7 +2218,7 @@ sh_X11minimal() {
    	if [[ "${AConfAudio[_AUDIOSERVER]}" == 'Pulseaudio' ]]; then
    		apkgs+=("${aPulseaudio[@]}")
    		aMedia+=("${aPulseaudio[@]}")
-   	else [[ "${AConfAudio[_AUDIOSERVER]}" == 'Pipewire' ]]; then
+   	else
    		apkgs+=("${aPipewire[@]}")
    		aMedia+=("${aPipewire[@]}")
    	fi
