@@ -1,0 +1,13 @@
+[Desktop Entry]
+Exec=/usr/lib/geoclue-2.0/demos/agent
+GenericName=Demo geoclue agent
+Hidden=false
+Icon=mark-location-symbolic
+Keywords=geolocation;
+Name=Geoclue Demo agent
+NoDisplay=true
+NotShowIn=GNOME;
+Terminal=false
+Type=Application
+X-Deepin-GenerateSource=$HOME/.config/autostart/geoclue-demo-agent.desktop
+

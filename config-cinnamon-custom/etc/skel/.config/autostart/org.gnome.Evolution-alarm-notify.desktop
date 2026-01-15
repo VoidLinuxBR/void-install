@@ -1,0 +1,36 @@
+[Desktop Entry]
+Categories=
+Comment[cs]=Upozornění na události a úkoly
+Comment[da]=Påmindelser for begivenheder og opgaver
+Comment=Event and task notifications
+Comment[en_GB]=Event and task notifications
+Comment[eu]=Gertaeren eta zereginen jakinarazpenak
+Comment[fr]=Notifications d’évènement et de tâche
+Comment[hu]=Esemény- és feladatértesítések
+Comment[lv]=Notikumu un uzdevumu paziņojumi
+Comment[ru]=Уведомления о событиях и задачах
+Comment[sv]=Evenemangs- och uppgiftsaviseringar
+Comment[tr]=Olay ve görev bildirimleri
+Comment[uk]=Сповіщення про події та завдання
+Exec=/usr/lib/evolution-data-server/evolution-alarm-notify
+Hidden=false
+Icon=org.gnome.Evolution-alarm-notify
+Name[cs]=Připomínky událostí a úkolů
+Name[da]=Påmindelser for begivenheder og opgaver
+Name=Events and Tasks Reminders
+Name[en_GB]=Events and Tasks Reminders
+Name[eu]=Gertaeren eta zereginen oroigarriak
+Name[fr]=Rappels des évènements et des tâches
+Name[hu]=Események és feladatok emlékeztetői
+Name[lv]=Notikumu un uzdevumu atgādinājumi
+Name[ru]=Напоминания о событиях и задачах
+Name[sv]=Evenemangs- och uppgiftspåminnelser
+Name[tr]=Etkinlik ve Görev Anımsatıcılar
+Name[uk]=Нагадування про події та завдання
+NoDisplay=true
+Terminal=false
+Type=Application
+X-Deepin-GenerateSource=$HOME/.config/autostart/org.gnome.Evolution-alarm-notify.desktop
+X-GNOME-UsesNotifications=true
+X-Meego-Priority=Low
+

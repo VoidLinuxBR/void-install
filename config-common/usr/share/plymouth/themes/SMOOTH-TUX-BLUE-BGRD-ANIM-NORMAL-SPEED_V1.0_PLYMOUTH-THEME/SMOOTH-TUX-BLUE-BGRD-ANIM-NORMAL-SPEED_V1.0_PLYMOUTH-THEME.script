@@ -1,0 +1,325 @@
+/*********************************************************************************
+ * Theme Name: SMOOTH-TUX-BLUE-BGRD-ANIM-NORMAL-SPEED                            *
+ * Version: 1.0                                                                  *
+ * Description: Implementation of the theme based on the "Smooth Tux Bootsplash" *
+ *              concept by willwill100.                                          *
+ * Original concept: https://www.pling.com/p/1009545                             *
+ * Author of the concept: willwill100 (https://www.pling.com/u/willwill100)      *
+ * Author: DUKE93                                                                *
+ * Date: 29.12.2023                                                              *
+ * License: This program is free software: you can redistribute it and/or modify *
+ * it under the terms of the GNU General Public License as published by          *
+ * the Free Software Foundation, either version 3 of the License, or             *
+ * (at your option) any later version.                                           *
+ *                                                                               *
+ * This program is distributed in the hope that it will be useful,               *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of                *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                 *
+ * GNU General Public License for more details.                                  *
+ *                                                                               *
+ * You should have received a copy of the GNU General Public License             *
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.         *
+ *********************************************************************************/
+
+/*-------------------------------------------------------------------------------*\
+|                                  BACKGROUND                                     |
+\*-------------------------------------------------------------------------------*/
+screen_width = Window.GetWidth();
+screen_height = Window.GetHeight();
+screen_x = Window.GetX();
+screen_y = Window.GetY();
+background_image = Image("BACKGROUND.PNG");
+ratio = screen_height / screen_width;
+background_ratio = background_image.GetHeight() / background_image.GetWidth();
+factor = 0;
+
+if (ratio > background_ratio) {
+
+	factor = screen_height / background_image.GetHeight();
+
+}
+else {
+	
+	factor = screen_width / background_image.GetWidth();
+	
+}
+scaled = background_image.Scale(background_image.GetWidth() * factor, background_image.GetHeight() * factor);
+background_sprite = Sprite(scaled);
+background_sprite.SetX(screen_x + screen_width / 2 - scaled.GetWidth() / 2);
+background_sprite.SetY(screen_y + screen_height / 2 - scaled.GetHeight() / 2);
+
+//*******************// растянуть на весь экран
+/*background.image = background_image.Scale(Window.GetWidth() , Window.GetHeight());
+background.sprite = SpriteNew();
+background.sprite.SetImage(background.image);
+background.sprite.SetPosition(Window.GetX(), Window.GetY(), 1);*/
+
+//*******************// по центру
+/*background_image = Image("###.png");
+background_sprite = Sprite(background_image);
+screen_ratio = Window.GetHeight() / Window.GetWidth();
+background_image_ratio = background_image.GetHeight() / background_image.GetWidth();
+background_sprite.SetX(Window.GetWidth()  / 2 - background_image.GetWidth () / 2); // Place in the centre
+background_sprite.SetY(Window.GetHeight() / 2 - background_image.GetHeight() / 2);
+background_sprite.SetZ(-10000);*/ // Place right at the back         
+/*-------------------------------------------------------------------------------*\
+|                                   MAIN_BOX                                      |
+\*-------------------------------------------------------------------------------*/
+backdrop = Image("MAIN_BOX.PNG");
+boot = Sprite(backdrop);
+boot.SetOpacity(1);
+boot_x = Window.GetWidth() / 2  -  backdrop.GetWidth() / 2;
+boot_y = Window.GetHeight() / 2  -  backdrop.GetHeight() / 2;
+boot.SetPosition(boot_x, boot_y, 1);
+/*-------------------------------------------------------------------------------*\
+|                                     LOGO                                        |
+\*-------------------------------------------------------------------------------*/
+logo = Image("LOGO.PNG");
+logo_sprite = Sprite(logo);
+logo.x = boot_x + backdrop.GetWidth()/2 - logo.GetWidth()/2;
+logo.y = boot_y + 100;
+logo_sprite.SetPosition(logo.x, logo.y, 2);
+/*-------------------------------------------------------------------------------*\
+|                                  SPINNER                                        |
+\*-------------------------------------------------------------------------------*/
+SpriteImage = fun(asset) {
+    local.sprite = Sprite();
+    sprite.image = Image(asset);
+    sprite.width = sprite.image.GetWidth();
+    sprite.height = sprite.image.GetHeight();
+    sprite.SetImage(sprite.image);
+    return sprite | global.SpriteImage;
+} | Sprite;
+
+SpriteImage.SetSpriteImage = fun(image) {
+    this.image = image;
+    this.width = image.GetWidth();
+    this.height = image.GetHeight();
+    this.SetImage(this.image);
+};
+assets.spinner_base  = "";
+Spinner = fun() {
+    // FIXME: try to use this=
+    spinner = global.Spinner | [];
+    spinner.count = 300;
+    spinner.current_idx = 0;
+    spinner.last_time = 0;
+    spinner.steps = 10.0; // We render degrees in increments of 10 to save disk. //10.0
+    spinner.duration = 1.0; // Seconds per rotation.
+    for (i = 0; i <= spinner.count; ++i) {
+        if (i % spinner.steps != 0) {
+            continue;
+        }
+        spinner[i] = SpriteImage(assets.spinner_base + "FRAME-" + i + ".PNG");
+        spinner[i].x = boot_x + 190;
+        spinner[i].y = boot_y + 370;
+        spinner[i].SetPosition(spinner[i].x, spinner[i].y, 9);
+        spinner[i].SetOpacity(0);
+    }
+    return spinner;
+} | [];
+
+Spinner.Animate = fun(time) {
+    degrees = Math.Int(((2 * Math.Pi / duration) * time) * (180 / Math.Pi));
+    new = degrees % count;
+    old = current_idx;
+    if (Math.Int(new) < Math.Int((old + steps) % count)) {
+        // Every $steps degrees we can render a frame, all others we skip.
+        return;
+    }
+    // We set a second new which is now a correct index bump by coercing it
+    // into a multiple of 10.
+    new = Math.Int(new / steps) * steps;
+    // Debug("going from " + old + " to " + new);
+    // dps = time - last_time;
+    // DebugMedium("dps " + dps*35);
+    // last_time = time;
+    this[old].SetOpacity(0);
+    this[new].SetOpacity(1);
+    current_idx = new;
+    return this;
+};
+
+Spinner.GetY = fun() {
+    return this[0].GetY();
+};
+
+Spinner.GetHeight = fun() {
+    return this[0].height;
+};
+
+global.spin = Spinner();
+
+fun boot_progress_cb(time, progress)
+{
+    spin.Animate(time);
+    logo.SetOpacity_(time * 2.0);
+    progress_callback (duration, progress);
+}
+Plymouth.SetBootProgressFunction (boot_progress_cb);
+/*-------------------------------------------------------------------------------*\
+|                                     TEXT                                        |
+\*-------------------------------------------------------------------------------*/
+perfont = "DejaVu Sans Book 11";
+per.image = Image.Text ("Powered by GNU/Linux",0.07,0.247,0.415,1, perfont);
+per.sprite = Sprite(per.image);
+per.x = Window.GetX() + Window.GetWidth()  / 1 - per.image.GetWidth() / 0.91;
+per.y = Window.GetY() + Window.GetHeight() / 1.01  - per.image.GetHeight() / 1;
+per.sprite.SetPosition(per.x, per.y, 2);
+/*-------------------------------------------------------------------------------*\
+|                                    DIALOGUE                                     |
+\*-------------------------------------------------------------------------------*/
+status = "normal";
+
+fun dialog_setup()
+  {
+    local.box;
+    local.lock;
+    local.entry;
+    local.text;
+
+    box.image = Image("PASSWD_BOX.PNG");
+    lock.image = Image("LOCK.PNG");
+    entry.image = Image("PASSWD_ENTRY.PNG");
+
+    passwordfont = "Sans Bold 9";
+    password_text = "Password";
+    //bulletfont = "Sans Bold 20";
+
+    box.sprite = Sprite(box.image);
+    box.x = Window.GetWidth()  / 2 - box.image.GetWidth ()/2;
+    box.y = Window.GetHeight() / 1.15 - box.image.GetHeight()/2;
+    box.z = 100;
+    box.sprite.SetPosition(box.x, box.y, box.z);
+
+    lock.sprite = Sprite(lock.image);
+    lock.x = box.x + 35;
+    lock.y = box.y + 30;
+    lock.z = box.z + 1;
+    lock.sprite.SetPosition(lock.x, lock.y, lock.z);
+
+    entry.sprite = Sprite(entry.image);
+    entry.x = box.x + 80;
+    entry.y = box.y + 35;
+    entry.z = box.z + 1;
+    entry.sprite.SetPosition(entry.x, entry.y, entry.z);
+
+    text_pass.image = Image.Text (password_text,0.3,0.3,0.3,1, passwordfont);
+    text_pass.sprite = Sprite(text_pass.image);
+    //text.x = box.x + box.image.GetWidth()/2 - (text.image.GetWidth() + entry.image.GetWidth()) / 2; // Booting... X
+    //text.y = box.y + box.image.GetHeight()/2 - text.image.GetHeight()/2;
+    text_pass.x = box.x + 89;
+    //text_pass.x = Window.GetWidth() / 2 - text_pass.image.GetWidth() / 2;
+    text_pass.y = box.y + 42;
+    text_pass.z = box.z + 1;
+    text_pass.sprite.SetPosition(text_pass.x, text_pass.y, text_pass.z);
+
+    prompt_sprite = SpriteNew();
+    //prompt_sprite.x = Window.GetWidth()  / 2 - box.image.GetWidth () / 2.9;
+    //prompt_sprite.y = box.y + 1;
+    prompt_sprite.SetPosition(prompt_sprite.x, prompt_sprite.y, prompt_sprite.z);
+    prompt_sprite.SetPosition(box.x + 60, box.y - 26, box.z);
+
+    global.dialog.box = box;
+    global.dialog.lock = lock;
+    global.dialog.entry = entry;
+    global.dialog.text = text_pass;
+    global.dialog.bullet_image = Image("BULLET.PNG");
+    //global.dialog.bullet_image = Image.Text("•",0.0,0.0,0.0,1, bulletfont);
+    global.dialog.prompt_sprite = prompt_sprite;
+    dialog_opacity (1);
+  }
+
+fun dialog_opacity(opacity)
+  {
+    dialog.box.sprite.SetOpacity (opacity);
+    dialog.lock.sprite.SetOpacity (opacity);
+    dialog.entry.sprite.SetOpacity (opacity);
+    dialog.text.sprite.SetOpacity (opacity);
+    dialog.prompt_sprite.SetOpacity(opacity);
+    for (index = 0; dialog.bullet[index]; index++)
+      {
+        dialog.bullet[index].sprite.SetOpacity(opacity);
+      }
+  }
+
+fun display_normal_callback ()
+  {
+    global.status = "normal";
+    if (global.dialog)
+      dialog_opacity (0);
+  }
+
+fun display_password_callback (prompt, bullets)
+  {
+    global.status = "password";
+    if (!global.dialog)
+	dialog_setup();
+    else
+	dialog_opacity(1);
+    dialog.prompt_sprite.SetImage(Image.Text(prompt, 0.882, 0.705, 0.117,"center"));
+    for (index = 0; dialog.bullet[index] || index < bullets; index++)
+      {
+        if (!dialog.bullet[index])
+          {
+            dialog.bullet[index].sprite = Sprite(dialog.bullet_image);
+            dialog.bullet[index].x = dialog.entry.x + index * dialog.bullet_image.GetWidth() / 0.8 - dialog.entry.image.GetHeight() * -0.3; // отступ точки от точки и от поля (modified)
+            dialog.bullet[index].y = dialog.entry.y + dialog.entry.image.GetHeight() / 2 - dialog.bullet_image.GetHeight() / 2;
+            dialog.bullet[index].z = dialog.entry.z + 1;
+            dialog.bullet[index].sprite.SetPosition(dialog.bullet[index].x, dialog.bullet[index].y, dialog.bullet[index].z);
+          }
+          // Hide the text Password: if there are characters entered
+          if (bullets > 0)
+              dialog.text.sprite.SetOpacity(0);
+          else
+              dialog.text.sprite.SetOpacity(1);
+      }
+
+      // Hiding extra dots
+      for (index = bullets; dialog.bullet[index]; index++)
+      {
+           dialog.bullet[index].sprite.SetOpacity(0);
+      }
+
+  }
+
+fun display_message_callback (prompt)
+  {
+
+prompt = Image.Text(prompt,1.0,1.0,1.0,1);
+sprite_prompt.SetImage(prompt);
+sprite_prompt.SetPosition(Window.GetX() + (Window.GetWidth() - prompt.GetWidth()) / 2, Window.GetY() + Window.GetHeight() * 2, 2);
+  }
+
+Plymouth.SetDisplayNormalFunction(display_normal_callback);
+Plymouth.SetDisplayPasswordFunction(display_password_callback);
+Plymouth.SetMessageFunction(display_message_callback);
+/*-------------------------------------------------------------------------------*\
+|                                     LOG                                         |
+\*-------------------------------------------------------------------------------*/
+font = "DejaVu Sans Book 10";
+font_mssg = "DejaVu Sans Bold 10";
+
+message_sprite=SpriteNew();
+fun message_callback (prompt) {
+ message = Image.Text(prompt,0.07,0.247,0.415,1,font,"center");
+ x = Window.GetWidth() / 2 - message.GetWidth() / 2;
+ y = logo.y + 320;
+ message_sprite.SetImage(message);
+ message_sprite.SetPosition(x, y, 1000);
+ message_sprite.SetOpacity(1);
+}
+
+Plymouth.SetMessageFunction(message_callback);
+/*-------------------------------------------------------------------------------*\
+|                                      QUIT                                       |
+\*-------------------------------------------------------------------------------*/
+fun quit_callback ()
+{
+  logo.sprite.SetOpacity (1);
+}
+
+Plymouth.SetQuitFunction(quit_callback);
+/*-------------------------------------------------------------------------------*\
+|                                      END                                        |
+\*-------------------------------------------------------------------------------*/
