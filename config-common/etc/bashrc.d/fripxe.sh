@@ -2,7 +2,7 @@
 declare -a qemu_options=()
 declare xmem='16G'
 declare network='100.97.0.0/24'
-declare tftp_dir='/home/vcatafesta/configs/tftp/'
+declare tftp_dir="$HOME/configs/tftp/"
 
 #qemu-system-x86_64\
 # -boot n\

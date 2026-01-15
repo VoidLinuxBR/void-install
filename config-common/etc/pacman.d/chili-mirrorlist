@@ -1,0 +1,8 @@
+##
+## Arch Linux repository mirrorlist
+## Generated on 2025-04-19
+##
+
+## Brazil
+Server = https://repo.chililinux.com/$repo/$arch
+Server = https://repo2.chililinux.com/$repo/$arch
