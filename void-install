@@ -1556,22 +1556,22 @@ install_skel_user() {
 		"tty") : ;;
 		"awesome") aname+=(config-awesome) ;;
 		"xorg") : ;;
-		"bspwm") aname+=(config-bspwm) ;;
-		"blackbox") aname+=(config-blackbox) ;;
-		"dwm") aname+=(config-dwm) ;;
-		"enlightenment") aname+=(config-enlightenment) ;;
-		"fluxbox") aname+=(config-fluxbox) ;;
-		"gnome") aname+=(config-gnome) ;;
-		"hyprland") aname+=(config-hyprland) ;;
-		"i3wm") aname+=(config-i3wm) ;;
-		"lxde") aname+=(config-lxde) ;;
-		"lxqt") aname+=(config-lxqt) ;;
-		"mate") aname+=(config-mate) ;;
-		"openbox") aname+=(config-openbox) ;;
-		"plasma") aname+=(config-plasma) ;;
-		"sway") aname+=(config-sway) ;;
-		"twm") aname+=(config-twm) ;;
-		"xfce4") aname+=(config-xfce) ;;
+		"bspwm") aname+=(config-bspwm-custom) ;;
+		"blackbox") aname+=(config-blackbox-custom) ;;
+		"dwm") aname+=(config-dwm-custom) ;;
+		"enlightenment") aname+=(config-enlightenment-custom) ;;
+		"fluxbox") aname+=(config-fluxbox-custom) ;;
+		"gnome") aname+=(config-gnome-custom) ;;
+		"hyprland") aname+=(config-hyprland-custom) ;;
+		"i3wm") aname+=(config-i3wm-custom) ;;
+		"lxde") aname+=(config-lxde-custom) ;;
+		"lxqt") aname+=(config-lxqt-custom) ;;
+		"mate") aname+=(config-mate-custom) ;;
+		"openbox") aname+=(config-openbox-custom) ;;
+		"plasma") aname+=(config-plasma-custom) ;;
+		"sway") aname+=(config-sway-custom) ;;
+		"twm") aname+=(config-twm-custom) ;;
+		"xfce4") aname+=(config-xfce-custom) ;;
 		esac
 	done
 
