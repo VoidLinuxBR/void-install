@@ -22,10 +22,10 @@
 set autoindent
 
 ## Back up files to the current filename plus a tilde.
-#set backup
+# set backup
 
 ## The directory to put unique backup files in.
-set backupdir "/tmp"
+# set backupdir ""
 
 ## Use bold text instead of reverse video text.
 # set boldtext
@@ -95,7 +95,7 @@ set minibar
 ## mouse clicks can be used to place the cursor, set the mark (with a
 ## double click), and execute shortcuts.  The mouse will work in the
 ## X Window System, and on the console when gpm is running.
-set mouse
+# set mouse
 
 ## Switch on multiple file buffers (inserting a file will put it into
 ## a separate buffer).
@@ -171,7 +171,8 @@ set showcursor
 # set stateflags
 
 ## Use this tab size instead of the default; it must be greater than 0.
-set tabsize 4
+set tabsize 3
+#set tabsize 4
 
 ## Convert each typed tab to the fitting number of spaces.
 set tabstospaces
@@ -256,12 +257,18 @@ set functioncolor magenta
 ## To include most of the existing syntax definitions, you can do:
 ## Or you can select just the ones you need.  For example:
 include "/usr/share/nano/*.nanorc"
-include "/usr/share/nano-syntax-highlighting/*.nanorc"
+#include "/usr/share/nano-syntax-highlighting/*.nanorc"
 #include "/usr/share/nano-syntax-highlighting/custom.nanorc"
-#include "/usr/share/nano-syntax-highlighting/cob.nanorc"
-include "/usr/share/nano/go.nanorc"
+include "/usr/share/nano/js.nanorc"
+include "/usr/share/nano/css.nanorc"
 #include "/usr/share/nano/sh.nanorc"
 #include "/usr/share/nano/custom.nanorc"
+include "/usr/share/nano/prg.nanorc"
+include "/usr/share/nano/asm.nanorc"
+include "/usr/share/nano/lua.nanorc"
+include "/usr/share/nano/yaml.nanorc"
+include "/usr/share/nano/sh.nanorc"
+include "/usr/share/nano/go.nanorc"
 
 ## In /usr/share/nano/extra/ you can find some syntaxes that are
 ## specific for certain distros or for some less common languages.
@@ -269,7 +276,7 @@ include "/usr/share/nano/go.nanorc"
 
 ## If <Tab> should always produce four spaces when editing a Python file,
 ## independent of the settings of 'tabsize' and 'tabstospaces':
-extendsyntax python tabgives "     "
+extendsyntax python tabgives "    "
 
 ## If <Tab> should always produce an actual TAB when editing a Makefile:
 extendsyntax makefile tabgives "	"
@@ -307,7 +314,7 @@ extendsyntax makefile tabgives "	"
 # bind Sh-M-L "Oc[1;6D|sed 's/.*/\L&/'" main
 
 ## For copying a marked region to the system clipboard:
-#bind Sh-M-T "|xsel -ibu" main
+bind Sh-M-T "|xsel -ibu" main
 
 ## If you would like nano to have keybindings that are more "usual",
 ## such as ^O for Open, ^F for Find, ^H for Help, and ^Q for Quit,
@@ -331,7 +338,7 @@ bind ^Y cut all
 bind ^C copy main
 bind ^V paste all
 #bind ^P curpos main
-#bind ^A mark main
+bind ^A mark main
 #unbind ^K main
 #unbind ^U all
 #unbind ^N main
@@ -354,7 +361,8 @@ bind ^/ comment main
 #bind ^/ "sed 's/^.//'" all
 bind ^F "function sh_func_name()" all
 #bind ^/ "^[Oc^[[1;6D^T|sed 's/^.//'" main
-bind ^D "^[Oc^[[1;6D^T|sed 's/^[ \t]*//'" main
+## Trim espaços à esquerda e coloca 2 espaços no início
+bind M-; "^T|sed -E 's/^[[:space:]]+//; s/^/  /'^[u" main
 
 #Lembre-se de que a representação do caractere "Delete" como ^[[3;5~ pode variar dependendo do terminal que você está usando.
 #Se essa representação não funcionar, você pode tentar descobrir a sequência correta de escape para o "Delete" executando o seguinte comando:

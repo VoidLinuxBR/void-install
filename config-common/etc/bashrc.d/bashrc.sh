@@ -473,10 +473,6 @@ EOF
 	fi
 }
 
-void-qemu-dos() {
-	qemu-system-x86_64 -m 128 -name 'Microsoft MSDO 7.1' -hda /home/vcatafesta/Downloads/qemu/dos7.qcow2
-}
-
 maketap() {
 	#need uml-utilities
 	sudo modprobe tun
