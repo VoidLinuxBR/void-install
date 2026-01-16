@@ -1,8 +1,0 @@
-[Plymouth Theme]
-Name=chililinux
-Description=loading ChiliLinux animation
-ModuleName=script
-
-[script]
-ImageDir=/usr/share/plymouth/themes/chililinux/animation
-ScriptFile=/usr/share/plymouth/themes/chililinux/animated-boot.script
