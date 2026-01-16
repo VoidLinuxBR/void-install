@@ -161,7 +161,7 @@ declare -gA AConfMirror=(
 	[location]='Fastly Global CDN'
 )
 declare -gA AConfAudio=(
-	[_AUDIOSERVER]='Pipewire'
+	[_AUDIOSERVER]='None'
 )
 declare -gA AConfWifi=(
 	[_NETWORK]='wifi_ssid'
@@ -2747,23 +2747,29 @@ sh_chooseaudioserver() {
 	local x
 	local caudio
 
-	case "${AConfAudio[_AUDIOSERVER]:-Pulseaudio}" in
-	Pulseaudio)
-		array+=("Pulseaudio" "Pulseaudio" "on")
-		array+=("Pipewire" "Pipewire" "off")
-		array+=("None" "None" "off")
-		;;
-	Pipewire)
-		array+=("Pulseaudio" "Pulseaudio" "off")
-		array+=("Pipewire" "Pipewire" "on")
-		array+=("None" "None" "off")
-		;;
-	None)
+	if ! $LONLY_TTY; then
+		case "${AConfAudio[_AUDIOSERVER]:-Pulseaudio}" in
+		Pulseaudio)
+			array+=("Pulseaudio" "Pulseaudio" "on")
+			array+=("Pipewire" "Pipewire" "off")
+			array+=("None" "None" "off")
+			;;
+		Pipewire)
+			array+=("Pulseaudio" "Pulseaudio" "off")
+			array+=("Pipewire" "Pipewire" "on")
+			array+=("None" "None" "off")
+			;;
+		None)
+			array+=("Pulseaudio" "Pulseaudio" "off")
+			array+=("Pipewire" "Pipewire" "off")
+			array+=("None" "None" "on")
+			;;
+		esac
+	else
 		array+=("Pulseaudio" "Pulseaudio" "off")
 		array+=("Pipewire" "Pipewire" "off")
 		array+=("None" "None" "on")
-		;;
-	esac
+	fi
 
 	caudio=$(${DIALOG} \
 		--title "${cmsg_DefinirAudioServer}" \
@@ -3813,7 +3819,15 @@ sh_choosewm() {
 		LCUSTOM=false
 	fi
 
-	_WINDOWMANAGER=($(strtoarray "$wm"))
+   _WINDOWMANAGER=($(strtoarray "$wm"))
+   if ((${#_WINDOWMANAGER[@]} == 1)) && [[ "${_WINDOWMANAGER[0]}" == "tty" ]]; then
+   	AConfAudio[_AUDIOSERVER]="None"
+      LAUDIO=true
+   else
+   	AConfAudio[_AUDIOSERVER]="Pipewire"
+      LAUDIO=true
+   fi
+
 	if grep -qi hyprland <<<"${_WINDOWMANAGER[@]}"; then
 		HYPRLAND=true
 	fi
@@ -4989,17 +5003,19 @@ sh_menu_language() {
 	done
 }
 
-sh_voidServices() {
-	if [[ -n $(command -v void-services) || -n $(command -v ./void-services) ]]; then
-		bash void-services "$LC_DEFAULT" "-g"
+sh_run_binary() {
+   local binary="${1}"
+	if [[ -n $(command -v "${binary}") || -n $(command -v ./"${binary}") ]]; then
+		bash "${binary}" "$LC_DEFAULT" "-g"
 		return 0
 	fi
 
-	msg "INFO" "$(log_info_msg "$(gettext "Aguarde...") ${cmsg_Gerando} test with void-mirror ${xurl}")"
+	msg "INFO" "$(log_info_msg "$(gettext "Aguarde...") ${cmsg_Gerando} test with "${binary}" ${xurl}")"
 	evaluate_retval "1" "$err_not_fatal"
-	info "=== ${cmsg_Servicosr^^} === void-services" \
-		"\n${RED}void-services $(gettext "não foi localizado no") \$PATH${RESET}" \
-		"${RED}void-services $(gettext "não foi localizado em") $PWD!${RESET}"
+	info "=== ${binary} ===" \
+		"\n${RED}$(gettext "binário não foi localizado no") ${YELLOW}\$PATH${RESET}" \
+		"${RED}$(gettext "binário não foi localizado na pasta local:") ${YELLOW}$PWD${RESET}" \
+		"${YELLOW}\n$(gettext "DICA: instale o pacote void-utils")"
 	return 1
 }
 
@@ -5027,7 +5043,8 @@ sh_main_menu() {
 		$LKEYMAP && MENU_KEYMAP="${YELLOW}[${AConfLocale[_KEYMAP]}]${RST} ● " || MENU_KEYMAP="${RED}[not defined]${RST} ● "
 		$LTIMEZONE && MENU_TIMEZONE="${YELLOW}[${AConfLocale[_TIMEZONE]}${RST} ● " || MENU_TIMEZONE="${RED}[not defined]${RST} ● "
 		$LLOCALE && MENU_LOCALE="${YELLOW}[${AConfLocale[_LOCALE]} ${AConfLocale[_REGION]}]${RST} ● " || MENU_LOCALE="${RED}[not defined]${RST} ● "
-		$LAUDIO && MENU_AUDIO="${YELLOW}[${AConfAudio[_AUDIOSERVER]}]${RST} ● " || MENU_AUDIO="${RED}[not defined]${RST} ● "
+		$LAUDIO && MENU_AUDIO="${YELLOW}[${AConfAudio[_AUDIOSERVER]}]${RST} ● " ||
+         { $LONLY_TTY && MENU_AUDIO="${YELLOW}[${AConfAudio[_AUDIOSERVER]}]${RST} ● " || MENU_AUDIO="${RED}[not defined]${RST} ● "; }
 		$LCUSTOM && MENU_CUSTOM="CUSTOM" || MENU_CUSTOM=""
 		$LWM && MENU_WM="${YELLOW}[${_WINDOWMANAGER[*]} ${MENU_CUSTOM}]${RST} ● " || MENU_WM="${RED}[not defined]${RST} ● "
 		$LEXTRA && MENU_EXTRA="${YELLOW}[OK]${RST} ● " || MENU_EXTRA="${RED}[not defined]${RST} ● "
@@ -5085,9 +5102,9 @@ sh_main_menu() {
 		"Audio") sh_chooseaudioserver "$@" && [ -n "$LAUDIO" ] && DEFITEM="${cmsg_Instalar}" ;;
 		"${cmsg_Instalar}") sh_install ;;
 		'↑↓') : ;;
-		"${cmsg_Tema}") bash void-dialog-theme-selector ;;
-		"${cmsg_Servicos}") sh_voidServices ;;
-		"Clonedisk") bash void-clonedisk ;;
+		"${cmsg_Tema}") sh_run_binary 'void-dialog-theme-selector' ;;
+		"${cmsg_Servicos}") sh_run_binary 'void-services' ;;
+		"Clonedisk") sh_run_binary 'void-clonedisk' ;;
 		"Fde") sh_confLvm && [ -n "$LFDE" ] && DEFITEM="${cmsg_Instalar}" ;;
 		"Lvm") sh_confLvm && [ -n "$LVM" ] && DEFITEM="${cmsg_Instalar}" ;;
 		"Vg") sh_chooseVg ;;
@@ -5612,10 +5629,9 @@ sh_setLanguage() {
 	#	cmsg_LABEL[pt_BR]=$(gettext "Usar as teclas ${RED}↑ PARA CIMA ${RESET}e ${RED}↓ PARA BAIXO ${RESET}para navegar.\nUsar ${RED}TAB ${RESET}para alternar entre os botões e ${RED}ENTER ${RESET}para selecionar.")
 	#	cmsg_LBL_check[pt_BR]=$(gettext "Usar as teclas ${RED}PARA CIMA ${RESET}e ${RED}PARA BAIXO ${RESET}para navegar.\nUsar ${RED}BARRA DE ESPAÇO ${RESET}para selecionar.\nUsar ${RED}TAB ${RESET}para alternar entre os botões e ${RED}ENTER ${RESET}para aceitar.")
 	#	cmsg_Tarball_Corrompido[pt_BR]=$(gettext "\n${RED}Aparentemente o tarball rootfs ${_TARBALL_ROOTFS} está corrompido.\n\n${BOLD}${WHITE}Testar a integridade e reiniciar a instalação ?")
-
-	#	cmsg_LABEL1=$(gettext "Usar as setas ${CYAN}↑ ${RST}e ${CYAN}↓ ${RST}para navegar.")
-	#	cmsg_LABEL2=$(gettext "Usar ${CYAN}TAB ${RST}para alternar entre os botões.")
-	#	cmsg_LABEL3=$(gettext "Usar ${CYAN}ENTER ${RST}ou ${CYAN}BARRA DE ESPAÇO ${RST}para selecionar e aceitar.")
+#	cmsg_LABEL1=$(gettext "Usar as setas ${CYAN}↑ ${RST}e ${CYAN}↓ ${RST}para navegar.")
+#	cmsg_LABEL2=$(gettext "Usar ${CYAN}TAB ${RST}para alternar entre os botões.")
+#	cmsg_LABEL3=$(gettext "Usar ${CYAN}ENTER ${RST}ou ${CYAN}BARRA DE ESPAÇO ${RST}para selecionar e aceitar.")
 	cmsg_LABEL1=$(gettext "Usar as setas ↑ e ↓ para navegar.")
 	cmsg_LABEL2=$(gettext "Usar TAB para alternar entre os botões.")
 	cmsg_LABEL3=$(gettext "Usar ENTER ou BARRA DE ESPAÇO para selecionar e aceitar.")
