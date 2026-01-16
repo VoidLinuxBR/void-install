@@ -1,8 +1,0 @@
-[Plymouth Theme]
-Name=SMOOTH-TUX-BLUE-BGRD-ANIM-NORMAL-SPEED_V1.0_PLYMOUTH-THEME
-Description=Implementation of the theme based on the "Smooth Tux Bootsplash" concept by willwill100.
-ModuleName=script
-
-[script]
-ImageDir=/usr/share/plymouth/themes/SMOOTH-TUX-BLUE-BGRD-ANIM-NORMAL-SPEED_V1.0_PLYMOUTH-THEME
-ScriptFile=/usr/share/plymouth/themes/SMOOTH-TUX-BLUE-BGRD-ANIM-NORMAL-SPEED_V1.0_PLYMOUTH-THEME/SMOOTH-TUX-BLUE-BGRD-ANIM-NORMAL-SPEED_V1.0_PLYMOUTH-THEME.script
