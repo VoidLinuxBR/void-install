@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: qui 15 jan 2026 15:28:09 -04
+#  Updated: sáb 17 jan 2026 00:22:36 -04
 #
 #  Copyright (c) 2022-2025, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -51,7 +51,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.1.15-20260115'
+readonly _VERSION_='3.1.17-20260117'
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 #                      cfdisk gdisk  efivar mkfs.ext2 mkfs.ext3 mkfs.ext4 mkfs.btrfs mkfs.xfs mkfs.f2fs mkfs.jfs mkfs.reiserfs)
 
@@ -107,7 +107,7 @@ declare LEXTRA=false
 declare LLOCALE=true
 #
 declare -ga _PKGS
-declare -ga _EXTRAS
+declare -ga _EXTRAS=()
 declare DEFITEM
 #
 declare -gi njobs=73
@@ -428,12 +428,16 @@ sh_update_self() {
 }
 
 sh_choose_packages() {
-	_EXTRAS+='nano-syntax-highlighting'
-	_EXTRAS+=' chili-void-grub-theme'
-	_EXTRAS+=' chili-nano-config'
-	_EXTRAS+=' chili-utils'
-	_EXTRAS+=' void-utils'
-#   _EXTRAS+=' voidbr-plymouth-theme'
+#	_EXTRAS+=(nano-syntax-highlighting)
+	_EXTRAS+=(chili-void-grub-theme)
+#	_EXTRAS+=(chili-nano-config)
+	_EXTRAS+=(chili-utils)
+	_EXTRAS+=(void-utils)
+	_EXTRAS+=(bash-completion)
+	_EXTRAS+=(fzf)
+	_EXTRAS+=(nano)
+	_EXTRAS+=(vim)
+#   _EXTRAS+=(voidbr-plymouth-theme)
 
 	if grep -qi xorg <<<"${_WINDOWMANAGER[@]}"; then
 		return
@@ -453,27 +457,27 @@ sh_choose_packages() {
 		declare -ga aArchiverX=('xarchiver')
 		declare -ga aBrowser=('firefox' "firefox-i18n-$(sh_get_language_without_utf8)" 'brave-bin')
 		declare -ga aBluetooth=('bluez' 'bluez-alsa' 'bluedevil' 'blueman' 'bluez-cups' 'bluez-deprecated' 'gnome-bluetooth1' 'blueberry')
-		declare -ga aFilemanager=('Thunar' 'thunar-archive-plugin' 'thunar-volman' 'pcmanfm' 'octoxbps')
+		declare -ga aFilemanager=('Thunar' 'thunar-archive-plugin' 'thunar-volman' 'octoxbps')
 		declare -ga aFont+=('liberation-fonts-ttf' 'dejavu-fonts-ttf' 'fonts-droid-ttf' 'fonts-croscore-ttf' 'terminus-font' 'ttf-ubuntu-font-family' 'font-iosevka')
-		aFont+=('unicode-emoji' 'noto-fonts-emoji' 'font-emoji-one-color' 'unicode-emoji' 'nerd-fonts-symbols-ttf' 'font-hack-ttf')
-		aFont+=('font-awesome' 'font-awesome5' 'font-awesome6' nerd-fonts-ttf)
+            		aFont+=('unicode-emoji' 'noto-fonts-emoji' 'font-emoji-one-color' 'unicode-emoji' 'nerd-fonts-symbols-ttf' 'font-hack-ttf')
+            		aFont+=('font-awesome' 'font-awesome5' 'font-awesome6' nerd-fonts-ttf)
 		declare -ga aPerfumery=('conky' 'setxkbmap' 'numlockx' 'nitrogen' 'ristretto' 'mate-notification-daemon')
 		declare -ga aPrinter=('cups' 'system-config-printer' 'system-config-printer-udev' 'splix' 'samsung-unified-driver' 'brother-brlaser' 'cups-pdf')
 		declare -ga aTerminal=('rxvt-unicode' 'xfce4-terminal' 'cool-retro-term')
 		declare -ga aEditorX=('kate' 'mousepad')
 		declare -ga aMicrocode=('intel-ucode' 'linux-firmware-amd')
-		declare -ga aNetworkX=('network-manager-applet' 'gvfs' 'gvfs-smb' 'gvfs-cdda')
+		declare -ga aNetworkX=(network-manager-applet gvfs gvfs-smb gvfs-mtp gvfs-afc gvfs-cdda udisks2)
 		declare -ga aUtilityX=('mate-calc' 'xkill' 'menulibre' 'mugshot' 'ocs-url' 'remmina' 'remmina-kwallet' gparted)
 		#		else
 		## tty
 		declare -ga aDaemons=('NetworkManager' 'acpi' 'acpid' 'connman' 'irqbalance' 'avahi')
 		declare -ga aArchiverTty=('unrar' 'zip' 'p7zip' 'unzip' 'bzip2')
 		declare -ga aDownloader=('curl' 'wget' 'git')
-		declare -ga aEditorTxt=(nano vim)
+		declare -ga aEditorTxt=()
 		declare -ga aUtility=('dialog' 'gettext' 'binutils' 'sed' 'grep' 'tree' 'pv' 'parted' 'rsync' 'duf' 'dfc' 'tmate' 'inetutils' 'iputils')
 		aUtility+=('cifs-utils' 'ntfs-3g' 'btop' 'htop' 'parallel' 'evtest' 'bubblewrap' 'pacman' 'fakeroot' 'bsdtar' 'exa' 'cmatrix')
 		aUtility+=('nvme-cli')
-		declare -ga _PKGS='fastfetch pfetch bc bat fzf bash-completion vpm vsv xtools geoip geoipupdate pigz #geoip-data'
+		declare -ga _PKGS='fastfetch pfetch bc bat xtools geoip geoipupdate pigz'
 		#--repository=https://void.chililinux.com/voidlinux/current
 		## end packages
 		#		fi
@@ -484,7 +488,7 @@ sh_choose_packages() {
 		declare -ga aArchiverX=()
 		declare -ga aBrowser=(firefox firefox-i18n-$(sh_get_language_without_utf8))
 		declare -ga aBluetooth=()
-		declare -ga aFilemanager=(Thunar pcmanfm)
+		declare -ga aFilemanager=(Thunar)
 		declare -ga aFont+=()
 		declare -ga aPerfumery=()
 		declare -ga aPrinter=()
@@ -649,7 +653,6 @@ sh_touchConf() {
 		WIFI_NETWORK=$_WIFI_NETWORK
 		WIFI_PASSWORD=$_WIFI_PASSWORD
 		PKGS="$_PKGS"
-		EXTRAS="$_EXTRAS"
 	EOF
 	{
 		declare -p LDISK
@@ -1543,6 +1546,14 @@ EOF
    " $err_not_fatal
 }
 
+sh_copy_skel() {
+	if $LCUSTOM; then
+		sh_cmd_job "${cmsg_Ajustando} bashrc" "
+         install_skel_user
+      " $err_not_fatal
+	fi
+}
+
 install_skel_user() {
 	local aname=('config-common')
 	local x
@@ -1577,16 +1588,12 @@ install_skel_user() {
 			cp -RLf $path/. "$dir_install/" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 		fi
 	done
-	cp -RLf config-common/etc/skel/. "$dir_install/root/" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
-	return 0
-}
 
-sh_update_bashrc() {
-	if $LCUSTOM; then
-		sh_cmd_job "${cmsg_Ajustando} bashrc" "
-         install_skel_user
-      " $err_not_fatal
-	fi
+   if [[ -d "config-common" ]]; then
+   	cp -RLf config-common/etc/skel/. "$dir_install/root/" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
+   fi
+
+	return 0
 }
 
 sh_update_wpa_suplicant() {
@@ -2049,8 +2056,7 @@ sh_make_fstab() {
 }
 
 sh_activating_services() {
-	local aServicesTTY=(dbus NetworkManager dhcpcd sshd nanoklogd chronyd udevd)
-	aServicesTTY+=(wpa_supplicant uuidd dmeventd)
+	local aServicesTTY=(dbus NetworkManager dhcpcd sshd nanoklogd chronyd udevd wpa_supplicant uuidd dmeventd)
 	local aServicesX=(elogind polkitd bluetoothd)
 	local service
 	local level=2
@@ -2288,6 +2294,10 @@ sh_xfce4minimal() {
 		xfce4-dict
 		xfce4-datetime-plugin
 		xfce4-pulseaudio-plugin
+      ristretto
+      engrampa
+      file-roller
+      thunar-archive-plugin
 		plank
 	   voidbr-config-xfce-custom
 	)
@@ -3627,8 +3637,9 @@ sh_dryrun() {
 	#  sh_update_locale
 	#	sh_update_rc_conf
 	#	sh_update_rc_local
-	#	sh_activating_services
-	export PS1="[chroot $dir_install] $PS1"
+   #	sh_activating_services
+   #  sh_make_user
+   export PS1="[chroot $dir_install] $PS1"
 	LC_ALL=C chroot "$dir_install" "/bin/bash"
 	sh_umount_fs
 }
@@ -3722,6 +3733,7 @@ sh_choosewm() {
 	fi
 
 	aWm[tty]="${cmsg_tty}"
+	aWm[server]="Void Server with samba"
 	aWm[xorg]="Xorg Minimal"
 	aWm[awesome]="Awesome"
 	aWm[blackbox]="Blackbox"
@@ -3749,6 +3761,20 @@ sh_choosewm() {
 		aFlag[$x]='on'
 	done
 
+		awesome "${aWm[awesome]}" "${aFlag[awesome]}" \
+		bspwm "${aWm[bspwm]}" "${aFlag[bspwm]}" \
+		dwm "${aWm[dwm]}" "${aFlag[dwm]}" \
+		blackbox "${aWm[blackbox]}" "${aFlag[blackbox]}" \
+		fluxbox "${aWm[fluxbox]}" "${aFlag[fluxbox]}" \
+		enlightenment "${aWm[enlightenment]}" "${aFlag[enlightenment]}" \
+		hyprland "${aWm[hyprland]}" "${aFlag[hyprland]}" \
+		i3wm "${aWm[i3wm]}" "${aFlag[i3wm]}" \
+		lxde "${aWm[lxde]}" "${aFlag[lxde]}" \
+		lxqt "${aWm[lxqt]}" "${aFlag[lxqt]}" \
+		openbox "${aWm[openbox]}" "${aFlag[openbox]}" \
+		sway "${aWm[sway]}" "${aFlag[sway]}" \
+		twm "${aWm[twm]}" "${aFlag[twm]}" \
+
 	wm=$(${DIALOG} --title "=== ${cmsg_Wm^^} ===" \
 		--default-item "$_WINDOWMANAGER" \
 		--colors \
@@ -3757,23 +3783,11 @@ sh_choosewm() {
 		--checklist "${cmsg_MENU}" \
 		0 0 0 \
 		tty "${aWm[tty]}" "${aFlag[tty]}" \
+		server "${aWm[server]}" "${aFlag[server]}" \
 		xorg "${aWm[xorg]}" "${aFlag[xorg]}" \
-		awesome "${aWm[awesome]}" "${aFlag[awesome]}" \
-		bspwm "${aWm[bspwm]}" "${aFlag[bspwm]}" \
-		dwm "${aWm[dwm]}" "${aFlag[dwm]}" \
-		blackbox "${aWm[blackbox]}" "${aFlag[blackbox]}" \
-		fluxbox "${aWm[fluxbox]}" "${aFlag[fluxbox]}" \
-		enlightenment "${aWm[enlightenment]}" "${aFlag[enlightenment]}" \
 		gnome "${aWm[gnome]}" "${aFlag[gnome]}" \
-		hyprland "${aWm[hyprland]}" "${aFlag[hyprland]}" \
-		i3wm "${aWm[i3wm]}" "${aFlag[i3wm]}" \
-		lxde "${aWm[lxde]}" "${aFlag[lxde]}" \
-		lxqt "${aWm[lxqt]}" "${aFlag[lxqt]}" \
 		mate "${aWm[mate]}" "${aFlag[mate]}" \
-		openbox "${aWm[openbox]}" "${aFlag[openbox]}" \
 		plasma "${aWm[plasma]}" "${aFlag[plasma]}" \
-		sway "${aWm[sway]}" "${aFlag[sway]}" \
-		twm "${aWm[twm]}" "${aFlag[twm]}" \
 		xfce4 "${aWm[xfce4]}" "${aFlag[xfce4]}" \
 		2>&1 >/dev/tty)
 
@@ -3880,35 +3894,6 @@ sh_chmod_tmp() {
 		} >>"$cfile"
 	fi
 	evaluate_retval "$?" "$err_not_fatal"
-}
-
-sh_copy_scripts() {
-	local cfiles=(void-chroot
-		void-clonedisk
-		void-gitclone
-		void-install
-		void-maketar
-		void-mirror
-		void-parted
-		void-remove-vg
-		void-runimage
-		void-services
-		void-testmirror
-		void-wifi
-		void-wifi-config
-		void-wifi-config-wpa
-		void-dialog-theme-selector
-		void-xrandr
-	)
-	local script
-
-	sh_info_msg "${cmsg_Copiando} scripts ${cmsg_Para} $dir_install"
-	for script in "${cfiles[@]}"; do
-		if [[ -e "$script" ]]; then
-			cp -f "$script" "$dir_install/usr/bin/" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
-		fi
-	done
-	evaluate_retval "${PIPESTATUS[0]}" "$err_not_fatal"
 }
 
 display_config() {
@@ -4293,8 +4278,16 @@ sh_install() {
 	local end_datetime
 	local akernel=(linux)
 	local afirmware=(wifi-firmware)
-	local abase=(voidbr-base-config chrony cryptsetup lvm2 wireless_tools wpa_supplicant)
+	local abase=(voidbr-base-config chrony wireless_tools wpa_supplicant)
 	local agrub=(grub-i386-efi grub-utils)
+
+   if $LVM; then
+   	abase+=(lvm2)
+   fi
+
+   if $LFDE; then
+   	abase+=(cryptsetup)
+   fi
 
 	if $LCUSTOM; then
 		abase+=(socklog-void)
@@ -4362,31 +4355,24 @@ sh_install() {
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Downloaders')" "${aDownloader[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Utilitário')" "${aUtility[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Archiver tty')" "${aArchiverTty[*]}"
-				sh_install_pkgs_in_chroot "$(gettext 'Instalando Extras')" "$_EXTRAS"
+				sh_install_pkgs_in_chroot "$(gettext 'Instalando Extras')" "${_EXTRAS[*]}"
 			fi
-			sh_update_bashrc
-			sh_grubInstall
-			#sh_copy_scripts
-			sh_make_fstab
-			sh_make_user
-			sh_update_hostname
-			sh_update_rc_local
-			sh_update_sshd
-			sh_update_rc_conf
-			sh_update_locale
 
-			#			sh_chroot_job "${cmsg_Configurando} locales ${cmsg_Em} $dir_install" "xbps-reconfigure --force glibc-locales"
-			sh_update_wpa_suplicant
+			sh_grubInstall
+			sh_make_fstab
 
 			LONLY_TTY=false
-			if [[ "${#_WINDOWMANAGER[@]}" -eq 1 ]]; then
-				if [[ "${_WINDOWMANAGER}" = 'tty' ]]; then
-					LONLY_TTY=true
-					:
-				else
-					sh_update_Xkeymap
-					sh_X11minimal
-				fi
+         if ((${#_WINDOWMANAGER[@]} == 1)) && [[ "${_WINDOWMANAGER[0]}" == "tty" ]]; then
+				LONLY_TTY=true
+				LSERVER=false
+				:
+         elif ((${#_WINDOWMANAGER[@]} == 1)) && [[ "${_WINDOWMANAGER[0]}" == "server" ]]; then
+				LONLY_TTY=true
+				LSERVER=true
+         elif [[ " ${_WINDOWMANAGER[*]} " == *" tty "* && " ${_WINDOWMANAGER[*]} " == *" server "* ]]; then
+				LONLY_TTY=true
+				LSERVER=true
+				:
 			else
 				sh_update_Xkeymap
 				sh_X11minimal
@@ -4420,6 +4406,16 @@ sh_install() {
 				"lxqt") sh_lxqtminimal ;;
 				esac
 			done
+
+			sh_make_user
+#        sh_copy_skel
+			sh_update_hostname
+			sh_update_rc_local
+			sh_update_sshd
+			sh_update_rc_conf
+			sh_update_locale
+			#			sh_chroot_job "${cmsg_Configurando} locales ${cmsg_Em} $dir_install" "xbps-reconfigure --force glibc-locales"
+			sh_update_wpa_suplicant
 
 			if [[ "${AConfAudio[_AUDIOSERVER]}" == 'Pipewire' ]]; then
 				sh_activating_pipewire
