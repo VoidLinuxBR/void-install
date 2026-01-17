@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #shellcheck disable=SC2145,SC2001,SC2188,SC2015,SC2155,SC2317,SC2320,SC2291,SC2034,SC2120,SC2086,SC2319
 #shellcheck disable=SC2016,SC2154,SC2207,SC2166,SC2128,SC2059,SC2140,SC2031,SC2030,SC2036,SC2119,SC2027
-
+#
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
@@ -428,16 +428,12 @@ sh_update_self() {
 }
 
 sh_choose_packages() {
-	if sh_checkRepo 'https://void.chililinux.com/voidlinux/current'; then
-		_EXTRAS='nano-syntax-highlighting'
-		_EXTRAS+=' chili-void-grub-theme'
-		_EXTRAS+=' chili-void-tools'
-		_EXTRAS+=' chili-nano-config'
-		_EXTRAS+=' chili-skel'
-		_EXTRAS+=' chili-utils'
-		_EXTRAS+=' void-utils'
-		#		_EXTRAS+=' voidbr-plymouth-theme'
-	fi
+	_EXTRAS+='nano-syntax-highlighting'
+	_EXTRAS+=' chili-void-grub-theme'
+	_EXTRAS+=' chili-nano-config'
+	_EXTRAS+=' chili-utils'
+	_EXTRAS+=' void-utils'
+#   _EXTRAS+=' voidbr-plymouth-theme'
 
 	if grep -qi xorg <<<"${_WINDOWMANAGER[@]}"; then
 		return
@@ -2286,42 +2282,21 @@ sh_plasmaminimal() {
 
 sh_xfce4minimal() {
 	local DE='Xfce4'
-	local apkgs=(xfce4 Thunar thunar-volman elogind exo mousepad parole ristretto tumbler upower xdg-user-dirs-gtk xfce-polkit)
-	apkgs+=(xfce4-notifyd xfce4-panel xfce4-power-manager xfce4-screensaver xfce4-session xfce4-settings xfce4-taskmanager)
-	apkgs+=(xfce4-terminal xfconf xfdesktop xfwm4-themes xfwm4 xfce4-pulseaudio-plugin)
+	local apkgs=(xfce4
+		xfce4-plugins
+		xfce4-screenshooter
+		xfce4-dict
+		xfce4-datetime-plugin
+		xfce4-pulseaudio-plugin
+		plank
+	   voidbr-config-xfce-custom
+	)
 
 	if $LCUSTOM; then
-		apkgs+=(xfce4-battery-plugin
-			xfce4-clipman-plugin
-			xfce4-cpufreq-plugin
-			xfce4-cpugraph-plugin
-			xfce4-datetime-plugin
-			xfce4-screenshooter
-			xfce4-dict
-			xfce4-diskperf-plugin
-			xfce4-fsguard-plugin
-			xfce4-genmon-plugin
-			xfce4-mailwatch-plugin
-			xfce4-mpc-plugin
-			xfce4-netload-plugin
-			xfce4-pulseaudio-plugin
-			xfce4-sensors-plugin
-			xfce4-systemload-plugin
-			xfce4-time-out-plugin
-			xfce4-timer-plugin
-			xfce4-verve-plugin
-			xfce4-whiskermenu-plugin
-			xfce4-weather-plugin
-			xfce4-wavelan-plugin
-			xfce4-xkb-plugin
+		apkgs+=(
 			plank
-		)
-
-		if sh_checkRepo 'https://void.chililinux.com/voidlinux/current'; then
-			#			apkgs+=(chili-xfce-config)
-			#        apkgs+=(chili-void-xfce-skel)
-			apkgs+=(voidbr-config-xfce-custom)
-		fi
+		   voidbr-config-xfce-custom
+      )
 
 	fi
 
@@ -3819,14 +3794,14 @@ sh_choosewm() {
 		LCUSTOM=false
 	fi
 
-   _WINDOWMANAGER=($(strtoarray "$wm"))
-   if ((${#_WINDOWMANAGER[@]} == 1)) && [[ "${_WINDOWMANAGER[0]}" == "tty" ]]; then
-   	AConfAudio[_AUDIOSERVER]="None"
-      LAUDIO=true
-   else
-   	AConfAudio[_AUDIOSERVER]="Pipewire"
-      LAUDIO=true
-   fi
+	_WINDOWMANAGER=($(strtoarray "$wm"))
+	if ((${#_WINDOWMANAGER[@]} == 1)) && [[ "${_WINDOWMANAGER[0]}" == "tty" ]]; then
+		AConfAudio[_AUDIOSERVER]="None"
+		LAUDIO=true
+	else
+		AConfAudio[_AUDIOSERVER]="Pipewire"
+		LAUDIO=true
+	fi
 
 	if grep -qi hyprland <<<"${_WINDOWMANAGER[@]}"; then
 		HYPRLAND=true
@@ -4317,16 +4292,14 @@ sh_install() {
 	local start_datetime
 	local end_datetime
 	local akernel=(linux)
-	#        akernel+=(dbus)
 	local afirmware=(wifi-firmware)
-	local abase=(cryptsetup lvm2 wireless_tools wpa_supplicant)
-	#      abase+=(zstd xz)
+	local abase=(voidbr-base-config chrony cryptsetup lvm2 wireless_tools wpa_supplicant)
 	local agrub=(grub-i386-efi grub-utils)
-	#        agrub+=(grub os-prober grub-x86_64-efi)
 
 	if $LCUSTOM; then
-		abase+=(socklog-void chrony)
-		agrub+=(grub-terminus grub-btrfs-runit)
+		abase+=(socklog-void)
+		agrub+=(grub-terminus)
+		agrub+=(grub-btrfs-runit)
 	fi
 
 	ncounter=0
@@ -5004,9 +4977,9 @@ sh_menu_language() {
 }
 
 sh_run_binary() {
-   local binary="${1}"
-   local lang=$"{2}"
-   local grafic=$"{3}"
+	local binary="${1}"
+	local lang=$"{2}"
+	local grafic=$"{3}"
 	if [[ -n $(command -v "${binary}") || -n $(command -v ./"${binary}") ]]; then
 		bash "${binary}" "$lang" "${grafic}"
 		return 0
@@ -5046,7 +5019,7 @@ sh_main_menu() {
 		$LTIMEZONE && MENU_TIMEZONE="${YELLOW}[${AConfLocale[_TIMEZONE]}${RST} ● " || MENU_TIMEZONE="${RED}[not defined]${RST} ● "
 		$LLOCALE && MENU_LOCALE="${YELLOW}[${AConfLocale[_LOCALE]} ${AConfLocale[_REGION]}]${RST} ● " || MENU_LOCALE="${RED}[not defined]${RST} ● "
 		$LAUDIO && MENU_AUDIO="${YELLOW}[${AConfAudio[_AUDIOSERVER]}]${RST} ● " ||
-         { $LONLY_TTY && MENU_AUDIO="${YELLOW}[${AConfAudio[_AUDIOSERVER]}]${RST} ● " || MENU_AUDIO="${RED}[not defined]${RST} ● "; }
+			{ $LONLY_TTY && MENU_AUDIO="${YELLOW}[${AConfAudio[_AUDIOSERVER]}]${RST} ● " || MENU_AUDIO="${RED}[not defined]${RST} ● "; }
 		$LCUSTOM && MENU_CUSTOM="CUSTOM" || MENU_CUSTOM=""
 		$LWM && MENU_WM="${YELLOW}[${_WINDOWMANAGER[*]} ${MENU_CUSTOM}]${RST} ● " || MENU_WM="${RED}[not defined]${RST} ● "
 		$LEXTRA && MENU_EXTRA="${YELLOW}[OK]${RST} ● " || MENU_EXTRA="${RED}[not defined]${RST} ● "
@@ -5631,9 +5604,9 @@ sh_setLanguage() {
 	#	cmsg_LABEL[pt_BR]=$(gettext "Usar as teclas ${RED}↑ PARA CIMA ${RESET}e ${RED}↓ PARA BAIXO ${RESET}para navegar.\nUsar ${RED}TAB ${RESET}para alternar entre os botões e ${RED}ENTER ${RESET}para selecionar.")
 	#	cmsg_LBL_check[pt_BR]=$(gettext "Usar as teclas ${RED}PARA CIMA ${RESET}e ${RED}PARA BAIXO ${RESET}para navegar.\nUsar ${RED}BARRA DE ESPAÇO ${RESET}para selecionar.\nUsar ${RED}TAB ${RESET}para alternar entre os botões e ${RED}ENTER ${RESET}para aceitar.")
 	#	cmsg_Tarball_Corrompido[pt_BR]=$(gettext "\n${RED}Aparentemente o tarball rootfs ${_TARBALL_ROOTFS} está corrompido.\n\n${BOLD}${WHITE}Testar a integridade e reiniciar a instalação ?")
-#	cmsg_LABEL1=$(gettext "Usar as setas ${CYAN}↑ ${RST}e ${CYAN}↓ ${RST}para navegar.")
-#	cmsg_LABEL2=$(gettext "Usar ${CYAN}TAB ${RST}para alternar entre os botões.")
-#	cmsg_LABEL3=$(gettext "Usar ${CYAN}ENTER ${RST}ou ${CYAN}BARRA DE ESPAÇO ${RST}para selecionar e aceitar.")
+	#	cmsg_LABEL1=$(gettext "Usar as setas ${CYAN}↑ ${RST}e ${CYAN}↓ ${RST}para navegar.")
+	#	cmsg_LABEL2=$(gettext "Usar ${CYAN}TAB ${RST}para alternar entre os botões.")
+	#	cmsg_LABEL3=$(gettext "Usar ${CYAN}ENTER ${RST}ou ${CYAN}BARRA DE ESPAÇO ${RST}para selecionar e aceitar.")
 	cmsg_LABEL1=$(gettext "Usar as setas ↑ e ↓ para navegar.")
 	cmsg_LABEL2=$(gettext "Usar TAB para alternar entre os botões.")
 	cmsg_LABEL3=$(gettext "Usar ENTER ou BARRA DE ESPAÇO para selecionar e aceitar.")
