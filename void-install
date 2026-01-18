@@ -1,11 +1,11 @@
-#!/usr/bin/env bash
+ç#!/usr/bin/env bash
 #shellcheck disable=SC2145,SC2001,SC2188,SC2015,SC2155,SC2317,SC2320,SC2291,SC2034,SC2120,SC2086,SC2319
 #shellcheck disable=SC2016,SC2154,SC2207,SC2166,SC2128,SC2059,SC2140,SC2031,SC2030,SC2036,SC2119,SC2027
 #
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: sáb 17 jan 2026 00:22:36 -04
+#  Updated: dom 18 jan 2026 01:24:46 -04
 #
 #  Copyright (c) 2022-2025, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -43,6 +43,7 @@ green=$(tput bold)$(tput setaf 2)
 pink=$(tput setaf 5)
 cyan=$(tput setaf 6)
 reset=$(tput sgr0)
+rst=$(tput sgr0)
 #export PS4='${red}${0##*/}${green}[$FUNCNAME]${pink}[$LINENO]${reset} '
 export PS4='${red}${0##*/}${green}[${FUNCNAME[0]:-MAIN}]${pink}[$LINENO]${reset} '
 #set -x
@@ -51,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.1.17-20260117'
+readonly _VERSION_='3.1.18-20260118'
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 #                      cfdisk gdisk  efivar mkfs.ext2 mkfs.ext3 mkfs.ext4 mkfs.btrfs mkfs.xfs mkfs.f2fs mkfs.jfs mkfs.reiserfs)
 
@@ -112,7 +113,7 @@ declare DEFITEM
 declare -gi njobs=73
 declare -gi ncounter=0
 declare -gi quiet=0
-declare -gi grafico=0
+declare -gi grafico=1
 #
 declare -gA Amkfs
 declare -gA Amntpoint
@@ -267,7 +268,7 @@ get_option() {
 
 die() {
 	if test $# -ge 2; then
-		evaluate_retval 1
+		evaluate_retval $one
 	fi
 	local msg=$1
 	shift
@@ -414,7 +415,7 @@ LC_ALL=$base
 EOF
 	" $err_not_fatal
 
-#   sh_chroot_job "${cmsg_Configurando} locales ${cmsg_Em} $dir_install" "
+#   sh_chroot_job "${cmsg_Configurando} locales" "
 	#      xbps-reconfigure --force glibc-locales
 	#   "
 
@@ -462,8 +463,8 @@ sh_update_self() {
 sh_choose_packages() {
 	declare -ga aExtra=(
 		# nano-syntax-highlighting
-		# chili-nano-config
 		# voidbr-plymouth-theme
+		chili-nano-config
 		chili-void-grub-theme
 		chili-utils
 		void-utils
@@ -515,7 +516,7 @@ sh_choose_packages() {
 		)
 		declare -ga aPerfumery=(conky setxkbmap numlockx nitrogen ristretto mate-notification-daemon)
 		declare -ga aPrinter=(cups system-config-printer system-config-printer-udev splix samsung-unified-driver brother-brlaser cups-pdf)
-   	declare -ga aFilemanager=(Thunar thunar-archive-plugin thunar-volman octoxbps)
+		declare -ga aFilemanager=(Thunar thunar-archive-plugin thunar-volman octoxbps)
 		declare -ga aTerminal=(rxvt-unicode cool-retro-term)
 		declare -ga aEditorX=(kate mousepad)
 		declare -ga aMicrocode=(intel-ucode linux-firmware-amd)
@@ -532,7 +533,7 @@ sh_choose_packages() {
 		declare -ga aArchiverX=()
 		declare -ga aBrowser=(firefox firefox-i18n-$(sh_get_language_without_utf8))
 		declare -ga aFilemanager=(Thunar)
-   	declare -ga aBluetooth=()
+		declare -ga aBluetooth=()
 		declare -ga aFont=()
 		declare -ga aPerfumery=()
 		declare -ga aPrinter=()
@@ -548,9 +549,9 @@ sh_choose_packages() {
 		declare -ga aUtility=()
 	fi
 	declare -ga aEditorTxt=(nano vim)
-   aTerminal+=(xfce4-terminal)
-   aDaemons+=(NetworkManager)
-   aNetworkX=(network-manager-applet)
+	aTerminal+=(xfce4-terminal)
+	aDaemons+=(NetworkManager)
+	aNetworkX=(network-manager-applet)
 
 }
 
@@ -592,10 +593,10 @@ sh_setEnvironment() {
 	readonly _TARBALL_ROOTFS=void-x86_64-base-custom-current.tar.xz
 	readonly url_tarball="https://raw.githubusercontent.com/voidlinuxbr/void-install/refs/heads/main/${_TARBALL_ROOTFS}"
 	readonly url_tarball_md5="https://raw.githubusercontent.com/voidlinuxbr/void-install/refs/heads/main/${_TARBALL_ROOTFS}.md5"
-	readonly true=1
-	readonly false=0
-	readonly err_fatal=$true
-	readonly err_not_fatal=$false
+	readonly zero=0
+	readonly one=1
+	readonly err_not_fatal=0
+	readonly err_fatal=1
 	readonly BOOTLOG="/tmp/void-install-$(sh_diahora).log"
 	readonly LOGGER='/dev/tty8'
 	shell='/bin/sh'
@@ -857,10 +858,10 @@ sh_checkRepo() {
 	response=$(curl -o /dev/null -s -w "%{http_code}\n" -L "$url_repo")
 	retval=$?
 	if [[ "$response" -eq 200 ]]; then
-		evaluate_retval "0" "$err_not_fatal" "response: $response ($url_repo)"
+		evaluate_retval $zero "$err_not_fatal" "${green}response: $response ($url_repo)${rst}"
 		return 0
 	fi
-	evaluate_retval "1" "$err_not_fatal" "response: $response: ${cmsg_SemRota} ($url_repo) - ${cmsg_CheckNet}"
+	evaluate_retval $one "$err_not_fatal" "response: $response: ${cmsg_SemRota} ($url_repo) - ${cmsg_CheckNet}"
 	return 1
 }
 
@@ -874,8 +875,9 @@ sh_checkNet() {
 	retval=$?
 	if [[ "$response" -eq 000 || "$response" -eq 404 ]]; then
 		evaluate_retval "$err_fatal" "$err_fatal" "reponse: $response - ${cmsg_SemRota} ($xurl) - ${cmsg_CheckNet}"
+		return $one
 	fi
-	evaluate_retval "0" "$err_not_fatal" "response: $response ($xurl)"
+	evaluate_retval $zero "$err_not_fatal" "response: $response ($xurl)"
 	return 0
 }
 
@@ -884,9 +886,9 @@ sh_downloadTarball() {
 	sh_info_msg "${cmsg_IniciandoDownload} $url_tarball"
 	curl -L -C - --insecure --silent --remote-name "$url_tarball" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 	if [[ "${PIPESTATUS[0]}" -eq 1 ]]; then
-		evaluate_retval "1" "$err_fatal" "${cmsg_SemRota} ($url_mirror) - ${cmsg_CheckNet}"
+		evaluate_retval $one "$err_fatal" "${cmsg_SemRota} ($url_mirror) - ${cmsg_CheckNet}"
 	fi
-	evaluate_retval "0"
+	evaluate_retval $zero
 	return 0
 }
 
@@ -894,11 +896,11 @@ sh_checkTarball() {
 	sh_info_msg "${cmsg_ChecandoTarball} rootfs $_TARBALL_ROOTFS"
 
 	if ! [[ -e "$_TARBALL_ROOTFS" ]]; then
-		evaluate_retval "1" "$err_not_fatal"
+		evaluate_retval $one "$err_not_fatal"
 		rm -f "$_TARBALL_ROOTFS"
 		sh_downloadTarball
 	else
-		evaluate_retval "0"
+		evaluate_retval $zero
 		return 0
 	fi
 	return "$?"
@@ -910,11 +912,11 @@ sh_checkIntegrityTarball() {
 	sh_info_msg "${cmsg_VerificandoIntegridadeTarball} rootfs $_TARBALL_ROOTFS"
 	tar -tf "$_TARBALL_ROOTFS" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 	if ! [[ "${PIPESTATUS[0]}" -eq 0 ]]; then
-		evaluate_retval "1" "$err_not_fatal"
+		evaluate_retval $one "$err_not_fatal"
 		rm -f "$_TARBALL_ROOTFS"
 		sh_downloadTarball
 	else
-		evaluate_retval "0"
+		evaluate_retval $zero
 		return 0
 	fi
 	return "${PIPESTATUS[0]}"
@@ -1049,6 +1051,12 @@ padr() {
 	printf "%*s\n" "$COLS" "$text" | sed "s/ /$char/g"
 }
 
+sh_info_msg() {
+	local _msg="$1"
+	last_msg="$_msg"
+	msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
+}
+
 msg() {
 	((++ncounter))
 	cinfo="$1"
@@ -1057,52 +1065,20 @@ msg() {
 	last_msg="$2"
 	logmessage="$ufmt $last_msg"
 	logmessage=${logmessage/INFO /}
-	#	notify-send "${ccabec}" "${logmessage}"
-	printf "%s\n" "$(timespec) [ $cinfo ]$ufmt ${logmessage}" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
+	clean_logmessage="$(strip_ansi "$logmessage")"
+	printf "%s\n" "$(timespec) [ $cinfo ]$ufmt ${clean_logmessage}" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 
 	if ((grafico)); then
-		logmessage="$last_msg"
+		logmessage="$(strip_ansi "$last_msg")"
 		${DIALOG} \
 			--no-collapse \
 			--colors \
 			--title "$cinfo" \
 			--backtitle "$ccabec" \
 			--infobox "\nStep:${BOLD}${YELLOW}${ufmt} ${RESET}${BOLD}$logmessage" \
-			8 100
+			6 100
 	else
-		log_info_msg "$(fmt) ${last_msg}"
-	fi
-}
-
-msgNEW() {
-	((++ncounter))
-	local cinfo="$1"
-	local last_msg="$2"
-	# Pega o último argumento para ver se é "silent"
-	local mode="${@: -1}"
-
-	cfmt="$(fmt)"
-	ufmt=$(unfmt "$cfmt")
-	logmessage="$ufmt $last_msg"
-	logmessage=${logmessage/INFO /}
-
-	# Seu log original
-	printf "%s\n" "$(timespec) [ $cinfo ]$ufmt ${logmessage}" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
-
-	if ((grafico)); then
-		# Só abre o infobox se NÃO for silent
-		if [[ "$mode" != "silent" ]]; then
-			logmessage="$last_msg"
-			${DIALOG} \
-				--no-collapse \
-				--colors \
-				--title "$cinfo" \
-				--backtitle "$ccabec" \
-				--infobox "\nStep:${BOLD}${YELLOW}${ufmt} ${RESET}${BOLD}$logmessage" \
-				8 100
-		fi
-	else
-		log_info_msg "$(fmt) ${last_msg}"
+		log_info_msg "$(fmt) ${logmessage}"
 	fi
 }
 
@@ -1170,12 +1146,10 @@ log_msg() {
 }
 
 evaluate_retval() {
-	local error_value="$?"
-	local error_fatal="$2"
+	local error_value=$? # captura retorno anterior
+	local error_fatal=${2:-$one}
 	local cmsgdie="$3"
 	local level="$4"
-
-	[[ -z "$error_fatal" ]] && error_fatal=$true
 
 	if [[ $# -gt 0 ]]; then
 		error_value="$1"
@@ -1189,8 +1163,8 @@ evaluate_retval() {
 		fi
 	else
 		if [[ -n "${level}" ]]; then
-			log_failure_msg_level ''
-		else
+   		log_failure_msg_level ''
+   	else
 			log_failure_msg ''
 		fi
 	fi
@@ -1220,9 +1194,10 @@ log_failure_msg_level() {
 
 log_success_msg_level() {
 	if ! ((quiet)) && ! ((grafico)); then
-		echo -n -e "     ${BMPREFIX}${@}"
+		echo -n -e "     ${BMPREFIX}${green}=>${reset} ${*}"
 		echo -e "   ${CURS_ZERO}${SUCCESS_PREFIX}${SET_COL}${SUCCESS_SUFFIX}"
 	fi
+
 	logmessage=$(unfmt "$last_msg")
 	printf "%s\n" "$(timespec) [  OK  ]${logmessage}" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 	replicate "#" "100" | tee -i -a "$BOOTLOG" >$LOGGER
@@ -1274,7 +1249,7 @@ function debug() {
 
 info() {
 	msg "${fmt} $@"
-	evaluate_retval "0"
+	evaluate_retval $zero
 
 	${DIALOG} \
 		--colors \
@@ -1298,7 +1273,7 @@ infobox() {
 
 alerta() {
 	msg "${fmt} $@"
-	evaluate_retval "0"
+	evaluate_retval $zero
 
 	${DIALOG} \
 		--colors \
@@ -1511,7 +1486,7 @@ sh_mkparted() {
 }
 
 sh_update_mirror() {
-	sh_cmd_job "${cmsg_Configurando} ${cmsg_Mirror,,} ${cmsg_Em} $dir_install" "
+	sh_cmd_job "${cmsg_Configurando} ${cmsg_Mirror,,}" "
       cat >"$dir_install/etc/xbps.d/00-repository-main.conf" <<-EOF
 repository=${url_mirror}/current
 repository=${url_mirror}/current/nonfree
@@ -1698,6 +1673,18 @@ sh_make_fs() {
 	local format
 	local fstype
 
+	declare -A fsparms=(
+		[ext2]="-F -L VOID"
+		[ext3]="-F -L VOID"
+		[ext4]="-F -L VOID"
+		[btrfs]="-f -L VOID"
+		[f2fs]="-f -l VOID"
+		[xfs]="-f -L VOID"
+		[jfs]="-f -L VOID"
+		[vfat]="-F32 -n EFI"
+		[reiserfs]="-f -l VOID"
+	)
+
 	sh_check_util_fs
 	for i in "${!Amntpoint[@]}"; do
 		_PART="$i"
@@ -1705,27 +1692,15 @@ sh_make_fs() {
 		format="$(sh_splitarray "${Amntpoint[$i]}" 3)"
 
 		if [[ "$format" = "1" ]]; then
-			sh_info_msg "${cmsg_FormatandoParticao} ${_PART} FS ${fstype,,}"
-			declare -A fsparms=(
-				[ext2]="-F -L VOID"
-				[ext3]="-F -L VOID"
-				[ext4]="-F -L VOID"
-				[btrfs]="-f -L VOID"
-				[f2fs]="-f -l VOID"
-				[xfs]="-f -L VOID"
-				[jfs]="-f -L VOID"
-				[vfat]="-F32 -n EFI"
-				[reiserfs]="-f -l VOID"
-			)
-
-			if [[ "$fstype" = "swap" ]]; then
-				wipefs -a "${_PART}"
-				mkswap "${_PART}" 2>&1 | tee -i -a "$BOOTLOG" >"$LOGGER"
-			else
-				wipefs -a "${_PART}"
-				mkfs.$fstype ${fsparms[$fstype]} ${_PART} 2>&1 | tee -i -a "$BOOTLOG" >"$LOGGER"
-			fi
-			evaluate_retval "${PIPESTATUS[0]}"
+			sh_cmd_job "${cmsg_FormatandoParticao} ${_PART} FS ${fstype,,}" "
+   			if [[ "$fstype" = "swap" ]]; then
+	   			wipefs -a "${_PART}"
+		   		mkswap "${_PART}"
+   			else
+	   			wipefs -a "${_PART}"
+		   		mkfs.$fstype ${fsparms[$fstype]} ${_PART}
+   			fi
+         "
 		fi
 	done
 
@@ -1736,7 +1711,7 @@ sh_make_fs() {
 
 sh_umount_fs() {
 	sh_cmd_job "${cmsg_DismountFileSystem}" "
-	   umount -R $dir_install
+	   umount -rfl $dir_install
       LBIND=false
 	" $err_not_fatal
 }
@@ -1748,8 +1723,8 @@ sh_stop_mount() {
       umount -rl "$dir_install"
       nchoice="${PIPESTATUS[0]}"
       evaluate_retval 0
-   	[[ $nchoice -eq 0 || $nchoice -eq 32 ]] && LMOUNT=$false
-	   [[ $LMOUNT -eq $false ]] && return 0 || return 1
+   	[[ $nchoice -eq 0 || $nchoice -eq 32 ]] && LMOUNT=$zero
+	   [[ $LMOUNT -eq $zero ]] && return 0 || return 1
    " $err_not_fatal
 }
 
@@ -1795,53 +1770,61 @@ sh_init_bind() {
 	$LBIND && return 0 || return 1
 }
 
+sh_run_clean() {
+	local ret
+	eval "$1" 2>&1 |
+		strip_ansi |
+		tee -i -a "$BOOTLOG" \
+			>"$LOGGER"
+	ret="${PIPESTATUS[0]}"
+	return "$ret"
+}
+
 sh_stop_bind() {
 	local nchoice
 
 	sh_info_msg "${cmsg_DesMontandoAmbiente} chroot"
-	{
-		umount -r "${dir_install}/proc"
-		umount -r "${dir_install}/sys"
-		umount -r "$dir_install/sys/firmware/efi/efivars"
-		umount -r "${dir_install}/dev/shm"
-		umount -r "${dir_install}/dev/pts"
-		umount -r "${dir_install}/dev"
-		umount -r "${dir_install}/run"
-		umount -r "${dir_install}/tmp"
-	} 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
-	nchoice="${PIPESTATUS[0]}"
+	sh_run_clean "
+      umount -r "${dir_install}/proc" \
+      umount -r "${dir_install}/sys" \
+      umount -r "$dir_install/sys/firmware/efi/efivars" \
+      umount -r "${dir_install}/dev/shm" \
+      umount -r "${dir_install}/dev/pts" \
+      umount -r "${dir_install}/dev" \
+      umount -r "${dir_install}/run" \
+      umount -r "${dir_install}/tmp"
+   "
+	nchoice="$?"
 	evaluate_retval 0
 
 	[[ $nchoice -eq 0 ]] && LBIND=false
 	$LBIND && return 1 || return 0
+
 }
 
-sh_info_msg() {
-	local _msg="$1"
-	last_msg="$_msg"
-	msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
+strip_ansi0() {
+	printf '%s' "$1" |
+		sed -E 's/\x1B(\[[0-9;?]*[ -/]*[@-~]|[PX^_].*?\x1B\\|\][^\x07]*(\x07|\x1B\\)|[()][A-Za-z]|[@-Z\\-_])//g'
 }
 
-sh_cmd_jobOLD() {
-	local cmsg="$1"
-	local cjob="$2"
-	local erro_fatal="$3"
-	local lretval=0
+strip_ansi1() {
+	printf '%s' "$1" |
+		sed -E '
+      s/\x1B\[[0-9;?]*[ -/]*[@-~]//g;     # CSI completo (tput)
+      s/\x1B[][()#%][0-9A-Za-z]//g;       # Charset (B, 0, etc)
+      s/\x1B[@-Z\\-_]//g;                 # 7-bit ESC (vt100)
+      s/\[?[0-9]{1,3}(;[0-9]{1,3})*m//g;  # SGR literal (36m, 96m, 1;32m)
+    '
+}
 
-	cmsg+=" ${cmsg_Em} ${yellow}$dir_install"
-	last_msg="$cmsg"
-	msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
-
-	if ((grafico)); then
-		eval "$cjob" 2>&1 | tee -i -a "$BOOTLOG" | dialog --colors --backtitle "$cmsg" --title "$cmsg" --begin 10 50 --progressbox 24 120 --and-widget
-	else
-		eval "$cjob" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
-	fi
-
-	lretval="${PIPESTATUS[0]}"
-	evaluate_retval "$lretval" "$erro_fatal"
-	shell='/bin/sh'
-	return "$lretval"
+strip_ansi() {
+	printf '%s' "$1" |
+		sed -E '
+      s/\x1B\[[0-9;]*m//g;      # Remove SGR (Cores, negrito, etc: 1m, 38;5;196m)
+      s/\x1B\[[0-9;?]*[@-~]//g; # Remove outros CSI (Movimento de cursor, etc)
+      s/\x1B\([a-zA-Z]//g;      # Remove Charset (O ^[(B que apareceu antes)
+      s/\x1B[@-Z\\-_]//g;       # Remove escapes de 2 caracteres
+    '
 }
 
 sh_cmd_job() {
@@ -1850,80 +1833,25 @@ sh_cmd_job() {
 	local erro_fatal="$3"
 	local lretval=0
 
-	# Adiciona contexto à mensagem
 	cmsg+=" ${cmsg_Em} ${yellow}$dir_install"
 	last_msg="$cmsg"
-
-	# Chama msg() com um flag 'silent' para não abrir um infobox redundante
-	# se o gráfico estiver ligado, já que vamos mostrar no progressbox abaixo.
-	msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")" "silent"
+	msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
 
 	if ((grafico)); then
-		# Grupo de comandos { ... ; } garante que o echo e o eval entrem no mesmo pipe
-		{
-			echo -e "${BOLD}${YELLOW}>>> Step: ${ufmt} ${last_msg}${RESET}\n"
-			eval "$cjob"
-		} 2>&1 | tee -i -a "$BOOTLOG" | dialog \
-			--colors \
-			--backtitle "$ccabec" \
-			--title " [ $cinfo ] " \
-			--begin 10 50 \
-			--progressbox 24 120 \
-			--and-widget
-
-		lretval="${PIPESTATUS[0]}"
-	else
-		# Se não for gráfico, faz a mesma injeção mas joga para o LOGGER
-		# Assim, no TTY8, você vê o cabeçalho antes das linhas de comando
-		{
-			echo "-------------------------------------------------------"
-			echo ">>> TASK: $last_msg"
-			echo "-------------------------------------------------------"
-			eval "$cjob"
-		} 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
-
-		lretval="${PIPESTATUS[0]}"
-	fi
-
-	evaluate_retval "$lretval" "$erro_fatal"
-	return "$lretval"
-}
-
-strip_ansi() {
-	printf '%s' "$1" |
-		sed \
-			-e 's/\x1B\[[0-9;]*[A-Za-z]//g' \
-			-e 's/\x1B[][()#;?]*[0-9A-Za-z]//g'
-}
-
-sh_chroot_jobOLD() {
-	local cmsg="$1"
-	local cjob="$2"
-	local erro_fatal="$3"
-	local level="$4"
-	local lretval=0
-
-	last_msg="$cmsg"
-	if [[ -n "$level" ]]; then
-		msg "INFO" "$last_msg" "$(log_info_msg_level "$last_msg")"
-	else
-		msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
-	fi
-
-	if ((grafico)); then
-		clean_logmessage="$(strip_ansi "$logmessage")"
-		chroot "$dir_install" "$shell" -c "$cjob" 2>&1 | tee -i -a "$BOOTLOG" |
-			dialog \
-				--colors \
-				--backtitle "$ccabec" \
-				--title "\Zb\Z3Step:$ufmt \Z1==>\Zn \Z7[$clean_logmessage]\Zn \Z6[$(sh_time_elapsed)]\Zn" \
+      read LINES COLUMNS <<<"$(stty size)"
+	   cmsg=$(strip_ansi "$cmsg")
+		eval "$cjob" 2>&1 | tee -i -a "$BOOTLOG" |
+		   ${DIALOG} \
+		      --colors \
+		      --backtitle "$ccabec" \
+				--title "\Zb\Z3Step:$ufmt \Z1==>\Zn \Z7[$cmsg]\Zn \Z6[$(sh_time_elapsed)]\Zn" \
 				--progressbox $((MAXROW / 2)) $((MAXCOL - 20))
 	else
-		chroot "$dir_install" "$shell" -c "$cjob" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
+		eval "$cjob" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 	fi
 
 	lretval="${PIPESTATUS[0]}"
-	evaluate_retval "$lretval" "$erro_fatal" "" "$level"
+	evaluate_retval "$lretval" "$erro_fatal"
 	shell='/bin/sh'
 	return "$lretval"
 }
@@ -1945,10 +1873,11 @@ sh_chroot_job() {
 	fi
 
 	if ((grafico)); then
+      read LINES COLUMNS <<<"$(stty size)"
 		clean_logmessage="$(strip_ansi "$logmessage")"
 		# SEU CÓDIGO ORIGINAL ABAIXO
 		chroot "$dir_install" "$shell" -c "$cjob" 2>&1 | tee -i -a "$BOOTLOG" |
-			dialog \
+			${DIALOG} \
 				--colors \
 				--backtitle "$ccabec" \
 				--title "\Zb\Z3Step:$ufmt \Z1==>\Zn \Z7[$clean_logmessage]\Zn \Z6[$(sh_time_elapsed)]\Zn" \
@@ -2012,11 +1941,10 @@ sh_make_fstab() {
 	local fsorder=1
 
 	if ! $LVM; then
-		sh_info_msg "${cmsg_Gerando} fstab pass1 ${cmsg_Em} $dir_install"
-
-		echo "tmpfs                                           /tmp           tmpfs            defaults,nosuid,nodev,noatime,mode=1777 0 0" >"$dir_install/etc/fstab"
-		echo "tmpfs                                           /var/log       tmpfs            defaults,noatime,mode=0755              0 0" >>"$dir_install/etc/fstab"
-		echo "proc                                            /proc          proc             nodev,noexec,nosuid                     0 0" >>"$dir_install/etc/fstab"
+		sh_cmd_job "${cmsg_Gerando} fstab pass1" "
+		echo "tmpfs /tmp tmpfs defaults,nosuid,nodev,noatime,mode=1777 0 0" >"$dir_install/etc/fstab"
+		echo "tmpfs /var/log tmpfs defaults,noatime,mode=0755 0 0" >>"$dir_install/etc/fstab"
+		echo "proc /proc proc nodev,noexec,nosuid 0 0" >>"$dir_install/etc/fstab"
 
 		for i in "${!Amntpoint[@]}"; do
 			_part="$i"
@@ -2029,13 +1957,13 @@ sh_make_fstab() {
 			fi
 
 			if [ "$fstype" = "swap" ]; then
-				echo "UUID=$(blkid -o value -s UUID "${_part}")  none          swap         none,nofail      0 0" >>"$dir_install/etc/fstab"
+				echo "UUID=$(blkid -o value -s UUID "${_part}") none swap none,nofail 0 0" >>"$dir_install/etc/fstab"
 				continue
 			fi
 
 			if [ -n "$mntpoint" ]; then
 				if [ "$mntpoint" = '/boot/efi' ]; then
-					echo "UUID=$(blkid -o value -s UUID "${_part}")  ${mntpoint}   ${fstype,,}   defaults 0 2" >>"$dir_install/etc/fstab"
+					echo "UUID=$(blkid -o value -s UUID "${_part}") ${mntpoint} ${fstype,,} defaults 0 2" >>"$dir_install/etc/fstab"
 				else
 					if [ "$format" = 0 ]; then
 						if [ "$mntpoint" = 'none' ]; then
@@ -2043,17 +1971,17 @@ sh_make_fstab() {
 							mntpoint="/mnt/none${Npoint}"
 							mkdir -p "$dir_install/${mntpoint}"
 						fi
-						echo "UUID=$(blkid -o value -s UUID "${_part}")  ${mntpoint}   ${fstype,,}   defaults,nofail,noatime,discard,lazytime 0 $fsorder" >>"$dir_install/etc/fstab"
+						echo "UUID=$(blkid -o value -s UUID "${_part}") ${mntpoint} ${fstype,,} defaults,nofail,noatime,discard,lazytime 0 $fsorder" >>"$dir_install/etc/fstab"
 					else
-						echo "UUID=$(blkid -o value -s UUID "${_part}")  ${mntpoint}   ${fstype,,}   defaults,noatime,discard,lazytime 0 $fsorder" >>"$dir_install/etc/fstab"
+						echo "UUID=$(blkid -o value -s UUID "${_part}") ${mntpoint} ${fstype,,} defaults,noatime,discard,lazytime 0 $fsorder" >>"$dir_install/etc/fstab"
 					fi
 				fi
 			fi
 		done
-		evaluate_retval "$?"
+		"
+		#		evaluate_retval "$?"
 	else
-		sh_info_msg "${cmsg_Gerando} fstab pass1 ${cmsg_Em} $dir_install"
-
+		sh_cmd_job "${cmsg_Gerando} fstab pass1" "
 		for i in "${!Amntpoint[@]}"; do
 			_part="$i"
 			mntpoint="$(sh_splitarray "${Amntpoint[$i]}" 1)"
@@ -2061,7 +1989,7 @@ sh_make_fstab() {
 			format="$(sh_splitarray "${Amntpoint[$i]}" 3)"
 
 			if [[ "$mntpoint" = "/boot/efi" ]]; then
-				echo "UUID=$(blkid -o value -s UUID "${_part}")  ${mntpoint}   ${fstype,,}   defaults 0 $fsorder" >>"$dir_install/etc/fstab"
+				echo "UUID=$(blkid -o value -s UUID "${_part}") ${mntpoint} ${fstype,,} defaults 0 $fsorder" >>"$dir_install/etc/fstab"
 				break
 			fi
 		done
@@ -2073,17 +2001,18 @@ sh_make_fstab() {
 			format="$(sh_splitarray "${AmntpointFDE[$i]}" 3)"
 			size="$(sh_splitarray "${AmntpointFDE[$i]}" 4)"
 			mntpoint="$(sh_splitarray "${AmntpointFDE[$i]}" 5)"
-			#			echo "UUID=$(blkid -o value -s UUID "${_part}")	$mntpoint	${fstype,,}	defaults 0 0" >>"$dir_install/etc/fstab"
-			echo "UUID=$(blkid -o value -s UUID "${_part}")	$mntpoint	${fstype,,}	defaults,noatime,discard,lazytime 0 0" >>"$dir_install/etc/fstab"
+			#			echo "UUID=$(blkid -o value -s UUID "${_part}") $mntpoint ${fstype,,} defaults 0 0" >>"$dir_install/etc/fstab"
+			echo "UUID=$(blkid -o value -s UUID "${_part}") $mntpoint ${fstype,,} defaults,noatime,discard,lazytime 0 0" >>"$dir_install/etc/fstab"
 		done
-		evaluate_retval "$?"
+		"
+		#		evaluate_retval "$?"
 	fi
 
-	sh_chroot_job "${cmsg_Gerando} fstab pass2 ${cmsg_Em} $dir_install" \
+	sh_chroot_job "${cmsg_Gerando} fstab pass2" \
 		"sed 's/#.*//' /etc/fstab | column --table --table-columns SOURCES,DIR,TYPE,OPTIONS,DUMP,PASS --table-hide - >/tmp/fstab" "$err_not_fatal"
-	sh_chroot_job "${cmsg_Gerando} fstab pass3 ${cmsg_Em} $dir_install" \
+	sh_chroot_job "${cmsg_Gerando} fstab pass3" \
 		"sed -i 's/SOURCES/#SOURCE/' /tmp/fstab" "$err_not_fatal"
-	sh_chroot_job "${cmsg_Gerando} fstab pass4 ${cmsg_Em} $dir_install" \
+	sh_chroot_job "${cmsg_Gerando} fstab pass4" \
 		"cp /tmp/fstab /etc/fstab" "$err_not_fatal"
 }
 
@@ -2108,7 +2037,7 @@ sh_activating_services() {
 	done
 
 	for service in "${aServicesTTY[@]}"; do
-		sh_chroot_job "${cmsg_AtivandoServico} $service ${cmsg_Em} $dir_install" \
+		sh_chroot_job "${cmsg_AtivandoServico} $service" \
 			"ln -sf /etc/sv/$service /etc/runit/runsvdir/current/" \
 			"$err_not_fatal" \
 			"$level"
@@ -2116,7 +2045,7 @@ sh_activating_services() {
 
 	if ! $LONLY_TTY; then
 		for service in "${aServicesX[@]}"; do
-			sh_chroot_job "${cmsg_AtivandoServico} $service ${cmsg_Em} $dir_install" \
+			sh_chroot_job "${cmsg_AtivandoServico} $service" \
 				"ln -sf /etc/sv/$service /etc/runit/runsvdir/current/" \
 				"$err_not_fatal" \
 				"$level"
@@ -2146,11 +2075,11 @@ sh_mk_working_dir() {
 		"$dir_install/etc/xbps.d"
 	)
 
-	sh_cmd_job "${cmsg_CriandoDiretorios}" "
-      for cdir in "${adir[@]}"; do
+   for cdir in "${adir[@]}"; do
+	   sh_cmd_job "${cmsg_CriandoDiretorio}: $cdir" "
 		   [[ -d "$cdir" ]] || mkdir -p "$cdir"
-     	done
-   "
+      " $err_fatal
+   done
 }
 
 sh_mount_fs() {
@@ -2164,7 +2093,7 @@ sh_mount_fs() {
 			_part="$i"
 			mntpoint="$(sh_splitarray "${Amntpoint[$i]}" 1)"
 			if [[ -n "$mntpoint" && "$mntpoint" = "/" ]]; then
-				sh_info_msg "${cmsg_MontandoParticao} ${_part} ${red}(${mntpoint})${rst} ${cmsg_Em} $dir_install${mntpoint}"
+				sh_info_msg "${cmsg_MontandoParticao} ${_part} ${red}(${mntpoint})${rst} ${mntpoint}"
 				mkdir -p "$dir_install"
 				mount "$_part" "$dir_install"
 				evaluate_retval "$?"
@@ -3066,7 +2995,7 @@ sh_chooseMirror() {
 			;;
 		3)
 			oldgrafico=$grafico
-			grafico=$true
+			grafico=$one
 			if [[ -n $(command -v void-testmirror) || -n $(command -v ./void-testmirror) ]]; then
 				last_msg="Wait... ${cmsg_Gerando} test with void-testmirror ${xurl}"
 				msg "=== ${cmsg_Mirror^^} === void-testmirror" "$last_msg" "$(log_info_msg "$last_msg")"
@@ -3076,7 +3005,7 @@ sh_chooseMirror() {
 				info "=== ${cmsg_Mirror^^} === void-testmirror" "\n$result"
 			else
 				sh_info_msg "Wait... ${cmsg_Gerando} test with void-mirror ${xurl}"
-				evaluate_retval "1" "$err_not_fatal"
+				evaluate_retval $one "$err_not_fatal"
 				info "=== ${cmsg_Mirror^^} === void-testmirror" "\n${RED}void-testmirror não foi localizado no \$PATH${RESET}" \
 					"${RED}void-testmirror não foi localizado em $PWD!${RESET}"
 			fi
@@ -3205,7 +3134,7 @@ ${BOLD}MODEL   : ${RESET}${RED}$MODEL_ORIGEM${RESET}\n" \
 		if sh_chooseTablePartition; then
 			LMKPARTED=false
 			oldgrafico=$grafico
-			grafico=$true
+			grafico=$one
 			sh_mkparted
 			grafico=$oldgrafico
 			sh_disk_part_info
@@ -3268,10 +3197,10 @@ sh_chooseDisk() {
 
 		if [ $# -eq 0 ]; then
 			xtitle="${cmsg_TitleDisco}"
-			LCHOOSEBOOTLOADER=$false
+			LCHOOSEBOOTLOADER=$zero
 		else
 			xtitle="${cmsg_BootLoader^^}"
-			LCHOOSEBOOTLOADER=$true
+			LCHOOSEBOOTLOADER=$one
 		fi
 
 		for i in "${ARRAY_DSK_DEVICES[@]}"; do
@@ -3577,7 +3506,7 @@ sh_choosewifi() {
 		sh_info_msg "$(gettext 'Escaneando redes wifi...')"
 		wpa_cli scan_results 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 		if [[ "${PIPESTATUS[0]}" -gt 0 ]]; then
-			evaluate_retval "1" "$err_not_fatal"
+			evaluate_retval $one "$err_not_fatal"
 			info "WIFI" "${RED}$(gettext "A verificação não retornou nenhum resultado.")" \
 				"$(gettext "Aparentemente,") $(gettext "o serviço wpa_supplicant não está em execução.")" \
 				"" \
@@ -3586,7 +3515,7 @@ sh_choosewifi() {
 				"2-$(gettext "Verifique se há um dispositivo wi-fi conectado à máquina.")"
 			return 1
 		fi
-		evaluate_retval "0"
+		evaluate_retval $zero
 		scan_results=$(wpa_cli scan_results)
 		lines=$(wc -l <<<"$scan_results")
 		lines=$((lines - 2))
@@ -3655,7 +3584,7 @@ sh_confWifi() {
 			_WIFI_PASSWORD="${aWifi[1]}"
 			AConfWifi[_NETWORK]="${aWifi[0]}"
 			AConfWifi[_PASSWORD]="${aWifi[1]}"
-			LWIFI=$true
+			LWIFI=$one
 			;;
 		3)
 			sh_choosewifi
@@ -3714,7 +3643,7 @@ sh_loadconf() {
 		evaluate_retval "$?"
 		sh_parseconf
 	else
-		evaluate_retval "$?" "1" "${cmsg_falhaAbertura} $app_conf!"
+		evaluate_retval "$?" $one "${cmsg_falhaAbertura} $app_conf!"
 	fi
 }
 
@@ -3736,13 +3665,12 @@ sh_parseconf() {
 sh_mkefiroaming() {
 	#Caminho de inicialização padrão/reserva
 	if [[ -e "$dir_install/boot/efi/EFI/$cnickefi/grubx64.efi" ]]; then
-		sh_info_msg "${cmsg_CriandoDiretorios}: $dir_install/boot/efi/EFI/BOOT"
-		mkdir -p "$dir_install/boot/efi/EFI/BOOT" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
-		evaluate_retval "${PIPESTATUS[0]}" "$err_not_fatal"
-
-		sh_info_msg "${cmsg_CopiandoCaminhoReserva}: $dir_install/boot/efi/BOOT"
-		cp "$dir_install/boot/efi/EFI/$cnickefi/grubx64.efi" "$dir_install/boot/efi/EFI/BOOT/BOOTX64.EFI" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
-		evaluate_retval "${PIPESTATUS[0]}" "$err_not_fatal"
+		sh_cmd_job "${cmsg_CriandoDiretorio}: $dir_install/boot/efi/EFI/BOOT" "
+   		mkdir -pv $dir_install/boot/efi/EFI/BOOT
+      " $err_not_fatal
+		sh_cmd_job "${cmsg_CopiandoCaminhoReserva}: $dir_install/boot/efi/BOOT" "
+   		cp -f $dir_install/boot/efi/EFI/$cnickefi/grubx64.efi $dir_install/boot/efi/EFI/BOOT/BOOTX64.EFI
+      " $err_not_fatal
 	fi
 }
 
@@ -4148,7 +4076,7 @@ sh_cp_rootfs() {
 }
 
 sh_touch_keys() {
-	sh_cmd_job "Criando chaves ${cmsg_Em} $dir_install" "mkdir -p keys" $err_not_fatal
+	sh_cmd_job "Criando chaves" "mkdir -p keys" $err_not_fatal
 
 	cat >keys/60:ae:0c:d6:f0:95:17:80:bc:93:46:7a:89:af:a3:2d.plist <<-EOF
 		<?xml version="1.0" encoding="UTF-8"?>
@@ -4232,9 +4160,18 @@ sh_copy_keys() {
 	local destdirkeys="$dir_install/var/db/xbps/keys"
 
 	sh_touch_keys
-	sh_cmd_job "Criando diretorio de chaves em $destdirkeys" "mkdir -p $destdirkeys" $err_not_fatal
-	sh_cmd_job "Copiando chaves da ISO para $destdirkeys" "cp -f /var/db/xbps/keys/*.plist $destdirkeys/" $err_not_fatal
-	sh_cmd_job "Copiando chaves locais para $destdirkeys" "cp -f keys/*.plist $destdirkeys/" $err_not_fatal
+	if [[ ! -d $destdirkeys ]]; then
+	   sh_cmd_job "Criando diretorio de chaves em $destdirkeys" "mkdir -pv $destdirkeys" $err_not_fatal
+   fi
+
+	if [[ -d keys/ ]]; then
+      sh_cmd_job "Copiando chaves locais para $destdirkeys" "cp -fv keys/*.plist $destdirkeys/" $err_not_fatal
+   fi
+
+   if [[ -d /var/db/xbps/keys/ ]]; then
+   	sh_cmd_job "Copiando chaves da ISO para $destdirkeys" "cp -fv /var/db/xbps/keys/*.plist $destdirkeys/" $err_not_fatal
+   fi
+
 }
 
 sh_install_prereqs() {
@@ -4243,7 +4180,7 @@ sh_install_prereqs() {
 	#	REQUIRED_PKGS="base-voidstrap xbps libgcc dash coreutils sed tar gawk grub-i386-efi grub-x86_64-efi binutils device-mapper dhclient dracut-network openresolv"
 	REQUIRED_PKGS="base-voidstrap" # xbps tar xz"
 
-	sh_cmd_job "Instalando bootstrap ${cmsg_Em} $dir_install" \
+	sh_cmd_job "Instalando bootstrap" \
 		"LC_ALL=C xbps-install --rootdir "$dir_install" --repository=${url_mirror}/current -c $CACHEDIR -y $REQUIRED_PKGS -S"
 }
 
@@ -4273,48 +4210,39 @@ sh_install_pkgs_in_chroot() {
 sh_update_lxdm_conf() {
 	local cfile="$dir_install/etc/lxdm/lxdm.conf"
 
-	cat >"$cfile" <<-EOF
-		[base]
-		# autologin=dgod
-		# timeout=10
-		# session=/usr/bin/startlxde
-		numlock=1
-		# xauth_path=/tmp
-		skip_password=1
-		greeter=/usr/libexec/lxdm-greeter-gtk
+   sh_info_msg "Customizando ${cfile}"
+	cat >"$cfile" <<EOF
+[base]
+autologin="${AsUser[cuser]}"
+# timeout=10
+# session=/usr/bin/startlxde
+session=/usr/bin/startxfce4
+numlock=1
+# xauth_path=/tmp
+skip_password=1
+greeter=/usr/libexec/lxdm-greeter-gtk
 
-		[server]
-		arg=/usr/bin/X -background vt7
-		# tcp_listen=1
-		# reset=1
+[server]
+arg=/usr/bin/X -background vt7
+# tcp_listen=1
+# reset=1
 
-		[display]
-		gtk_theme=Clearlooks
-		bg=/usr/share/backgrounds/chililinux/abstract-art3.jpg
-		bottom_pane=1
-		lang=1
-		# keyboard=1
-		theme=vdojo
-		transparent_pane=1
+[display]
+gtk_theme=Clearlooks
+bg=/usr/share/backgrounds/chililinux/abstract-art3.jpg
+bottom_pane=1
+lang=1
+# keyboard=1
+theme=vdojo
+transparent_pane=1
 
-		[input]
+[input]
 
-		[userlist]
-		disable=0
-		white=
-		black=
-	EOF
-}
-
-sh_update_lxmd_theme() {
-	sh_cmd_job "Customizando ${cfile}" "
-      sed -i '
-        /^theme=Industrial/ {
-          s/^/#&/
-          a theme=dojo
-        }
-      ' "$cfile"
-   " $err_not_fatal
+[userlist]
+disable=0
+white=
+black=
+EOF
 }
 
 sh_install() {
@@ -4379,13 +4307,13 @@ sh_install() {
 
 		if sh_extract_root_fs; then
 			sh_init_bind
-			sh_cmd_job "${cmsg_Copiando} /etc/resolv.conf ${cmsg_Em} $dir_install" "cp -f /etc/resolv.conf $dir_install/etc/"
+			sh_cmd_job "${cmsg_Copiando} /etc/resolv.conf" "cp -f /etc/resolv.conf $dir_install/etc/"
 			sh_update_mirror
 			#			sh_checkNet "$url_mirror" || return 1
 
 			# Go install
-			sh_chroot_job "${cmsg_Atualizando} xbps ${cmsg_Em} $dir_install" "LC_ALL=C xbps-install --sync --update xbps --yes"
-			sh_chroot_job "${cmsg_AtualizandoRepositorio} ${cmsg_Em} $dir_install" "LC_ALL=C xbps-install --sync --update --yes"
+			sh_chroot_job "${cmsg_Atualizando} xbps" "LC_ALL=C xbps-install --sync --update xbps --yes"
+			sh_chroot_job "${cmsg_AtualizandoRepositorio}" "LC_ALL=C xbps-install --sync --update --yes"
 
 			if [[ "${AConfMirror[_SOURCE]}" = "local" ]]; then
 				sh_install_pkgs_in_chroot "$(gettext 'Atualizando Pacotes Base')" "${agrub[*]}"
@@ -4468,13 +4396,13 @@ sh_install() {
 			   xbps-reconfigure --force --all
          "
 
-			sh_chroot_job "${cmsg_RemovendoPacotesAntigosObseletos} ${cmsg_Em} $dir_install" "
+			sh_chroot_job "${cmsg_RemovendoPacotesAntigosObseletos}" "
 			   rm -fv /var/cache/xbps/*.xbps
             rm -fv /var/cache/xbps/*.sig*
          "
 
 			if $HYPRLAND; then
-				sh_chroot_job "${cmsg_Instalando} User into group _seatd ${cmsg_Em} $dir_install" "usermod -aG _seatd "$user"}" "$err_not_fatal"
+				sh_chroot_job "${cmsg_Instalando} User into group _seatd" "usermod -aG _seatd "$user"}" "$err_not_fatal"
 			fi
 
 			sh_update_lxdm_conf
@@ -4486,7 +4414,7 @@ sh_install() {
 				"Finish Date Time : $end_datetime" \
 				"Time elapsed     : ${RED}$(sh_time_elapsed)"
 		else
-			die "${cmsg_ERRO} tar #$?. ${cmsg_ErroTar} $_TARBALL_ROOTFS ${cmsg_Em} $dir_install"
+			die "${cmsg_ERRO} tar #$?. ${cmsg_ErroTar} $_TARBALL_ROOTFS"
 		fi
 		exit 0
 	} # > out & sh_monitor
@@ -4954,7 +4882,7 @@ sh_chooseperfumery() {
 		;;
 	esac
 	_PERFUMERY=($(strtoarray "$perf"))
-	LPERFUMERY=$true
+	LPERFUMERY=$one
 }
 
 sh_toBytes() {
@@ -5028,7 +4956,7 @@ sh_run_binary() {
 	fi
 
 	msg "INFO" "$(log_info_msg "$(gettext "Aguarde...") ${cmsg_Gerando} test with "${binary}" ${xurl}")"
-	evaluate_retval "1" "$err_not_fatal"
+	evaluate_retval $one "$err_not_fatal"
 	info "=== ${binary} ===" \
 		"\n${RED}$(gettext "binário não foi localizado no") ${YELLOW}\$PATH${RESET}" \
 		"${RED}$(gettext "binário não foi localizado na pasta local:") ${YELLOW}$PWD${RESET}" \
@@ -5163,7 +5091,7 @@ sh_init() {
 			exit $(($# ? 0 : 1))
 			;;
 		-f | --file)
-			LFILE=$true
+			LFILE=$one
 			if [[ -n "$2" && "${2:0:1}" != '-' ]]; then
 				app_conf="$2"
 				shift
@@ -5177,11 +5105,11 @@ sh_init() {
 			;;
 		-q | --quiet)
 			log_msg "$(gettext "Ativando resumo na saída")"
-			quiet=$true
+			quiet=$one
 			;;
 		-g | --grafico)
 			log_msg "$(gettext "Ligando modo gráfico")"
-			grafico=$true
+			grafico=$one
 			;;
 		-i | -I | --install)
 			sh_checkRoot
@@ -5246,10 +5174,10 @@ sh_confLvm() {
 
 	if [[ "$menu" = "Fde" ]]; then
 		ctitlemenu='FDE CONFIG'
-		LCONFIGFDE=$true
+		LCONFIGFDE=$one
 	else
 		ctitlemenu='LVM CONFIG'
-		LCONFIGFDE=$false
+		LCONFIGFDE=$zero
 	fi
 
 	if ! $LDISK; then
@@ -5753,7 +5681,7 @@ sh_setLanguage() {
 	cmsg_VerificandoIntegridadeTarball=$(gettext "Verificando a integridade do tarball")
 	cmsg_IniciandoDownload=$(gettext "Iniciando download de")
 	cmsg_CriandoParticoes=$(gettext "Criando partições em")
-	cmsg_CriandoDiretorios=$(gettext "Criando diretórios em")
+	cmsg_CriandoDiretorio=$(gettext "Criando diretório")
 	cmsg_AtualizandoRepositorio=$(gettext "Atualizando repositório")
 	cmsg_RemovendoPacotesAntigosObseletos=$(gettext "Removendo pacotes antigos/absoletos")
 	cmsg_InstalandoMetaPacotes=$(gettext "Instalando meta pacote X")
@@ -5833,7 +5761,7 @@ sh_setLanguage() {
 
 sh_tar_rootfs() {
 	sh_checkTarball || return 1
-	sh_info_msg "${cmsg_Descompactando} rootfs ${cmsg_Em} $dir_install"
+	sh_info_msg "${cmsg_Descompactando} rootfs"
 	tar xpf "$_TARBALL_ROOTFS" --xattrs-include='*.*' --numeric-owner -C $dir_install 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 	ret="${PIPESTATUS[0]}"
 	if [[ "$ret" -eq 0 ]]; then
@@ -5846,7 +5774,7 @@ sh_tar_rootfs() {
 			sh_checkIntegrityTarball || return 1
 			sh_install
 		else
-			die "${cmsg_ERRO} tar '#'$ret. ${cmsg_ErroTar} $_TARBALL_ROOTFS ${cmsg_Em} $dir_install"
+			die "${cmsg_ERRO} tar '#'$ret. ${cmsg_ErroTar} $_TARBALL_ROOTFS"
 		fi
 	fi
 }
