@@ -5721,7 +5721,7 @@ sh_setLanguage() {
 	cmsg_Teclado=$(gettext "Teclado")
 	cmsg_SairSemInstalar=$(gettext "Sair sem instalar")
 	cmsg_tty=$(gettext "Somente terminal, sem interface gráfica")
-	cmsg_server=$(gettext "Servidor Void com Samba")
+	cmsg_server=$(gettext "Servidor Void")
 	cmsg_descDisco=$(gettext "Definir disco e partições")
 	cmsg_descFileSystem=$(gettext "Definir sistema de arquivos e pontos de montagem")
 	cmsg_descBootLoader=$(gettext "Definir bootloader")
