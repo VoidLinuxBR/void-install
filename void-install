@@ -1951,7 +1951,7 @@ sh_make_fstab() {
 	local fsorder=1
 
 	if ! $LVM; then
-		sh_cmd_job "${cmsg_Gerando} fstab pass1" "
+		sh_info_msg "${cmsg_Gerando} fstab pass1"
 		echo "tmpfs /tmp tmpfs defaults,nosuid,nodev,noatime,mode=1777 0 0" >"$dir_install/etc/fstab"
 		echo "tmpfs /var/log tmpfs defaults,noatime,mode=0755 0 0" >>"$dir_install/etc/fstab"
 		echo "proc /proc proc nodev,noexec,nosuid 0 0" >>"$dir_install/etc/fstab"
@@ -1988,10 +1988,9 @@ sh_make_fstab() {
 				fi
 			fi
 		done
-		"
 		#		evaluate_retval "$?"
 	else
-		sh_cmd_job "${cmsg_Gerando} fstab pass1" "
+		sh_info_msb "${cmsg_Gerando} fstab pass1"
 		for i in "${!Amntpoint[@]}"; do
 			_part="$i"
 			mntpoint="$(sh_splitarray "${Amntpoint[$i]}" 1)"
@@ -2014,7 +2013,6 @@ sh_make_fstab() {
 			#			echo "UUID=$(blkid -o value -s UUID "${_part}") $mntpoint ${fstype,,} defaults 0 0" >>"$dir_install/etc/fstab"
 			echo "UUID=$(blkid -o value -s UUID "${_part}") $mntpoint ${fstype,,} defaults,noatime,discard,lazytime 0 0" >>"$dir_install/etc/fstab"
 		done
-		"
 		#		evaluate_retval "$?"
 	fi
 
@@ -2273,6 +2271,14 @@ sh_xfce4minimal() {
 		thunar-archive-plugin
 		plank
 		voidbr-xfce-config
+		gvfs
+		bluez
+		bluez-alsa
+		blueman
+		libspa-bluetooth
+		blueberry
+		mate-calc
+		umc
 	)
 
 	if $LCUSTOM; then
@@ -3658,6 +3664,7 @@ sh_dryrun() {
 	#  sh_make_user
    #  sh_update_sshd
    #  sh_update_sudoers
+   #  sh_make_fstab
 	export PS1="[chroot $dir_install] $PS1"
 	LC_ALL=C chroot "$dir_install" "/bin/bash"
 	sh_umount_fs
