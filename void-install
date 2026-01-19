@@ -553,7 +553,9 @@ sh_choose_packages() {
 	fi
 	declare -ga aEditorTxt=(nano vim)
 	aTerminal+=(xfce4-terminal)
-	aDaemons+=(NetworkManager)
+    if ! $LSERVER; then
+    	aDaemons+=(NetworkManager)
+    fi
 	aNetworkX=(network-manager-applet)
 
 }
@@ -2025,10 +2027,14 @@ sh_make_fstab() {
 }
 
 sh_activating_services() {
-	local aServicesTTY=(dbus NetworkManager dhcpcd sshd chronyd udevd wpa_supplicant uuidd dmeventd)
+	local aServicesTTY=(dbus dhcpcd sshd chronyd udevd wpa_supplicant uuidd dmeventd)
 	local aServicesX=(elogind polkitd bluetoothd)
 	local service
 	local level=2
+
+	if ! $LSERVER; then
+        aServicesTTY+=(NetworkManager)
+	fi
 
 	for x in "${aDE[@]}"; do
 		case $x in
@@ -2293,8 +2299,8 @@ sh_xfce4minimal() {
 }
 
 sh_serverminimal() {
-	local DE='Void server with Samba'
-	declare apkgs=(voidbr-samba)
+	local DE='Void server'
+	declare apkgs=(wget)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -4466,7 +4472,9 @@ sh_install() {
 			#        sh_copy_skel
 			sh_update_hostname
 			sh_update_rc_local
-			sh_update_sshd
+            if ! $SERVER; then
+    			sh_update_sshd
+	        fi
 			sh_update_rc_conf
 			sh_update_locale
 			sh_update_wpa_suplicant
