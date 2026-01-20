@@ -526,7 +526,7 @@ sh_choose_packages() {
 		declare -ga aNetworkX=(gvfs gvfs-smb gvfs-mtp gvfs-afc gvfs-cdda udisks2)
 		declare -ga aUtilityX=(mate-calc xkill menulibre mugshot ocs-url gparted)
 		## tty
-		declare -ga aDaemons=(acpi acpid irqbalance avahi)
+		declare -ga aDaemons=(acpi acpid irqbalance avahi avahi-discover)
 		declare -ga aArchiverTty=(unrar zip p7zip unzip bzip2)
 		declare -ga aDownloader=(curl wget git)
 		declare -ga aUtility=(binutils dfc btop parallel bubblewrap cmatrix pfetch bc bat xtools geoip geoipupdate)
@@ -537,7 +537,7 @@ sh_choose_packages() {
 		declare -ga aBrowser=(firefox firefox-i18n-$(sh_get_language_without_utf8))
 		declare -ga aFilemanager=(Thunar)
 		declare -ga aBluetooth=()
-		declare -ga aFont=()
+		declare -ga aFont=(noto-fonts-emoji)
 		declare -ga aPerfumery=()
 		declare -ga aPrinter=()
 		declare -ga aTerminal=()
@@ -2358,6 +2358,8 @@ sh_gnomeminimal() {
 		"wireplumber"              # Gerenciador de sessão para Pipewire
 		"xdg-desktop-portal-gnome" # Integração de interface e permissões para Wayland
 		"xdg-user-dirs-gtk"        # Gerenciamento automático das pastas padrão de usuário
+      chili-gnome-theme-tokyo
+      voidbr-change-gnome-wallpaper
 	)
 
 	if $LCUSTOM; then
