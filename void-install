@@ -2301,6 +2301,8 @@ sh_xfce4minimal() {
 sh_serverminimal() {
 	local DE='Void server'
 	declare apkgs=(wget)
+	declare apkgs=(bind-utils)
+	declare apkgs=(ldns)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
