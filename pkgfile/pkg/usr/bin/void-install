@@ -2276,6 +2276,7 @@ sh_xfce4minimal() {
 		file-roller
 		thunar-archive-plugin
 		plank
+		voidbr-xfce-config
 		gvfs
 		bluez
 		bluez-alsa
@@ -2289,10 +2290,10 @@ sh_xfce4minimal() {
 	if $LCUSTOM; then
 		apkgs+=(
 			plank
+			voidbr-xfce-config
 		)
 
 	fi
-    apkgs+=(voidbr-xfce-config voidbr-wallpapers)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -2370,7 +2371,7 @@ sh_gnomeminimal() {
 			polari quadrapassel swell-foop sysprof tali
 		)
 	fi
-	apkgs+=(voidbr-gnome-config voidbr-wallpapers)
+	apkgs+=(voidbr-gnome-config)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
