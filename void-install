@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: dom 18 jan 2026 13:09:12 -04
+#  Updated: ter 20 jan 2026 21:50:30 -04
 #
 #  Copyright (c) 2022-2025, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.1.18-20260118'
+readonly _VERSION_='3.1.20-20260120'
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 #                      cfdisk gdisk  efivar mkfs.ext2 mkfs.ext3 mkfs.ext4 mkfs.btrfs mkfs.xfs mkfs.f2fs mkfs.jfs mkfs.reiserfs)
 readonly LOCKFILE="/tmp/void-install.lock"
@@ -1585,6 +1585,7 @@ install_skel_user() {
 		"sway") aname+=(config-sway-custom) ;;
 		"twm") aname+=(config-twm-custom) ;;
 		"xfce4") aname+=(config-xfce-custom) ;;
+		"cinnamon") aname+=(config-cinnamon-custom) ;;
 		esac
 	done
 
@@ -2260,6 +2261,21 @@ sh_openboxminimal() {
 sh_plasmaminimal() {
 	local apkgs=('plasma-desktop' 'plasma-nm' 'plasma-pa' 'plasma-disks')
 	local DE='Plasma Desktop'
+	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
+}
+
+sh_cinnamonminimal() {
+    local DE='cinnamon'
+	local apkgs=(cinnmon)
+
+	if $LCUSTOM; then
+		apkgs+=(
+			plank
+		)
+
+	fi
+    apkgs+=(voidbr-cinnamon-config voidbr-wallpapers)
+
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
 
@@ -3786,6 +3802,7 @@ sh_choosewm() {
 	aWm[sway]="Sway"
 	aWm[twm]="Twm"
 	aWm[xfce4]="Xfce4"
+	aWm[cinnamon]="Cinammon"
 
 	for x in "${!aWm[@]}"; do
 		aFlag[$x]='off'
@@ -3823,6 +3840,7 @@ sh_choosewm() {
 		mate "${aWm[mate]}" "${aFlag[mate]}" \
 		plasma "${aWm[plasma]}" "${aFlag[plasma]}" \
 		xfce4 "${aWm[xfce4]}" "${aFlag[xfce4]}" \
+		cinnamon "${aWm[cinnamon]}" "${aFlag[cinnamon]}" \
 		2>&1 >/dev/tty)
 
 	exit_status=$?
@@ -4462,6 +4480,7 @@ sh_install() {
 				"gnome") sh_gnomeminimal ;;
 				"plasma") sh_plasmaminimal ;;
 				"xfce4") sh_xfce4minimal ;;
+				"cinnamon") sh_cinnamonminimal ;;
 				"i3wm") sh_i3minimal ;;
 				"sway") sh_swayminimal ;;
 				"twm") sh_twmminimal ;;
