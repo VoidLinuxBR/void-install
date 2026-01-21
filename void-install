@@ -1637,12 +1637,13 @@ sh_update_Xkeymap() {
 		return 0
 	fi
 
-	sh_cmd_job "${cmsg_Ajustando} ${cmsg_Teclado,,} ${AConfLocale[_KEYMAP]} (X11)" "
-   	if [[ ! -d "$dir_install/etc/X11/xorg.conf.d" ]]; then
-   	   mkdir -p "$dir_install/etc/X11/xorg.conf.d"
-      fi
-   	if [[ ! -e "$dir_install/etc/X11/xorg.conf.d/10-keyboard.conf" ]]; then
-   	   cat >"$dir_install/etc/X11/xorg.conf.d/10-keyboard.conf" <<-EOF
+	sh_info_msg "${cmsg_Ajustando} ${cmsg_Teclado,,} ${AConfLocale[_KEYMAP]} (X11)"
+        if [[ ! -d "$dir_install/etc/X11/xorg.conf.d" ]]; then
+            mkdir -p "$dir_install/etc/X11/xorg.conf.d"
+        fi
+
+        if [[ ! -e "$dir_install/etc/X11/xorg.conf.d/10-keyboard.conf" ]]; then
+       	    cat >"$dir_install/etc/X11/xorg.conf.d/10-keyboard.conf" <<EOF
 Section "InputClass"
    Identifier "Keyboard Br Abnt2"
    MatchIsKeyboard "on"
@@ -1652,8 +1653,7 @@ Section "InputClass"
    Option "XKbOptions" ""
 EndSection
 EOF
-      fi
-   " $err_not_fatal
+        fi
 }
 
 sh_check_util_fs() {
@@ -2266,7 +2266,7 @@ sh_plasmaminimal() {
 
 sh_cinnamonminimal() {
     local DE='cinnamon'
-	local apkgs=(cinnmon cinnamon-all)
+	local apkgs=(cinnamon cinnamon-all)
 
 	if $LCUSTOM; then
 		apkgs+=(
@@ -3802,7 +3802,7 @@ sh_choosewm() {
 	aWm[sway]="Sway"
 	aWm[twm]="Twm"
 	aWm[xfce4]="Xfce4"
-	aWm[cinnamon]="Cinammon"
+	aWm[cinnamon]="Cinnamon"
 
 	for x in "${!aWm[@]}"; do
 		aFlag[$x]='off'
