@@ -2266,7 +2266,7 @@ sh_plasmaminimal() {
 
 sh_cinnamonminimal() {
     local DE='cinnamon'
-	local apkgs=(cinnmon)
+	local apkgs=(cinnmon cinnamon-all)
 
 	if $LCUSTOM; then
 		apkgs+=(
