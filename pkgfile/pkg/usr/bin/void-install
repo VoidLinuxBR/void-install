@@ -1,4 +1,4 @@
-ç#!/usr/bin/env bash
+#!/usr/bin/env bash
 #shellcheck disable=SC2145,SC2001,SC2188,SC2015,SC2155,SC2317,SC2320,SC2291,SC2034,SC2120,SC2086,SC2319
 #shellcheck disable=SC2016,SC2154,SC2207,SC2166,SC2128,SC2059,SC2140,SC2031,SC2030,SC2036,SC2119,SC2027
 #
@@ -1637,13 +1637,12 @@ sh_update_Xkeymap() {
 		return 0
 	fi
 
-	sh_info_msg "${cmsg_Ajustando} ${cmsg_Teclado,,} ${AConfLocale[_KEYMAP]} (X11)"
-        if [[ ! -d "$dir_install/etc/X11/xorg.conf.d" ]]; then
-            mkdir -p "$dir_install/etc/X11/xorg.conf.d"
-        fi
-
-        if [[ ! -e "$dir_install/etc/X11/xorg.conf.d/10-keyboard.conf" ]]; then
-       	    cat >"$dir_install/etc/X11/xorg.conf.d/10-keyboard.conf" <<EOF
+	sh_cmd_job "${cmsg_Ajustando} ${cmsg_Teclado,,} ${AConfLocale[_KEYMAP]} (X11)" "
+   	if [[ ! -d "$dir_install/etc/X11/xorg.conf.d" ]]; then
+   	   mkdir -p "$dir_install/etc/X11/xorg.conf.d"
+      fi
+   	if [[ ! -e "$dir_install/etc/X11/xorg.conf.d/10-keyboard.conf" ]]; then
+   	   cat >"$dir_install/etc/X11/xorg.conf.d/10-keyboard.conf" <<-EOF
 Section "InputClass"
    Identifier "Keyboard Br Abnt2"
    MatchIsKeyboard "on"
@@ -1653,7 +1652,8 @@ Section "InputClass"
    Option "XKbOptions" ""
 EndSection
 EOF
-        fi
+      fi
+   " $err_not_fatal
 }
 
 sh_check_util_fs() {
