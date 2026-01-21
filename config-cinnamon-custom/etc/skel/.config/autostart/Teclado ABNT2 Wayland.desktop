@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Exec=localectl set-x11-keymap br abnt2
-X-GNOME-Autostart-enabled=true
-NoDisplay=false
-Hidden=false
-Name[pt_BR]=Teclado ABNT2 Wayland
-Comment[pt_BR]=Teclado ABNT2 Wayland
-X-GNOME-Autostart-Delay=0
