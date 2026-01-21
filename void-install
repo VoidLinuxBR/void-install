@@ -2266,7 +2266,7 @@ sh_plasmaminimal() {
 
 sh_cinnamonminimal() {
     local DE='cinnamon'
-	local apkgs=(cinnmon cinnamon-all)
+	local apkgs=(cinnamon cinnamon-all)
 
 	if $LCUSTOM; then
 		apkgs+=(
@@ -3802,7 +3802,7 @@ sh_choosewm() {
 	aWm[sway]="Sway"
 	aWm[twm]="Twm"
 	aWm[xfce4]="Xfce4"
-	aWm[cinnamon]="Cinammon"
+	aWm[cinnamon]="Cinnamon"
 
 	for x in "${!aWm[@]}"; do
 		aFlag[$x]='off'
