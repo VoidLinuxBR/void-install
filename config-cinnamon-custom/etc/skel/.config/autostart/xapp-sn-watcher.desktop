@@ -1,9 +1,0 @@
-[Desktop Entry]
-Comment=A service that provides the org.kde.StatusNotifierWatcher interface for XApps
-Exec=/usr/lib/xapps/xapp-sn-watcher
-Hidden=false
-Name=xapp-sn-watcher
-Type=Application
-X-Deepin-GenerateSource=$HOME/.config/autostart/xapp-sn-watcher.desktop
-X-GNOME-Autostart-Phase=Panel
-

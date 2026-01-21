@@ -1,9 +1,0 @@
-[Desktop Entry]
-Encoding=UTF-8
-Exec=/usr/bin/vmware-user-suid-wrapper
-Hidden=false
-Name=VMware User Agent
-Type=Application
-X-Deepin-GenerateSource=$HOME/.config/autostart/vmware-user.desktop
-X-KDE-autostart-phase=1
-
