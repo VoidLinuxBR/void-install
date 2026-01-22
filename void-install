@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: qua 21 jan 2026 20:23:58 -04
+#  Updated: qui 22 jan 2026 02:08:59 -04
 #
 #  Copyright (c) 2022-2025, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.1.21-215125'
+readonly _VERSION_='3.1.22-020859'
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 readonly LOCKFILE="/tmp/void-install.lock"
 
@@ -107,6 +107,7 @@ declare LONLY_TTY=true
 declare LSERVER=false
 declare LEXTRA=false
 declare LLOCALE=true
+declare LXORG=false
 #
 declare DEFITEM
 #
@@ -461,10 +462,10 @@ sh_update_self() {
 	fi
 }
 
-sh_choose_packages() {
+sh_choose_common_packages() {
 	declare -ga aSuplemento=(
 		chili-void-grub-theme
-#		voidbr-plymouth-theme
+#	   voidbr-plymouth-theme
 		chili-utils
 		void-utils
 		chili-nano-config
@@ -500,9 +501,9 @@ sh_choose_packages() {
 		vim
 	)
 
-	if grep -qi xorg <<<"${_WINDOWMANAGER[@]}"; then
-		return
-	fi
+   if $LXORG; then
+   	return
+   fi
 
 	## begin packages
 	declare -ga aXorg=(xorg xinit xterm xorg-fonts dbus-x11 elogind dbus-elogind polkit-elogind xdg-user-dirs xrdb)
@@ -1558,58 +1559,6 @@ EOF
    " $err_not_fatal
 }
 
-sh_copy_skel() {
-	if $LCUSTOM; then
-		sh_cmd_job "${cmsg_Ajustando} bashrc" "
-         install_skel_user
-      " $err_not_fatal
-	fi
-}
-
-install_skel_user() {
-	local aname=('config-common')
-	local x
-
-	for x in "${_WINDOWMANAGER[@]}"; do
-		case "$x" in
-		"tty") : ;;
-		"server") : ;;
-		"awesome") aname+=(config-awesome) ;;
-		"xorg") : ;;
-		"bspwm") aname+=(config-bspwm-custom) ;;
-		"blackbox") aname+=(config-blackbox-custom) ;;
-		"dwm") aname+=(config-dwm-custom) ;;
-		"enlightenment") aname+=(config-enlightenment-custom) ;;
-		"fluxbox") aname+=(config-fluxbox-custom) ;;
-		"gnome") aname+=(config-gnome-custom) ;;
-		"hyprland") aname+=(config-hyprland-custom) ;;
-		"i3wm") aname+=(config-i3wm-custom) ;;
-		"lxde") aname+=(config-lxde-custom) ;;
-		"lxqt") aname+=(config-lxqt-custom) ;;
-		"mate") aname+=(config-mate-custom) ;;
-		"openbox") aname+=(config-openbox-custom) ;;
-		"plasma") aname+=(config-plasma-custom) ;;
-		"sway") aname+=(config-sway-custom) ;;
-		"twm") aname+=(config-twm-custom) ;;
-		"xfce4") aname+=(config-xfce-custom) ;;
-		"cinnamon") aname+=(config-cinnamon-custom) ;;
-		esac
-	done
-
-	#skel
-	for path in "${aname[@]}"; do
-		if [[ -d "$path" ]]; then
-			cp -RLf $path/. "$dir_install/" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
-		fi
-	done
-
-	if [[ -d "config-common" ]]; then
-		cp -RLf config-common/etc/skel/. "$dir_install/root/" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
-	fi
-
-	return 0
-}
-
 sh_update_wpa_suplicant() {
 	sh_cmd_job "${cmsg_Ajustando} wpa_supplicant.conf" "
       cat >"$dir_install/etc/wpa_supplicant/wpa_supplicant.conf" <<-EOF
@@ -2325,7 +2274,14 @@ sh_serverminimal() {
 
 sh_xorgminimal() {
 	local DE='Xorg Minimal'
-	declare apkgs=(xorg-minimal xinit xterm xorg-fonts xorg-video-drivers mesa-dri)
+	declare apkgs=(
+		xorg-minimal
+		xinit
+		xterm
+		xorg-fonts
+		xorg-video-drivers
+		mesa-dri
+	)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -3775,7 +3731,7 @@ sh_getBootEFI() {
 	return 1
 }
 
-sh_choosewm() {
+sh_choose_wm() {
 	declare -A aFlag
 	declare -A aWm
 	local x
@@ -3865,22 +3821,30 @@ sh_choosewm() {
 		LCUSTOM=false
 	fi
 
+	LWM=true
 	_WINDOWMANAGER=($(strtoarray "$wm"))
-	if ((${#_WINDOWMANAGER[@]} == 1)) && [[ "${_WINDOWMANAGER[0]}" == "tty" ]]; then
-		AConfAudio[_AUDIOSERVER]="None"
-		LAUDIO=true
-	elif ((${#_WINDOWMANAGER[@]} == 1)) && [[ "${_WINDOWMANAGER[0]}" == "server" ]]; then
-		AConfAudio[_AUDIOSERVER]="None"
-		LAUDIO=true
-	else
-		AConfAudio[_AUDIOSERVER]="Pipewire"
-		LAUDIO=true
+   ALLOWED=(tty server xorg)
+   ok=true
+   for wm in "${_WINDOWMANAGER[@]}"; do
+     case "$wm" in
+       tty|server|xorg) ;;
+       *) ok=false; break ;;
+     esac
+   done
+   if $ok; then
+     AConfAudio[_AUDIOSERVER]="None"
+   else
+     AConfAudio[_AUDIOSERVER]="Pipewire"
+   fi
+   LAUDIO=true
+
+	if grep -qi xorg <<<"${_WINDOWMANAGER[@]}"; then
+		LXORG=true
 	fi
 
 	if grep -qi hyprland <<<"${_WINDOWMANAGER[@]}"; then
 		HYPRLAND=true
 	fi
-	LWM=true
 }
 
 function pcount() {
@@ -4395,7 +4359,7 @@ sh_install() {
 		sh_checkTarball
 	fi
 
-	sh_choose_packages
+   sh_choose_common_packages
 
 	start_time=$(date +%s) # Obtém o tempo de início em segundos desde a época Unix
 	start_datetime=$(date)
@@ -4497,12 +4461,13 @@ sh_install() {
 			done
 
 			sh_make_user
-			#        sh_copy_skel
 			sh_update_hostname
 			sh_update_rc_local
+
 			if ! $SERVER; then
 				sh_update_sshd
 			fi
+
 			sh_update_rc_conf
 			sh_update_locale
 			sh_update_wpa_suplicant
@@ -5164,7 +5129,7 @@ sh_main_menu() {
 		"${cmsg_Teclado}") sh_chooseKeymap && [ -n "$LKEYMAP" ] && DEFITEM="Timezone" ;;
 		"Timezone") sh_chooseTimezone && [ -n "$LTIMEZONE" ] && DEFITEM="Wm" ;;
 		"Locale") sh_chooseLocale && [ -n "$LTIMEZONE" ] && DEFITEM="Wm" ;;
-		"Wm") sh_choosewm && [ -n "$LWM" ] && DEFITEM="Extra" ;;
+		"Wm") sh_choose_wm && [ -n "$LWM" ] && DEFITEM="Extra" ;;
 		"${cmsg_Usuario}") sh_confadduser "$@" && [ -n "$LEXTRA" ] && DEFITEM="Audio" ;;
 		"Audio") sh_chooseaudioserver "$@" && [ -n "$LAUDIO" ] && DEFITEM="${cmsg_Instalar}" ;;
 		"${cmsg_Instalar}") sh_install ;;
