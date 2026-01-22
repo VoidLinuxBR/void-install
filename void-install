@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: ter 20 jan 2026 21:50:30 -04
+#  Updated: qua 21 jan 2026 20:23:58 -04
 #
 #  Copyright (c) 2022-2025, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,9 +52,8 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.1.20-20260120'
+readonly _VERSION_='3.1.21-202358'
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
-#                      cfdisk gdisk  efivar mkfs.ext2 mkfs.ext3 mkfs.ext4 mkfs.btrfs mkfs.xfs mkfs.f2fs mkfs.jfs mkfs.reiserfs)
 readonly LOCKFILE="/tmp/void-install.lock"
 
 # Mapa: [distro]="lista de pacotes"
@@ -2259,7 +2258,11 @@ sh_cinnamonminimal() {
 		)
 
 	fi
-	apkgs+=(voidbr-cinnamon-config voidbr-wallpapers)
+	apkgs+=(
+		voidbr-cinnamon-config
+		voidbr-wallpapers
+		chili-gnome-theme-tokyo
+	)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -2293,7 +2296,11 @@ sh_xfce4minimal() {
 		)
 
 	fi
-	apkgs+=(voidbr-xfce-config voidbr-wallpapers)
+	apkgs+=(
+		voidbr-xfce-config
+		voidbr-wallpapers
+		chili-gnome-theme-tokyo
+	)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -2358,7 +2365,6 @@ sh_gnomeminimal() {
 		"wireplumber"              # Gerenciador de sessão para Pipewire
 		"xdg-desktop-portal-gnome" # Integração de interface e permissões para Wayland
 		"xdg-user-dirs-gtk"        # Gerenciamento automático das pastas padrão de usuário
-		chili-gnome-theme-tokyo
 		voidbr-change-gnome-wallpaper
 	)
 
@@ -2371,7 +2377,12 @@ sh_gnomeminimal() {
 			polari quadrapassel swell-foop sysprof tali
 		)
 	fi
-	apkgs+=(voidbr-gnome-config voidbr-wallpapers)
+	apkgs+=(
+		voidbr-gnome-config
+		voidbr-wallpapers
+		chili-gnome-theme-tokyo
+		voidbr-change-gnome-wallpaper
+	)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
