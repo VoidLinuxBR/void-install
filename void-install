@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.1.21-202358'
+readonly _VERSION_='3.1.21-215125'
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 readonly LOCKFILE="/tmp/void-install.lock"
 
@@ -462,13 +462,15 @@ sh_update_self() {
 }
 
 sh_choose_packages() {
-	declare -ga aExtra=(
-		# nano-syntax-highlighting
-		# voidbr-plymouth-theme
-		chili-nano-config
+	declare -ga aSuplemento=(
 		chili-void-grub-theme
+#		voidbr-plymouth-theme
 		chili-utils
 		void-utils
+		chili-nano-config
+	)
+
+	declare -ga aExtra=(
 		bash-completion
 		fzf
 		gettext
@@ -491,6 +493,11 @@ sh_choose_packages() {
 		fastfetch
 		sed
 		grep
+		curl
+		wget
+		git
+		nano
+		vim
 	)
 
 	if grep -qi xorg <<<"${_WINDOWMANAGER[@]}"; then
@@ -527,8 +534,9 @@ sh_choose_packages() {
 		## tty
 		declare -ga aDaemons=(acpi acpid irqbalance avahi avahi-discover)
 		declare -ga aArchiverTty=(unrar zip p7zip unzip bzip2)
-		declare -ga aDownloader=(curl wget git)
+		declare -ga aDownloader=()
 		declare -ga aUtility=(binutils dfc btop parallel bubblewrap cmatrix pfetch bc bat xtools geoip geoipupdate)
+		declare -ga aEditorTxt=()
 	else
 		## X11
 		declare -ga aIconsAndThemes=(Adapta adwaita-icon-theme)
@@ -550,8 +558,8 @@ sh_choose_packages() {
 		declare -ga aDownloader=()
 		declare -ga aUtility=()
 	fi
-	declare -ga aEditorTxt=(nano vim)
 	aTerminal+=(xfce4-terminal)
+
 	if ! $LSERVER; then
 		aDaemons+=(NetworkManager)
 	fi
@@ -2307,9 +2315,10 @@ sh_xfce4minimal() {
 
 sh_serverminimal() {
 	local DE='Void server'
-	declare apkgs=(wget)
-	declare apkgs=(bind-utils)
-	declare apkgs=(ldns)
+	declare apkgs=(
+		bind-utils
+		ldns
+	)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -4436,6 +4445,7 @@ sh_install() {
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Utilitário')" "${aUtility[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Archiver tty')" "${aArchiverTty[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Extras')" "${aExtra[*]}"
+				sh_install_pkgs_in_chroot "$(gettext 'Instalando Suplementos')" "${aSuplemento[*]}"
 			fi
 
 			sh_grubInstall
@@ -4503,7 +4513,7 @@ sh_install() {
 
 			sh_activating_services
 
-			sh_chroot_job "$(gettext 'Ajustando e validando configuração em: ') $dir_install" "
+			sh_chroot_job "$(gettext 'Ajustando e validando configuração em:') $dir_install" "
 #               xbps-reconfigure --force --all
                 xbps-reconfigure --all
             "
