@@ -2224,6 +2224,23 @@ sh_cinnamonminimal() {
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
 
+sh_enlightenment_minimal() {
+	local DE='Enlightenment'
+	local apkgs=(
+	   enlightenment
+	   efl
+	   exquisite
+	   acpi
+	   acpid
+	   connman
+		voidbr-enlightenment-config
+		voidbr-wallpapers
+		chili-gnome-theme-tokyo
+   )
+
+	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
+}
+
 sh_xfce4minimal() {
 	local DE='Xfce4'
 	local apkgs=(xfce4
@@ -2396,13 +2413,6 @@ sh_bspwmminimal() {
 	apkgs+=(font-weather-icons font-awesome5 noto-fonts-cjk hsetroot lxappearance)
 	apkgs+=(rofi gtk-engine-murrine gtk2-engines)
 	apkgs+=(chili-void-bspwm-skel)
-
-	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
-}
-
-sh_enlightenmentminimal() {
-	local DE='Enlightenment'
-	local apkgs=(enlightenment efl exquisite acpi acpid connman)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -3778,7 +3788,6 @@ sh_choose_wm() {
 	#		dwm "${aWm[dwm]}" "${aFlag[dwm]}" \
 	#		blackbox "${aWm[blackbox]}" "${aFlag[blackbox]}" \
 	#		fluxbox "${aWm[fluxbox]}" "${aFlag[fluxbox]}" \
-	#		enlightenment "${aWm[enlightenment]}" "${aFlag[enlightenment]}" \
 	#		hyprland "${aWm[hyprland]}" "${aFlag[hyprland]}" \
 	#		i3wm "${aWm[i3wm]}" "${aFlag[i3wm]}" \
 	#		lxde "${aWm[lxde]}" "${aFlag[lxde]}" \
@@ -3797,11 +3806,12 @@ sh_choose_wm() {
 		tty "${aWm[tty]}" "${aFlag[tty]}" \
 		server "${aWm[server]}" "${aFlag[server]}" \
 		xorg "${aWm[xorg]}" "${aFlag[xorg]}" \
+		cinnamon "${aWm[cinnamon]}" "${aFlag[cinnamon]}" \
+		enlightenment "${aWm[enlightenment]}" "${aFlag[enlightenment]}" \
 		gnome "${aWm[gnome]}" "${aFlag[gnome]}" \
 		mate "${aWm[mate]}" "${aFlag[mate]}" \
 		plasma "${aWm[plasma]}" "${aFlag[plasma]}" \
 		xfce4 "${aWm[xfce4]}" "${aFlag[xfce4]}" \
-		cinnamon "${aWm[cinnamon]}" "${aFlag[cinnamon]}" \
 		2>&1 >/dev/tty)
 
 	exit_status=$?
@@ -4443,7 +4453,7 @@ sh_install() {
 				"bspwm") sh_bspwmminimal ;;
 				"blackbox") sh_blackboxminimal ;;
 				"dwm") sh_dwmminimal ;;
-				"enlightenment") sh_enlightenmentminimal ;;
+				"enlightenment") sh_enlightenment_minimal ;;
 				"fluxbox") sh_fluxboxminimal ;;
 				"hyprland") sh_hyprlandminimal ;;
 				"openbox") sh_openboxminimal ;;
