@@ -464,7 +464,7 @@ sh_update_self() {
 
 sh_choose_common_packages() {
 	declare -ga aSuplemento=(
-		chili-void-grub-theme
+		voidbr-grub-theme
 		#	   voidbr-plymouth-theme
 		chili-utils
 		void-utils
