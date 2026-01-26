@@ -514,7 +514,7 @@ sh_choose_common_packages() {
 
 	if $LCUSTOM; then
 		## X11
-		declare -ga aIconsAndThemes=(Adapta adwaita-icon-theme xfwm-axiom-theme)
+		declare -ga aIconsAndThemes=(Adapta adwaita-icon-theme voidbr-xfwm-axiom-theme)
 		declare -ga aArchiverX=(xarchiver)
 		declare -ga aBrowser=(firefox firefox-i18n-$(sh_get_language_without_utf8) brave-bin)
 		declare -ga aBluetooth=(bluez bluez-alsa bluedevil blueman bluez-cups bluez-deprecated gnome-bluetooth1 blueberry)
