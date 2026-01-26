@@ -2416,10 +2416,28 @@ sh_awesome_minimal() {
 
 sh_bspwm_minimal() {
 	local DE='Bspwm'
-	local apkgs=(bspwm polybar sxhkd dunst flameshot picom feh dmenu lua wmctrl compton mpd)
-	apkgs+=(font-weather-icons font-awesome5 noto-fonts-cjk hsetroot lxappearance)
-	apkgs+=(rofi gtk-engine-murrine gtk2-engines)
-	apkgs+=(chili-void-bspwm-skel)
+	local apkgs=(bspwm
+		polybar
+		sxhkd
+		dunst
+		flameshot
+		picom
+		feh
+		dmenu
+		lua
+		wmctrl
+		compton
+		mpd
+		font-weather-icons
+		font-awesome5
+		noto-fonts-cjk
+		hsetroot
+		lxappearance
+		rofi
+		gtk-engine-murrine
+		gtk2-engines
+		chili-void-bspwm-skel
+	)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
