@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: dom 25 jan 2026 22:30:14 -04
+#  Updated: seg 26 jan 2026 09:59:03 -04
 #
 #  Copyright (c) 2022-2025, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.1.25-20260125'
+readonly _VERSION_='3.1.26-20260126'
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 readonly LOCKFILE="/tmp/void-install.lock"
 
@@ -4119,11 +4119,10 @@ GRUB_DISTRIBUTOR="Void"
 #GRUB_COLOR_NORMAL="light-blue/black"
 #GRUB_COLOR_HIGHLIGHT="light-cyan/blue"
 GRUB_CMDLINE_LINUX_DEFAULT="loglevel=3 quiet splash"
-GRUB_THEME="/boot/grub/themes/chili/theme.txt"
+GRUB_THEME="/boot/grub/themes/voidbr/theme.txt"
 EOF
 
-	#	echo "GRUB_THEME=/boot/grub/themes/void/theme.txt" >>"$dir_install/etc/default/grub"
-	echo "GRUB_THEME=/boot/grub/themes/chili/theme.txt" >>"$dir_install/etc/default/grub"
+	echo "GRUB_THEME=/boot/grub/themes/voidbr/theme.txt" >>"$dir_install/etc/default/grub"
 	if $LOSPROBER; then
 		echo "GRUB_DISABLE_OS_PROBER=false" >>"$dir_install/etc/default/grub"
 	else
