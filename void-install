@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: seg 26 jan 2026 09:59:03 -04
+#  Updated: qui 29 jan 2026 18:07:11 -04
 #
 #  Copyright (c) 2022-2025, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.1.26-20260126'
+readonly _VERSION_='3.1.29-20260129'
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 readonly LOCKFILE="/tmp/void-install.lock"
 
@@ -2392,10 +2392,42 @@ sh_sway_minimal() {
 
 sh_mate_minimal() {
 	local DE='Mate'
-	local apkgs=('mate' 'mate-extra' 'mate-applets' 'atril' 'caja-image-converter' 'caja-open-terminal' 'caja-sendto'
-		'caja-share' 'caja-wallpaper' 'caja-xattr-tags' 'engrampa' 'eom' 'mate-calc' 'mate-icon-theme-faenza'
-		'mate-media' 'mate-netbook' 'mate-power-manager' 'mate-screensaver' 'mate-sensors-applet' 'mate-system-monitor'
-		'mate-terminal' 'mate-utils' 'mozo' 'pluma' 'mate-backgrounds')
+	local apkgs=(mate
+		mate-applets
+		mate-common
+		mate-extra
+		mate-backgrounds
+		mate-calc
+		mate-icon-theme-faenza
+		mate-media
+		mate-netbook
+		mate-power-manager
+		mate-screensaver
+		mate-sensors-applet
+		mate-system-monitor
+		mate-terminal
+		mate-utils
+		atril
+		caja-image-converter
+		caja-open-terminal
+		caja-sendto
+		caja-share
+		caja-wallpaper
+		caja-xattr-tags
+		engrampa
+		eom
+		mozo
+		pluma
+		plank
+		brisk-menu
+	)
+	apkgs+=(
+		voidbr-mate-config
+		voidbr-wallpapers
+		voidbr-tokyo-theme
+		voidbr-professional-theme
+		voidbr-beauty-icons
+	)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
