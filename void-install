@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: qui 29 jan 2026 18:07:11 -04
+#  Updated: qui 29 jan 2026 22:26:49 -04
 #
 #  Copyright (c) 2022-2025, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -5198,7 +5198,7 @@ sh_main_menu() {
 		"${cmsg_Teclado}") sh_chooseKeymap && [ -n "$LKEYMAP" ] && DEFITEM="Timezone" ;;
 		"Timezone") sh_chooseTimezone && [ -n "$LTIMEZONE" ] && DEFITEM="Wm" ;;
 		"Locale") sh_chooseLocale && [ -n "$LTIMEZONE" ] && DEFITEM="Wm" ;;
-		"Wm") sh_choose_wm && [ -n "$LWM" ] && DEFITEM="Extra" ;;
+		"Wm") sh_choose_wm && [ -n "$LWM" ] && DEFITEM="${cmsg_Usuario}" ;;
 		"${cmsg_Usuario}") sh_confadduser "$@" && [ -n "$LEXTRA" ] && DEFITEM="Audio" ;;
 		"Audio") sh_chooseaudioserver "$@" && [ -n "$LAUDIO" ] && DEFITEM="${cmsg_Instalar}" ;;
 		"${cmsg_Instalar}") sh_install ;;
