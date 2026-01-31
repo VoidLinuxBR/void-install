@@ -513,12 +513,12 @@ sh_choose_common_packages() {
 	declare -ga aPulseaudio=(pulseaudio pavucontrol pasystray gst-plugins-bad1 gst-plugins-good1 gst-plugins-ugly1 gst-plugins-base1 alsa-plugins-pulseaudio)
 	declare -ga aPipewire=(pipewire wireplumber alsa-pipewire pulseaudio-utils pavucontrol libspa-bluetooth libjack-pipewire alsa-plugins-pulseaudio)
 
-    case $_DISPLAYMANAGER in
-    lxdm) declare -ga aDisplaymanager=(lxdm lxdm-theme-vdojo)
-    sddm) declare -ga aDisplaymanager=(sddm voidbr-sddm-themes)
-    gdm) declare -ga aDisplaymanager=(gdm)
-    lightdm) declare -ga aDisplaymanager=(lightdm lightdm-gtk-greeter lightdm-slick-greeter lightdm-webkit2-greeter )
-    esac
+	case $_DISPLAYMANAGER in
+	lxdm) declare -ga aDisplaymanager=(lxdm lxdm-theme-vdojo) ;;
+	sddm) declare -ga aDisplaymanager=(sddm voidbr-sddm-themes) ;;
+	gdm) declare -ga aDisplaymanager=(gdm) ;;
+	lightdm) declare -ga aDisplaymanager=(lightdm lightdm-gtk-greeter lightdm-slick-greeter lightdm-webkit2-greeter) ;;
+	esac
 
 	if $LCUSTOM; then
 		## X11
