@@ -82,6 +82,7 @@ declare -gA DISTRO_MGR=(
 
 declare distro=$(uname -n)
 declare LCUSTOM=false
+declare LAUTOLOGIN=false
 declare LEFI=false
 declare LGRUB=false
 declare LDISK=false
@@ -91,6 +92,7 @@ declare LKEYMAP=true
 declare LTIMEZONE=true
 declare LAUDIO=true
 declare LWM=true
+declare LDM=true
 declare LAUTO=true
 declare LMKPARTED=false
 declare LFS=false
@@ -510,7 +512,13 @@ sh_choose_common_packages() {
 	declare -ga aVideo=(mesa-dri linux-firmware-intel xf86-video-amdgpu xf86-video-ati mesa-nouveau-dri)
 	declare -ga aPulseaudio=(pulseaudio pavucontrol pasystray gst-plugins-bad1 gst-plugins-good1 gst-plugins-ugly1 gst-plugins-base1 alsa-plugins-pulseaudio)
 	declare -ga aPipewire=(pipewire wireplumber alsa-pipewire pulseaudio-utils pavucontrol libspa-bluetooth libjack-pipewire alsa-plugins-pulseaudio)
-	declare -ga aDisplaymanager=(lxdm lxdm-theme-vdojo sddm voidbr-sddm-themes)
+
+    case $_DISPLAYMANAGER in
+    lxdm) declare -ga aDisplaymanager=(lxdm lxdm-theme-vdojo)
+    sddm) declare -ga aDisplaymanager=(sddm voidbr-sddm-themes)
+    gdm) declare -ga aDisplaymanager=(gdm)
+    lightdm) declare -ga aDisplaymanager=(lightdm lightdm-gtk-greeter lightdm-slick-greeter lightdm-webkit2-greeter )
+    esac
 
 	if $LCUSTOM; then
 		## X11
@@ -568,6 +576,7 @@ sh_choose_common_packages() {
 
 }
 
+declare _DISPLAYMANAGER='sddm'
 declare _WINDOWMANAGER=('tty')
 declare _WIFI_NETWORK="wifi_ssid"
 declare _WIFI_PASSWORD="wifi_password"
@@ -663,6 +672,7 @@ sh_setEnvironment() {
 	: "${LGRUB=}"
 	: "${LKEYMAP=}"
 	: "${LWM=}"
+	: "${LDM=}"
 	: "${LWIFI=}"
 	: "${LMIRROR=}"
 	: "${LSOURCE=}"
@@ -718,6 +728,7 @@ sh_touchConf() {
 		declare -p LMKPARTED
 		declare -p _WIFI_NETWORK
 		declare -p _WIFI_PASSWORD
+		declare -p _DISPLAYMANAGER
 		declare -p _WINDOWMANAGER
 		declare -p AsUser
 		declare -p Amkfs
@@ -730,6 +741,7 @@ sh_touchConf() {
 		declare -p AConfWifi
 		declare -p AConfFde
 		declare -p LCUSTOM
+		declare -p LAUTOLOGIN
 		declare -p HYPRLAND
 		#	declare -p AARRAY_DSK_DEVICES
 		#	declare -p AARRAY_PART_DEVICES
@@ -1981,14 +1993,8 @@ sh_activating_services() {
 	for x in "${aDE[@]}"; do
 		case $x in
 		tty | server) continue ;;
-		gnome)
-			#			aServicesX+=(gdm)
-			aServicesX+=(sddm)
-			break
-			;;
 		*)
-			#			aServicesX+=(lxdm)
-			aServicesX+=(sddm)
+			aServicesX+=($_DISPLAYMANAGER)
 			break
 			;;
 		esac
@@ -3718,8 +3724,8 @@ sh_dryrun() {
 	#  sh_update_sshd
 	#  sh_update_sudoers
 	#  sh_make_fstab
-   sh_update_sddm_conf
-   export PS1="[chroot $dir_install] $PS1"
+	sh_update_sddm_conf
+	export PS1="[chroot $dir_install] $PS1"
 	LC_ALL=C chroot "$dir_install" "/bin/bash"
 	sh_umount_fs
 }
@@ -3772,6 +3778,7 @@ sh_parseconf() {
 	[[ -n "${AConfAudio[_AUDIOSERVER]}" ]] && LAUDIO=true
 	[[ -n "${Amntpoint[*]}" ]] && LPARTITION=true
 	[[ -n ${_WINDOWMANAGER[*]} ]] && LWM=true
+	[[ -n ${_DISPLAYMANAGER} ]] && LDM=true
 	evaluate_retval "${PIPESTATUS[0]}" "$err_not_fatal"
 }
 
@@ -3916,6 +3923,54 @@ sh_choose_wm() {
 	if grep -qi hyprland <<<"${_WINDOWMANAGER[@]}"; then
 		HYPRLAND=true
 	fi
+}
+
+sh_choose_dm() {
+	declare -A aFlag
+	declare -A aDm
+	local x
+
+	aDm[lxdm]="Leve e simples, ideal para computadores antigos, Xorg"
+	aDm[sddm]="Display manager moderno, Xorg e Wayland"
+	aDm[gdm]="Moderno, Xorg e Wayland"
+	aDm[lightdm]="Leve e flexível, Xorg (Wayland limitado)"
+
+	for x in "${!aDm[@]}"; do
+		aFlag[$x]='off'
+	done
+	aFlag[$_DISPLAYMANAGER]='on'
+
+	dm=$(${DIALOG} --title "=== ${cmsg_Dm^^} ===" \
+		--default-item "$_DISPLAYMANAGER" \
+		--colors \
+		--cancel-label "${cmsg_ButtonBack}" \
+		--ok-label "${cmsg_Aceitar}" \
+		--radiolist "${cmsg_MENU}" \
+		0 0 0 \
+		lxdm "${aDm[lxdm]}" "${aFlag[lxdm]}" \
+		sddm "${aDm[sddm]}" "${aFlag[sddm]}" \
+		gdm "${aDm[gdm]}" "${aFlag[gdm]}" \
+		lightdm "${aDm[lightdm]}" "${aFlag[lightdm]}" \
+		2>&1 >/dev/tty)
+
+	exit_status=$?
+	case $exit_status in
+	"$D_ESC" | "$D_CANCEL")
+		return
+		;;
+	esac
+
+	if conf "=== ${cmsg_Dm^^} ===" \
+		"\n${BOLD}${WHITE}$(gettext "O login automático permite iniciar o ambiente gráfico")" \
+		"\n$(gettext "sem solicitar usuário e senha no boot.")\n" \
+		"\n${BOLD}${RED}$(gettext "Deseja ativar o login automático no Display Manager?")\n\n"; then
+		LAUTOLOGIN=true
+	else
+		LAUTOLOGIN=false
+	fi
+
+	LDM=true
+	_DISPLAYMANAGER="$dm"
 }
 
 function pcount() {
@@ -4358,33 +4413,33 @@ sh_install_pkgs_in_chroot() {
 }
 
 sh_get_session_name() {
-    local SESSION_NAME=xfce
-    local NEWROOT="$dir_install"
+	local SESSION_NAME=xfce
+	local NEWROOT="$dir_install"
 
-    if [ -x "${NEWROOT}"/usr/bin/startxfce4 ]; then
-        SESSION_NAME=xfce
-    elif [ -x "${NEWROOT}"/usr/bin/startplasma-wayland ]; then
-        SESSION_NAME=plasma
-    elif [ -x "${NEWROOT}"/usr/bin/enlightenment_start ]; then
-        SESSION_NAME=enlightenment
-    elif [ -x "${NEWROOT}"/usr/bin/awesome ]; then
-        SESSION_NAME=awesome
-    elif [ -x "${NEWROOT}"/usr/bin/gnome-session ]; then
-        SESSION_NAME=gnome
-    elif [ -x "${NEWROOT}"/usr/bin/mate-session ]; then
-        SESSION_NAME=mate
-    elif [ -x "${NEWROOT}"/usr/bin/cinnamon-session ]; then
-        SESSION_NAME=cinnamon
-    elif [ -x "${NEWROOT}"/usr/bin/i3 ]; then
-        SESSION_NAME=i3
-    elif [ -x "${NEWROOT}"/usr/bin/startlxde ]; then
-        SESSION_NAME=startlxde
-    elif [ -x "${NEWROOT}"/usr/bin/startlxqt ]; then
-        SESSION_NAME=startlxqt
-    elif [ -x "${NEWROOT}"/usr/bin/startfluxbox ]; then
-        SESSION_NAME=startfluxbox
-    fi
-    echo $SESSION_NAME
+	if [ -x "${NEWROOT}"/usr/bin/startxfce4 ]; then
+		SESSION_NAME=xfce
+	elif [ -x "${NEWROOT}"/usr/bin/startplasma-wayland ]; then
+		SESSION_NAME=plasma
+	elif [ -x "${NEWROOT}"/usr/bin/enlightenment_start ]; then
+		SESSION_NAME=enlightenment
+	elif [ -x "${NEWROOT}"/usr/bin/awesome ]; then
+		SESSION_NAME=awesome
+	elif [ -x "${NEWROOT}"/usr/bin/gnome-session ]; then
+		SESSION_NAME=gnome
+	elif [ -x "${NEWROOT}"/usr/bin/mate-session ]; then
+		SESSION_NAME=mate
+	elif [ -x "${NEWROOT}"/usr/bin/cinnamon-session ]; then
+		SESSION_NAME=cinnamon
+	elif [ -x "${NEWROOT}"/usr/bin/i3 ]; then
+		SESSION_NAME=i3
+	elif [ -x "${NEWROOT}"/usr/bin/startlxde ]; then
+		SESSION_NAME=startlxde
+	elif [ -x "${NEWROOT}"/usr/bin/startlxqt ]; then
+		SESSION_NAME=startlxqt
+	elif [ -x "${NEWROOT}"/usr/bin/startfluxbox ]; then
+		SESSION_NAME=startfluxbox
+	fi
+	echo $SESSION_NAME
 }
 
 sh_update_lxdm_conf() {
@@ -4392,15 +4447,24 @@ sh_update_lxdm_conf() {
 	local cuser="${AsUser[cuser]}"
 
 	sh_info_msg "Customizando $cfile"
-    mkdir -p "$dir_install/etc/lxdm"
-    cat >"$cfile" <<EOF
+	mkdir -p "$dir_install/etc/lxdm"
+
+	if [[ "$LAUTOLOGIN" == true ]]; then
+		autologin_line="autologin=$cuser"
+		skip_pass_line="skip_password=1"
+	else
+		autologin_line="# autologin="
+		skip_pass_line="skip_password=0"
+	fi
+
+	cat >"$cfile" <<EOF
 [base]
-autologin=$cuser
+$autologin_line
 # timeout=10
 session=/usr/bin/startxfce4
 numlock=1
 # xauth_path=/tmp
-skip_password=1
+$skip_pass_line
 greeter=/usr/libexec/lxdm-greeter-gtk
 
 [server]
@@ -4429,16 +4493,67 @@ EOF
 sh_update_sddm_conf() {
 	local cfile="$dir_install/etc/sddm.conf.d/00-autologin.conf"
 	local cuser="${AsUser[cuser]}"
-   local SESSION_NAME=$(sh_get_session_name)
+	local SESSION_NAME=$(sh_get_session_name)
 
-   sh_info_msg "Customizando SDDM $cfile"
-   mkdir -p "$dir_install/etc/sddm.conf.d"
-   cat >"$cfile" <<EOF
+	sh_info_msg "Customizando SDDM $cfile"
+	mkdir -p "$dir_install/etc/sddm.conf.d"
+
+	if [[ "$LAUTOLOGIN" == true ]]; then
+		enable="true"
+		user="$cuser"
+		session="$SESSION_NAME"
+	else
+		enable="false"
+		user=""
+		session=""
+	fi
+
+	cat >"$cfile" <<EOF
 [Autologin]
-Enable=true
-User=$cuser
-#Session=xfce.desktop
-Session=$SESSION_NAME
+Enable=$enable
+User=$user
+Session=$session
+EOF
+}
+
+sh_update_gdm_conf() {
+	local cfile="$dir_install/etc/gdm/custom.conf"
+	local cuser="${AsUser[cuser]}"
+
+	sh_info_msg "Customizando GDM $cfile"
+	mkdir -p "$dir_install/etc/gdm"
+
+	if [[ "$LAUTOLOGIN" == true ]]; then
+		auto_enable="True"
+		auto_user="$cuser"
+	else
+		auto_enable="False"
+		auto_user=""
+	fi
+
+	cat >"$cfile" <<EOF
+[daemon]
+AutomaticLoginEnable=$auto_enable
+AutomaticLogin=$auto_user
+EOF
+}
+
+sh_update_lightdm_conf() {
+	local cfile="$dir_install/etc/lightdm/lightdm.conf.d/00-autologin.conf"
+	local cuser="${AsUser[cuser]}"
+
+	sh_info_msg "Customizando LightDM $cfile"
+	mkdir -p "$dir_install/etc/lightdm/lightdm.conf.d"
+
+	if [[ "$LAUTOLOGIN" == true ]]; then
+		auto_user="$cuser"
+	else
+		auto_user=""
+	fi
+
+	cat >"$cfile" <<EOF
+[Seat:*]
+autologin-user=$auto_user
 EOF
 }
 
@@ -4592,6 +4707,13 @@ sh_install() {
 				sh_activating_pipewire
 			fi
 
+			case $_DISPLAYMANAGER in
+			lxdm) sh_update_lxdm_conf ;;
+			sddm) sh_update_sddm_conf ;;
+			gdm) sh_update_gdm_conf ;;
+			lightdm) sh_update_lightdm_conf ;;
+			esac
+
 			sh_activating_services
 
 			sh_chroot_job "$(gettext 'Ajustando e validando configuração em:') $dir_install" "
@@ -4608,8 +4730,6 @@ sh_install() {
 				sh_chroot_job "${cmsg_Instalando} User into group _seatd" "usermod -aG _seatd "$user"}" "$err_not_fatal"
 			fi
 
-			sh_update_lxdm_conf
-			sh_update_sddm_conf
 			sh_chmod_tmp
 			sh_umount_fs
 			end_datetime=$(date)
@@ -5196,6 +5316,7 @@ sh_main_menu() {
 			{ $LONLY_TTY && MENU_AUDIO="${YELLOW}[${AConfAudio[_AUDIOSERVER]}]${RST} ● " || MENU_AUDIO="${RED}[not defined]${RST} ● "; }
 		$LCUSTOM && MENU_CUSTOM="CUSTOM" || MENU_CUSTOM=""
 		$LWM && MENU_WM="${YELLOW}[${_WINDOWMANAGER[*]} ${MENU_CUSTOM}]${RST} ● " || MENU_WM="${RED}[not defined]${RST} ● "
+		$LDM && MENU_DM="${YELLOW}[${_DISPLAYMANAGER[*]}]${RST} ● " || MENU_DM="${RED}[not defined]${RST} ● "
 		$LEXTRA && MENU_EXTRA="${YELLOW}[OK]${RST} ● " || MENU_EXTRA="${RED}[not defined]${RST} ● "
 
 		menu=$(${DIALOG} \
@@ -5218,6 +5339,7 @@ sh_main_menu() {
 			"Timezone" "${MENU_TIMEZONE}${cmsg_descTimezone}" \
 			"Locale" "${MENU_LOCALE}${cmsg_descLocale}" \
 			"Wm" "${MENU_WM}${cmsg_descWm}" \
+			"Dm" "${MENU_DM}${cmsg_descDm}" \
 			"${cmsg_Usuario}" "${MENU_EXTRA}${cmsg_descExtra}" \
 			"Audio" "${MENU_AUDIO}${cmsg_DefinirAudioServer}" \
 			"${cmsg_Instalar}" "${cmsg_descInstalar}" \
@@ -5246,7 +5368,8 @@ sh_main_menu() {
 		"${cmsg_Teclado}") sh_chooseKeymap && [ -n "$LKEYMAP" ] && DEFITEM="Timezone" ;;
 		"Timezone") sh_chooseTimezone && [ -n "$LTIMEZONE" ] && DEFITEM="Wm" ;;
 		"Locale") sh_chooseLocale && [ -n "$LTIMEZONE" ] && DEFITEM="Wm" ;;
-		"Wm") sh_choose_wm && [ -n "$LWM" ] && DEFITEM="${cmsg_Usuario}" ;;
+		"Wm") sh_choose_wm && [ -n "$LWM" ] && DEFITEM="Dm" ;;
+		"Dm") sh_choose_dm && [ -n "$LDM" ] && DEFITEM="${cmsg_Usuario}" ;;
 		"${cmsg_Usuario}") sh_confadduser "$@" && [ -n "$LEXTRA" ] && DEFITEM="Audio" ;;
 		"Audio") sh_chooseaudioserver "$@" && [ -n "$LAUDIO" ] && DEFITEM="${cmsg_Instalar}" ;;
 		"${cmsg_Instalar}") sh_install ;;
@@ -5840,6 +5963,7 @@ sh_setLanguage() {
 	cmsg_descTimezone=$(gettext "Definir fuso horário")
 	cmsg_descLocale=$(gettext "Definir localidade do sistema")
 	cmsg_descWm=$(gettext "Definir gerenciador de janelas")
+	cmsg_descDm=$(gettext "Definir gerenciador de login")
 	cmsg_descWifi=$(gettext "Definir rede e senha wifi (opcional)")
 	cmsg_opcional=$(gettext "opcional")
 	cmsg_Usuario=$(gettext "Usuário")
@@ -5912,6 +6036,7 @@ sh_setLanguage() {
 	cmsg_CopiandoCaminhoReserva=$(gettext "Criando inicialização padrão/reserva (roaming) para")
 	cmsg_Error_not_fatal=$(gettext "Erro não fatal. Para mais detalhes veja o log")
 	cmsg_Wm=$(gettext "gerenciador de janelas (wm)")
+	cmsg_Dm=$(gettext "gerenciador de login (dm)")
 	cmsg_TabelaMBR=$(gettext "Tabela MBR (dos)")
 	cmsg_ExtraEfi=$(gettext "Detectado boot via EFI ↓ é recomendável instalar EFI ↓")
 	cmsg_ExtraNotEfi=$(gettext "EFI não detectado ↓ é recomendável GPT_BIOS ou MBR_BIOS ↓")
@@ -6248,4 +6373,3 @@ sh_setMknodTty
 #sh_menu_language "$@"
 for x in "${appexec[@]}"; do $x; done
 sh_enablePrintk
-
