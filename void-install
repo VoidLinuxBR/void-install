@@ -4388,7 +4388,7 @@ sh_get_session_name() {
 
 sh_update_lxdm_conf() {
 	local cfile="$dir_install/etc/lxdm/lxdm.conf"
-	local user="${AsUser[cuser]}"
+	local cuser="${AsUser[cuser]}"
 
 	sh_info_msg "Customizando $cfile"
     mkdir -p "$dir_install/etc/lxdm"
@@ -4427,7 +4427,7 @@ EOF
 
 sh_update_sddm_conf() {
 	local cfile="$dir_install/etc/sddm.d/00-autologin.conf"
-	local user="${AsUser[cuser]}"
+	local cuser="${AsUser[cuser]}"
     local SESSION_NAME=$(sh_get_session_name)
 
 	sh_info_msg "Customizando SDDM $cfile"
@@ -4435,7 +4435,7 @@ sh_update_sddm_conf() {
     cat >"$cfile" <<EOF
 [Autologin]
 Enable=true
-User=$user
+User=$cuser
 #Session=xfce.desktop
 Session=$SESSION_NAME
 EOF
