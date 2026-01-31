@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: qui 29 jan 2026 22:26:49 -04
+#  Updated: sáb 31 jan 2026 07:58:03 -04
 #
 #  Copyright (c) 2022-2025, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.1.29-20260129'
+readonly _VERSION_='3.1.31-20260131'
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 readonly LOCKFILE="/tmp/void-install.lock"
 
@@ -4357,15 +4357,44 @@ sh_install_pkgs_in_chroot() {
 		"$err_not_fatal"
 }
 
+sh_get_session_name() {
+    local SESSION_NAME=xfce
+    local NEWROOT="${dir_install}"
+
+    if [ -x "${NEWROOT}"/usr/bin/startxfce4 ]; then
+        SESSION_NAME=xfce
+    elif [ -x "${NEWROOT}"/usr/bin/startplasma-wayland ]; then
+        SESSION_NAME=plasma
+    elif [ -x "${NEWROOT}"/usr/bin/enlightenment_start ]; then
+        SESSION_NAME=enlightenment
+    elif [ -x "${NEWROOT}"/usr/bin/awesome ]; then
+        SESSION_NAME=awesome
+    elif [ -x "${NEWROOT}"/usr/bin/gnome-session ]; then
+        SESSION_NAME=gnome
+    elif [ -x "${NEWROOT}"/usr/bin/mate-session ]; then
+        SESSION_NAME=mate
+    elif [ -x "${NEWROOT}"/usr/bin/cinnamon-session ]; then
+        SESSION_NAME=cinnamon
+    elif [ -x "${NEWROOT}"/usr/bin/i3 ]; then
+        SESSION_NAME=i3
+    elif [ -x "${NEWROOT}"/usr/bin/startlxde ]; then
+        SESSION_NAME=startlxde
+    elif [ -x "${NEWROOT}"/usr/bin/startlxqt ]; then
+        SESSION_NAME=startlxqt
+    elif [ -x "${NEWROOT}"/usr/bin/startfluxbox ]; then
+        SESSION_NAME=startfluxbox
+    fi
+    echo ${SESSION_NAME}
+}
+
 sh_update_lxdm_conf() {
 	local cfile="$dir_install/etc/lxdm/lxdm.conf"
 
 	sh_info_msg "Customizando ${cfile}"
 	cat >"$cfile" <<EOF
 [base]
-autologin="${AsUser[cuser]}"
+autologin=${AsUser[cuser]}
 # timeout=10
-# session=/usr/bin/startlxde
 session=/usr/bin/startxfce4
 numlock=1
 # xauth_path=/tmp
@@ -4394,6 +4423,21 @@ white=
 black=
 EOF
 }
+
+sh_update_sddm_conf() {
+	local cfile="$dir_install/etc/sddm.d/00-autologin.conf"
+	local user="${AsUser[cuser]}"
+    local SESSION_NAME="$(sh_get_session_name)"
+
+	sh_info_msg "Customizando SDDM ${cfile}"
+    mkdir -p "${dir_install}/etc/sddm.conf.d"
+    cat >"${cfile}" <<EOF
+[Autologin]
+Enable=true
+User=${user}
+#Session=xfce.desktop
+Session=${SESSION_NAME}
+EOF
 
 sh_install() {
 	local user="${AsUser[cuser]}"
@@ -4548,8 +4592,8 @@ sh_install() {
 			sh_activating_services
 
 			sh_chroot_job "$(gettext 'Ajustando e validando configuração em:') $dir_install" "
-#               xbps-reconfigure --force --all
-                xbps-reconfigure --all
+                xbps-reconfigure --force glibc-locales
+                xbps-reconfigure --force --all
             "
 
 			sh_chroot_job "${cmsg_RemovendoPacotesAntigosObseletos}" "
@@ -4562,6 +4606,7 @@ sh_install() {
 			fi
 
 			sh_update_lxdm_conf
+			sh_update_sddm_conf
 			sh_chmod_tmp
 			sh_umount_fs
 			end_datetime=$(date)
