@@ -4391,6 +4391,7 @@ sh_update_lxdm_conf() {
 	local user="${AsUser[cuser]}"
 
 	sh_info_msg "Customizando $cfile"
+    mkdir -p "$dir_install/etc/lxdm"
     cat >"$cfile" <<EOF
 [base]
 autologin=$cuser
