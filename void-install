@@ -3718,7 +3718,8 @@ sh_dryrun() {
 	#  sh_update_sshd
 	#  sh_update_sudoers
 	#  sh_make_fstab
-	export PS1="[chroot $dir_install] $PS1"
+   sh_update_sddm_conf
+   export PS1="[chroot $dir_install] $PS1"
 	LC_ALL=C chroot "$dir_install" "/bin/bash"
 	sh_umount_fs
 }
@@ -4426,13 +4427,13 @@ EOF
 }
 
 sh_update_sddm_conf() {
-	local cfile="$dir_install/etc/sddm.d/00-autologin.conf"
+	local cfile="$dir_install/etc/sddm.conf.d/00-autologin.conf"
 	local cuser="${AsUser[cuser]}"
-    local SESSION_NAME=$(sh_get_session_name)
+   local SESSION_NAME=$(sh_get_session_name)
 
-	sh_info_msg "Customizando SDDM $cfile"
-    mkdir -p "$dir_install/etc/sddm.conf.d"
-    cat >"$cfile" <<EOF
+   sh_info_msg "Customizando SDDM $cfile"
+   mkdir -p "$dir_install/etc/sddm.conf.d"
+   cat >"$cfile" <<EOF
 [Autologin]
 Enable=true
 User=$cuser
