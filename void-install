@@ -4416,29 +4416,35 @@ sh_get_session_name() {
 	local SESSION_NAME=xfce
 	local NEWROOT="$dir_install"
 
-	if [ -x "${NEWROOT}"/usr/bin/startxfce4 ]; then
-		SESSION_NAME=xfce
-	elif [ -x "${NEWROOT}"/usr/bin/startplasma-wayland ]; then
-		SESSION_NAME=plasma
-	elif [ -x "${NEWROOT}"/usr/bin/enlightenment_start ]; then
-		SESSION_NAME=enlightenment
-	elif [ -x "${NEWROOT}"/usr/bin/awesome ]; then
-		SESSION_NAME=awesome
-	elif [ -x "${NEWROOT}"/usr/bin/gnome-session ]; then
-		SESSION_NAME=gnome
-	elif [ -x "${NEWROOT}"/usr/bin/mate-session ]; then
-		SESSION_NAME=mate
-	elif [ -x "${NEWROOT}"/usr/bin/cinnamon-session ]; then
-		SESSION_NAME=cinnamon
-	elif [ -x "${NEWROOT}"/usr/bin/i3 ]; then
-		SESSION_NAME=i3
-	elif [ -x "${NEWROOT}"/usr/bin/startlxde ]; then
-		SESSION_NAME=startlxde
-	elif [ -x "${NEWROOT}"/usr/bin/startlxqt ]; then
-		SESSION_NAME=startlxqt
-	elif [ -x "${NEWROOT}"/usr/bin/startfluxbox ]; then
-		SESSION_NAME=startfluxbox
-	fi
+	for x in "${_WINDOWMANAGER[@]}"; do
+		case "$x" in
+		"xfce4")
+			SESSION_NAME=xfce
+			break
+			;;
+		"gnome")
+			SESSION_NAME=gnome
+			break
+			;;
+		"plasma")
+			SESSION_NAME=plasma
+			break
+			;;
+		"cinnamon")
+			SESSION_NAME=cinnamon
+			break
+			;;
+		"mate")
+			SESSION_NAME=mate
+			break
+			;;
+		"enlightenment")
+			SESSION_NAME=enlightenment
+			break
+			;;
+		*) continue ;;
+		esac
+	done
 	echo $SESSION_NAME
 }
 
@@ -4517,25 +4523,25 @@ EOF
 }
 
 sh_update_gdm_conf() {
-    local cfile="$dir_install/etc/gdm/custom.conf"
-    local cuser="${AsUser[cuser]}"
-    local SESSION_NAME
-    SESSION_NAME=$(sh_get_session_name)
+	local cfile="$dir_install/etc/gdm/custom.conf"
+	local cuser="${AsUser[cuser]}"
+	local SESSION_NAME
+	SESSION_NAME=$(sh_get_session_name)
 
-    sh_info_msg "Customizando GDM $cfile"
-    mkdir -p "$dir_install/etc/gdm"
+	sh_info_msg "Customizando GDM $cfile"
+	mkdir -p "$dir_install/etc/gdm"
 
-    if [[ "$LAUTOLOGIN" == true ]]; then
-        auto_enable="True"
-        auto_user="$cuser"
-        session="$SESSION_NAME"
-    else
-        auto_enable="False"
-        auto_user=""
-        session=""
-    fi
+	if [[ "$LAUTOLOGIN" == true ]]; then
+		auto_enable="True"
+		auto_user="$cuser"
+		session="$SESSION_NAME"
+	else
+		auto_enable="False"
+		auto_user=""
+		session=""
+	fi
 
-    cat >"$cfile" <<EOF
+	cat >"$cfile" <<EOF
 [daemon]
 AutomaticLoginEnable=$auto_enable
 AutomaticLogin=$auto_user
@@ -4544,23 +4550,23 @@ EOF
 }
 
 sh_update_lightdm_conf() {
-    local cfile="$dir_install/etc/lightdm/lightdm.conf.d/00-autologin.conf"
-    local cuser="${AsUser[cuser]}"
-    local SESSION_NAME
-    SESSION_NAME=$(sh_get_session_name)
+	local cfile="$dir_install/etc/lightdm/lightdm.conf.d/00-autologin.conf"
+	local cuser="${AsUser[cuser]}"
+	local SESSION_NAME
+	SESSION_NAME=$(sh_get_session_name)
 
-    sh_info_msg "Customizando LightDM $cfile"
-    mkdir -p "$dir_install/etc/lightdm/lightdm.conf.d"
+	sh_info_msg "Customizando LightDM $cfile"
+	mkdir -p "$dir_install/etc/lightdm/lightdm.conf.d"
 
-    if [[ "$LAUTOLOGIN" == true ]]; then
-        auto_user="$cuser"
-        session="$SESSION_NAME"
-    else
-        auto_user=""
-        session=""
-    fi
+	if [[ "$LAUTOLOGIN" == true ]]; then
+		auto_user="$cuser"
+		session="$SESSION_NAME"
+	else
+		auto_user=""
+		session=""
+	fi
 
-    cat >"$cfile" <<EOF
+	cat >"$cfile" <<EOF
 [Seat:*]
 autologin-user=$auto_user
 autologin-session=$session
