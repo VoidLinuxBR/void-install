@@ -4545,7 +4545,7 @@ sh_update_gdm_conf() {
 [daemon]
 AutomaticLoginEnable=$auto_enable
 AutomaticLogin=$auto_user
-DefaultSession=$session
+DefaultSession=${session}.desktop
 EOF
 }
 
