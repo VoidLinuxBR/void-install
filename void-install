@@ -4517,43 +4517,53 @@ EOF
 }
 
 sh_update_gdm_conf() {
-	local cfile="$dir_install/etc/gdm/custom.conf"
-	local cuser="${AsUser[cuser]}"
+    local cfile="$dir_install/etc/gdm/custom.conf"
+    local cuser="${AsUser[cuser]}"
+    local SESSION_NAME
+    SESSION_NAME=$(sh_get_session_name)
 
-	sh_info_msg "Customizando GDM $cfile"
-	mkdir -p "$dir_install/etc/gdm"
+    sh_info_msg "Customizando GDM $cfile"
+    mkdir -p "$dir_install/etc/gdm"
 
-	if [[ "$LAUTOLOGIN" == true ]]; then
-		auto_enable="True"
-		auto_user="$cuser"
-	else
-		auto_enable="False"
-		auto_user=""
-	fi
+    if [[ "$LAUTOLOGIN" == true ]]; then
+        auto_enable="True"
+        auto_user="$cuser"
+        session="$SESSION_NAME"
+    else
+        auto_enable="False"
+        auto_user=""
+        session=""
+    fi
 
-	cat >"$cfile" <<EOF
+    cat >"$cfile" <<EOF
 [daemon]
 AutomaticLoginEnable=$auto_enable
 AutomaticLogin=$auto_user
+DefaultSession=$session
 EOF
 }
 
 sh_update_lightdm_conf() {
-	local cfile="$dir_install/etc/lightdm/lightdm.conf.d/00-autologin.conf"
-	local cuser="${AsUser[cuser]}"
+    local cfile="$dir_install/etc/lightdm/lightdm.conf.d/00-autologin.conf"
+    local cuser="${AsUser[cuser]}"
+    local SESSION_NAME
+    SESSION_NAME=$(sh_get_session_name)
 
-	sh_info_msg "Customizando LightDM $cfile"
-	mkdir -p "$dir_install/etc/lightdm/lightdm.conf.d"
+    sh_info_msg "Customizando LightDM $cfile"
+    mkdir -p "$dir_install/etc/lightdm/lightdm.conf.d"
 
-	if [[ "$LAUTOLOGIN" == true ]]; then
-		auto_user="$cuser"
-	else
-		auto_user=""
-	fi
+    if [[ "$LAUTOLOGIN" == true ]]; then
+        auto_user="$cuser"
+        session="$SESSION_NAME"
+    else
+        auto_user=""
+        session=""
+    fi
 
-	cat >"$cfile" <<EOF
+    cat >"$cfile" <<EOF
 [Seat:*]
 autologin-user=$auto_user
+autologin-session=$session
 EOF
 }
 
