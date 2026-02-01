@@ -465,6 +465,10 @@ sh_update_self() {
 }
 
 sh_choose_common_packages() {
+    declare -ga aMicrocode=(
+        intel-ucode
+        linux-firmware-amd
+    )
 	declare -ga aSuplemento=(
 		voidbr-grub-theme
 		#	   voidbr-plymouth-theme
@@ -472,7 +476,6 @@ sh_choose_common_packages() {
 		void-utils
 		voidbr-nano-config
 	)
-
 	declare -ga aExtra=(
 		bash-completion
 		fzf
@@ -503,6 +506,10 @@ sh_choose_common_packages() {
 		vim
 	)
 
+	if $ONLY_TTY; then
+        return
+    fi
+
 	if $LXORG; then
 		return
 	fi
@@ -522,9 +529,9 @@ sh_choose_common_packages() {
 
 	if $LCUSTOM; then
 		## X11
-		declare -ga aIconsAndThemes=(Adapta adwaita-icon-theme voidbr-xfwm-axiom-theme)
+		declare -ga aIconsAndThemes=()
 		declare -ga aArchiverX=(xarchiver)
-		declare -ga aBrowser=(firefox firefox-i18n-$(sh_get_language_without_utf8) brave-bin)
+		declare -ga aBrowser=(brave-bin)
 		declare -ga aBluetooth=(bluez bluez-alsa bluedevil blueman bluez-cups bluez-deprecated gnome-bluetooth1 blueberry)
 		declare -ga aFont+=(liberation-fonts-ttf dejavu-fonts-ttf fonts-droid-ttf fonts-croscore-ttf
 			terminus-font ttf-ubuntu-font-family font-iosevka
@@ -534,10 +541,9 @@ sh_choose_common_packages() {
 		)
 		declare -ga aPerfumery=(conky setxkbmap numlockx nitrogen ristretto mate-notification-daemon)
 		declare -ga aPrinter=(cups system-config-printer system-config-printer-udev splix samsung-unified-driver brother-brlaser cups-pdf)
-		declare -ga aFilemanager=(Thunar thunar-archive-plugin thunar-volman octoxbps)
+		declare -ga aFilemanager=()
 		declare -ga aTerminal=(rxvt-unicode cool-retro-term)
 		declare -ga aEditorX=(kate mousepad)
-		declare -ga aMicrocode=(intel-ucode linux-firmware-amd)
 		declare -ga aNetworkX=(gvfs gvfs-smb gvfs-mtp gvfs-afc gvfs-cdda udisks2)
 		declare -ga aUtilityX=(mate-calc xkill menulibre mugshot ocs-url gparted)
 		## tty
@@ -548,17 +554,16 @@ sh_choose_common_packages() {
 		declare -ga aEditorTxt=()
 	else
 		## X11
-		declare -ga aIconsAndThemes=(Adapta adwaita-icon-theme)
+		declare -ga aIconsAndThemes=()
 		declare -ga aArchiverX=()
-		declare -ga aBrowser=(firefox firefox-i18n-$(sh_get_language_without_utf8))
-		declare -ga aFilemanager=(Thunar)
+		declare -ga aBrowser=()
+		declare -ga aFilemanager=()
 		declare -ga aBluetooth=()
 		declare -ga aFont=(noto-fonts-emoji)
 		declare -ga aPerfumery=()
 		declare -ga aPrinter=()
 		declare -ga aTerminal=()
 		declare -ga aEditorX=()
-		declare -ga aMicrocode=()
 		declare -ga aNetworkX=()
 		declare -ga aUtilityX=()
 		## tty
@@ -567,7 +572,11 @@ sh_choose_common_packages() {
 		declare -ga aDownloader=()
 		declare -ga aUtility=()
 	fi
+    aIconsAndThemes+=(Adapta adwaita-icon-theme)
 	aTerminal+=(xfce4-terminal)
+    aBrowser+=(firefox firefox-i18n-$(sh_get_language_without_utf8))
+    aFilemanager+=(octoxbps)
+	aUtilityX+=(chili-iso2usb)
 
 	if ! $LSERVER; then
 		aDaemons+=(NetworkManager)
@@ -2161,7 +2170,9 @@ sh_X11_minimal() {
 		sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Xorg')" "${aXorg[*]}"
 	fi
 
+    sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Microde')" "${aMicrocode[*]}"
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Video')" "${aVideo[*]}"
+	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Rede')" "${aNetworkX[*]}"
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Fontes')" "${aFont[*]}"
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Icones')" "${aIconsAndThemes[*]}"
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
@@ -2169,12 +2180,10 @@ sh_X11_minimal() {
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote FileManager')" "${aFilemanager[*]}"
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Navegadore')" "${aBrowser[*]}"
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Bluetooth')" "${aBluetooth[*]}"
-	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Rede')" "${aNetworkX[*]}"
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Utilitário')" "${aUtilityX[*]}"
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Media')" "${aMedia[*]}"
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Impressora')" "${aPrinter[*]}"
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Perfumaria')" "${aPerfumery[*]}"
-	#	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Microde')" "${aMicrocode[*]}"
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Archivadores')" "${aArchiverX[*]}"
 }
 
@@ -2286,6 +2295,7 @@ sh_xfce4_minimal() {
 		voidbr-tokyo-theme
 		voidbr-professional-theme
 		voidbr-beauty-icons
+        voidbr-xfwm-axiom-theme
 	)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
