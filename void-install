@@ -524,7 +524,7 @@ sh_choose_common_packages() {
 	lxdm) declare -ga aDisplaymanager=(lxdm lxdm-theme-vdojo) ;;
 	sddm) declare -ga aDisplaymanager=(sddm voidbr-sddm-themes) ;;
 	gdm) declare -ga aDisplaymanager=(gdm) ;;
-	lightdm) declare -ga aDisplaymanager=(lightdm lightdm-gtk-greeter lightdm-slick-greeter lightdm-webkit2-greeter) ;;
+	lightdm) declare -ga aDisplaymanager=(lightdm lightdm-gtk-greeter lightdm-gtk-greeter-settings arc-theme papirus-icon-theme dejavu-fonts-ttf) ;;
 	esac
 
 	if $LCUSTOM; then
