@@ -506,10 +506,6 @@ sh_choose_common_packages() {
 		vim
 	)
 
-	if $ONLY_TTY; then
-        return
-    fi
-
 	if $LXORG; then
 		return
 	fi
