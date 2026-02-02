@@ -5,9 +5,9 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: dom 01 fev 2026 20:18:13 -04
+#  Updated: seg 02 fev 2026 15:00:22 -04
 #
-#  Copyright (c) 2022-2025, Vilmar Catafesta <vcatafesta@gmail.com>
+#  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.2.01-20260201'
+readonly _VERSION_='3.2.02-20260202'
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 readonly LOCKFILE="/tmp/void-install.lock"
 
@@ -188,6 +188,15 @@ declare -gA Alocale=(
 )
 declare dialogRcFile="$HOME/.dialogrc"
 #
+declare _DISPLAYMANAGER='None'
+declare _WINDOWMANAGER=('tty')
+declare _WIFI_NETWORK="wifi_ssid"
+declare _WIFI_PASSWORD="wifi_password"
+#source /usr/bin/gettext.sh
+#declare Interrupted="$(gettext "Interrompido!") $(pgettext "context" "Saindo...")"
+
+declare Interrupted="$(gettext "Interrompido! Saindo...")"
+trap 'printf "\n${red}$Interrupted\n"; cleanup; exit 0' INT TERM HUP
 
 detect_distro() {
 	local id=""
@@ -465,10 +474,10 @@ sh_update_self() {
 }
 
 sh_choose_common_packages() {
-    declare -ga aMicrocode=(
-        intel-ucode
-        linux-firmware-amd
-    )
+	declare -ga aMicrocode=(
+		intel-ucode
+		linux-firmware-amd
+	)
 	declare -ga aSuplemento=(
 		voidbr-grub-theme
 		#	   voidbr-plymouth-theme
@@ -517,10 +526,26 @@ sh_choose_common_packages() {
 	declare -ga aPipewire=(pipewire wireplumber alsa-pipewire pulseaudio-utils pavucontrol libspa-bluetooth libjack-pipewire alsa-plugins-pulseaudio)
 
 	case $_DISPLAYMANAGER in
-	lxdm) declare -ga aDisplaymanager=(lxdm lxdm-theme-vdojo) ;;
-	sddm) declare -ga aDisplaymanager=(sddm voidbr-sddm-themes) ;;
-	gdm) declare -ga aDisplaymanager=(gdm) ;;
-	lightdm) declare -ga aDisplaymanager=(voidbr-lightdm-themes lightdm lightdm-gtk-greeter lightdm-gtk-greeter-settings arc-theme papirus-icon-theme dejavu-fonts-ttf) ;;
+	lxdm)
+		declare -ga aDisplaymanager=(lxdm)
+		declare -ga aDisplaymanagerConfig=(lxdm-theme-vdojo)
+		;;
+	sddm)
+		declare -ga aDisplaymanager=(sddm)
+		declare -ga aDisplaymanagerConfig=(voidbr-sddm-themes)
+		;;
+	gdm)
+		declare -ga aDisplaymanager=(gdm)
+		declare -ga aDisplaymanagerConfig=()
+		;;
+	lightdm)
+		declare -ga aDisplaymanager=(lightdm lightdm-gtk-greeter lightdm-gtk-greeter-settings arc-theme papirus-icon-theme dejavu-fonts-ttf)
+		declare -ga aDisplaymanagerConfig=(voidbr-lightdm-themes)
+		;;
+	*)
+		declare -ga aDisplaymanager=()
+		declare -ga aDisplaymanagerConfig=()
+		;;
 	esac
 
 	if $LCUSTOM; then
@@ -568,10 +593,10 @@ sh_choose_common_packages() {
 		declare -ga aDownloader=()
 		declare -ga aUtility=()
 	fi
-    aIconsAndThemes+=(Adapta adwaita-icon-theme)
+	aIconsAndThemes+=(Adapta adwaita-icon-theme)
 	aTerminal+=(xfce4-terminal)
-    aBrowser+=(firefox firefox-i18n-$(sh_get_language_without_utf8))
-    aFilemanager+=(octoxbps)
+	aBrowser+=(firefox firefox-i18n-$(sh_get_language_without_utf8))
+	aFilemanager+=(octoxbps)
 	aUtilityX+=(chili-iso2usb)
 
 	if ! $LSERVER; then
@@ -580,16 +605,6 @@ sh_choose_common_packages() {
 	aNetworkX=(network-manager-applet)
 
 }
-
-declare _DISPLAYMANAGER='sddm'
-declare _WINDOWMANAGER=('tty')
-declare _WIFI_NETWORK="wifi_ssid"
-declare _WIFI_PASSWORD="wifi_password"
-#source /usr/bin/gettext.sh
-#declare Interrupted="$(gettext "Interrompido!") $(pgettext "context" "Saindo...")"
-
-declare Interrupted="$(gettext "Interrompido! Saindo...")"
-trap 'printf "\n${red}$Interrupted\n"; cleanup; exit 0' INT TERM HUP
 
 errorbeep() {
 	printf '\a' # beep
@@ -2138,6 +2153,7 @@ sh_X11_minimal() {
 	apkgs+=("${aVideo[@]}")
 	apkgs+=("${aFont[@]}")
 	apkgs+=("${aDisplaymanager[@]}")
+	apkgs+=("${aDisplaymanagerConfig[@]}")
 	apkgs+=("${aTerminal[@]}")
 	apkgs+=("${aFilemanager[@]}")
 	apkgs+=("${aBrowser[@]}")
@@ -2166,12 +2182,13 @@ sh_X11_minimal() {
 		sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Xorg')" "${aXorg[*]}"
 	fi
 
-    sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Microde')" "${aMicrocode[*]}"
+	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Microde')" "${aMicrocode[*]}"
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Video')" "${aVideo[*]}"
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Rede')" "${aNetworkX[*]}"
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Fontes')" "${aFont[*]}"
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Icones')" "${aIconsAndThemes[*]}"
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
+	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM Config')" "${aDisplaymanagerConfig[*]}"
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Terminal')" "${aTerminal[*]}"
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote FileManager')" "${aFilemanager[*]}"
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Navegadore')" "${aBrowser[*]}"
@@ -2291,7 +2308,7 @@ sh_xfce4_minimal() {
 		voidbr-tokyo-theme
 		voidbr-professional-theme
 		voidbr-beauty-icons
-        voidbr-xfwm-axiom-theme
+		voidbr-xfwm-axiom-theme
 	)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
@@ -3917,10 +3934,13 @@ sh_choose_wm() {
 	done
 	if $ok; then
 		AConfAudio[_AUDIOSERVER]="None"
+		_DISPLAYMANAGER="None"
 	else
 		AConfAudio[_AUDIOSERVER]="Pipewire"
+		_DISPLAYMANAGER="sddm"
 	fi
 	LAUDIO=true
+	LDM=true
 
 	if grep -qi xorg <<<"${_WINDOWMANAGER[@]}"; then
 		LXORG=true
@@ -3940,6 +3960,7 @@ sh_choose_dm() {
 	aDm[sddm]="Display manager moderno, Xorg e Wayland"
 	aDm[gdm]="Moderno, Xorg e Wayland"
 	aDm[lightdm]="Leve e flexível, Xorg (Wayland limitado)"
+	aDm[None]="None"
 
 	for x in "${!aDm[@]}"; do
 		aFlag[$x]='off'
@@ -3957,6 +3978,7 @@ sh_choose_dm() {
 		sddm "${aDm[sddm]}" "${aFlag[sddm]}" \
 		gdm "${aDm[gdm]}" "${aFlag[gdm]}" \
 		lightdm "${aDm[lightdm]}" "${aFlag[lightdm]}" \
+		None "${aDm[None]}" "${aFlag[None]}" \
 		2>&1 >/dev/tty)
 
 	exit_status=$?
@@ -3966,13 +3988,14 @@ sh_choose_dm() {
 		;;
 	esac
 
-	if conf "=== ${cmsg_Dm^^} ===" \
-		"\n${BOLD}${WHITE}$(gettext "O login automático permite iniciar o ambiente gráfico")" \
-		"\n$(gettext "sem solicitar usuário e senha no boot.")\n" \
-		"\n${BOLD}${RED}$(gettext "Deseja ativar o login automático no Display Manager?")\n\n"; then
-		LAUTOLOGIN=true
-	else
-		LAUTOLOGIN=false
+	LAUTOLOGIN=false
+	if [[ $dm != "None" ]]; then
+		if conf "=== ${cmsg_Dm^^} ===" \
+			"\n${BOLD}${WHITE}$(gettext "O login automático permite iniciar o ambiente gráfico")" \
+			"\n$(gettext "sem solicitar usuário e senha no boot.")\n" \
+			"\n${BOLD}${RED}$(gettext "Deseja ativar o login automático no Display Manager?")\n\n"; then
+			LAUTOLOGIN=true
+		fi
 	fi
 
 	LDM=true
@@ -5338,7 +5361,9 @@ sh_main_menu() {
 			{ $LONLY_TTY && MENU_AUDIO="${YELLOW}[${AConfAudio[_AUDIOSERVER]}]${RST} ● " || MENU_AUDIO="${RED}[not defined]${RST} ● "; }
 		$LCUSTOM && MENU_CUSTOM="CUSTOM" || MENU_CUSTOM=""
 		$LWM && MENU_WM="${YELLOW}[${_WINDOWMANAGER[*]} ${MENU_CUSTOM}]${RST} ● " || MENU_WM="${RED}[not defined]${RST} ● "
-		$LDM && MENU_DM="${YELLOW}[${_DISPLAYMANAGER[*]}]${RST} ● " || MENU_DM="${RED}[not defined]${RST} ● "
+		#		$LDM && MENU_DM="${YELLOW}[${_DISPLAYMANAGER}]${RST} ● " || MENU_DM="${RED}[not defined]${RST} ● "
+		$LDM && MENU_DM="${YELLOW}[${_DISPLAYMANAGER}]${RST} ● " || MENU_DM="${RED}[not defined]${RST} ● "
+		#			{ $LONLY_TTY && MENU_DM="${YELLOW}[${_DISPLAYMANAGER}]${RST} ● " || MENU_DM="${RED}[not defined]${RST} ● "; }
 		$LEXTRA && MENU_EXTRA="${YELLOW}[OK]${RST} ● " || MENU_EXTRA="${RED}[not defined]${RST} ● "
 
 		menu=$(${DIALOG} \
@@ -5362,8 +5387,8 @@ sh_main_menu() {
 			"Locale" "${MENU_LOCALE}${cmsg_descLocale}" \
 			"Wm" "${MENU_WM}${cmsg_descWm}" \
 			"Dm" "${MENU_DM}${cmsg_descDm}" \
-			"${cmsg_Usuario}" "${MENU_EXTRA}${cmsg_descExtra}" \
 			"Audio" "${MENU_AUDIO}${cmsg_DefinirAudioServer}" \
+			"${cmsg_Usuario}" "${MENU_EXTRA}${cmsg_descExtra}" \
 			"${cmsg_Instalar}" "${cmsg_descInstalar}" \
 			'↑↓' '↓↑' \
 			"${cmsg_Tema}" "$(gettext 'Seletor de temas do dialog (opcional)')" \
@@ -5391,9 +5416,9 @@ sh_main_menu() {
 		"Timezone") sh_chooseTimezone && [ -n "$LTIMEZONE" ] && DEFITEM="Wm" ;;
 		"Locale") sh_chooseLocale && [ -n "$LTIMEZONE" ] && DEFITEM="Wm" ;;
 		"Wm") sh_choose_wm && [ -n "$LWM" ] && DEFITEM="Dm" ;;
-		"Dm") sh_choose_dm && [ -n "$LDM" ] && DEFITEM="${cmsg_Usuario}" ;;
-		"${cmsg_Usuario}") sh_confadduser "$@" && [ -n "$LEXTRA" ] && DEFITEM="Audio" ;;
-		"Audio") sh_chooseaudioserver "$@" && [ -n "$LAUDIO" ] && DEFITEM="${cmsg_Instalar}" ;;
+		"Dm") sh_choose_dm && [ -n "$LDM" ] && DEFITEM="Audio" ;;
+		"Audio") sh_chooseaudioserver "$@" && [ -n "$LAUDIO" ] && DEFITEM="${cmsg_Usuario}" ;;
+		"${cmsg_Usuario}") sh_confadduser "$@" && [ -n "$LEXTRA" ] && DEFITEM="${cmsg_Instalar}" ;;
 		"${cmsg_Instalar}") sh_install ;;
 		'↑↓') : ;;
 		"${cmsg_Tema}") sh_run_binary 'void-dialog-theme-selector' ;;
