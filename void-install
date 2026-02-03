@@ -649,7 +649,7 @@ sh_setEnvironment() {
 	: "${ARCH:=x86_64}"
 	: "${CACHEDIR:="$(pwd -P)"/xbps-cachedir-${ARCH}}"
 	: "${XBPS_INSTALL_CMD:=xbps-install}"
-	: "${XBPS_INSTALL_UNPACK_ONLY:=xbps-install -Uy}"
+	: "${XBPS_INSTALL_UNPACK_ONLY:=xbps-install --unpack-only --yes --ignore-file-conflicts}"
 	: "${XBPS_REMOVE_CMD:=xbps-remove}"
 	: "${XBPS_QUERY_CMD:=xbps-query}"
 	: "${XBPS_RINDEX_CMD:=xbps-rindex}"
