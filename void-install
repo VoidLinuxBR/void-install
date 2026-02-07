@@ -1540,13 +1540,13 @@ repository=${url_mirror}/current/multilib
 repository=${url_mirror}/current/multilib/nonfree
 
 repository=https://void.chililinux.com/voidlinux/current
-#repository=https://void.chililinux.com/voidlinux/current/extras
+#repository=https://void.chililinux.com/voidlinux/current/extra
 #repository=https://void.chililinux.com/voidlinux/current/nonfree
 #repository=https://void.chililinux.com/voidlinux/current/multilib
 #repository=https://void.chililinux.com/voidlinux/current/multilib/nonfree
 
 repository=https://void.voidbr.org/voidlinux/current
-#repository=https://void.voidbr.org/voidlinux/current/extras
+#repository=https://void.voidbr.org/voidlinux/current/extra
 #repository=https://void.voidbr.org/voidlinux/current/nonfree
 #repository=https://void.voidbr.org/voidlinux/current/multilib
 #repository=https://void.voidbr.org/voidlinux/current/multilib/nonfree
