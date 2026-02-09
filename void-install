@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: dom 08 fev 2026 17:26:07 -04
+#  Updated: seg 09 fev 2026 14:35:07 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.2.08-20260208'
+readonly _VERSION_='3.2.09-20260209'
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 readonly LOCKFILE="/tmp/void-install.lock"
 
@@ -4457,7 +4457,7 @@ sh_install_pkgs_in_chroot() {
 
 	sh_chroot_job "$msg -> $dir_install" \
 		"LC_ALL=C ${XBPS_INSTALL_UNPACK_ONLY} $pkgs" \
-		"$err_not_fatal" \
+		"$err_fatal" \
 		"$err_not_fatal"
 }
 
@@ -4700,6 +4700,7 @@ sh_install() {
 				sh_install_pkgs_in_chroot "$(gettext 'Atualizando Pacotes Base')" "${abase[*]}"
 				#  			sh_install_pkgs_in_chroot "$(gettext 'Instalando Wifi Firmware')" "${afirmware[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Daemons')" "${aDaemons[*]}"
+				sh_install_pkgs_in_chroot "$(gettext 'Instalando Editores Texto Gráfico ')" "${aEditorX[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Editores texto')" "${aEditorTxt[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Downloaders')" "${aDownloader[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Utilitário')" "${aUtility[*]}"
@@ -6018,7 +6019,7 @@ sh_setLanguage() {
 	cmsg_Mirror=$(gettext "Espelho")
 	cmsg_BootLoader=$(gettext "Bootloader (GRUB)")
 	cmsg_FileSystem=$(gettext "Sistema de Arquivos")
-	cmsg_Disco=$(gettext "Disco")
+	cmsg_Disco=$(gettext "Armazenamento")
 	cmsg_Teclado=$(gettext "Teclado")
 	cmsg_SairSemInstalar=$(gettext "Sair sem instalar")
 	cmsg_tty=$(gettext "Somente terminal, sem interface gráfica")
