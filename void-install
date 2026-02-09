@@ -6019,7 +6019,7 @@ sh_setLanguage() {
 	cmsg_Mirror=$(gettext "Espelho")
 	cmsg_BootLoader=$(gettext "Bootloader (GRUB)")
 	cmsg_FileSystem=$(gettext "Sistema de Arquivos")
-	cmsg_Disco=$(gettext "Disco")
+	cmsg_Disco=$(gettext "Armazenamento")
 	cmsg_Teclado=$(gettext "Teclado")
 	cmsg_SairSemInstalar=$(gettext "Sair sem instalar")
 	cmsg_tty=$(gettext "Somente terminal, sem interface gráfica")
