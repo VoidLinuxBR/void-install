@@ -2244,7 +2244,7 @@ sh_openbox_minimal() {
 }
 
 sh_plasma_minimal() {
-	local apkgs=(plasma-desktop plasma-nm plasma-pa plasma-disks kate konsole dolphin)
+	local apkgs=(kde5 plasma-desktop plasma-nm plasma-pa plasma-disks kate konsole dolphin)
 	local DE='Plasma Desktop'
 
     apkgs+=(
