@@ -1907,6 +1907,7 @@ sh_make_user() {
 	sh_cmd_job "$(gettext 'Removendo link do instalador')" "
         rm -f $dir_install/home/$user/'Área de trabalho'/void-install.desktop
         rm -f $dir_install/home/$user/Área\ de\ trabalho/void-install.desktop
+        rm -f $dir_install//usr/share/applications/void-install.desktop
    " $err_not_fatal
 
 	sh_update_sudoers
