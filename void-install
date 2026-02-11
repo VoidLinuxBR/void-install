@@ -1535,26 +1535,20 @@ sh_mkparted() {
 }
 
 sh_update_mirror() {
-	sh_cmd_job "${cmsg_Configurando} ${cmsg_Mirror,,}" "
-      cat >"$dir_install/etc/xbps.d/00-repository-main.conf" <<-EOF
-repository=${url_mirror}/current
-repository=${url_mirror}/current/nonfree
-repository=${url_mirror}/current/multilib
-repository=${url_mirror}/current/multilib/nonfree
+  sh_cmd_job "${cmsg_Configurando} ${cmsg_Mirror,,}" "
+    {
+      echo \"repository=${url_mirror}/current\"
 
-repository=https://void.chililinux.com/voidlinux/current
-#repository=https://void.chililinux.com/voidlinux/current/extra
-#repository=https://void.chililinux.com/voidlinux/current/nonfree
-#repository=https://void.chililinux.com/voidlinux/current/multilib
-#repository=https://void.chililinux.com/voidlinux/current/multilib/nonfree
+      if grep -qi 'voidbr.org' <<<\"${url_mirror}\" ||
+         grep -qi 'chililinux' <<<\"${url_mirror}\"; then
+        echo \"repository=${url_mirror}/extra\"
+      fi
 
-repository=https://void.voidbr.org/voidlinux/current
-#repository=https://void.voidbr.org/voidlinux/current/extra
-#repository=https://void.voidbr.org/voidlinux/current/nonfree
-#repository=https://void.voidbr.org/voidlinux/current/multilib
-#repository=https://void.voidbr.org/voidlinux/current/multilib/nonfree
-EOF
-   " $err_not_fatal
+      echo \"repository=${url_mirror}/current/nonfree\"
+      echo \"repository=${url_mirror}/current/multilib\"
+      echo \"repository=${url_mirror}/current/multilib/nonfree\"
+    } > \"${dir_install}/etc/xbps.d/00-repository-main.conf\"
+  " $err_not_fatal
 }
 
 sh_update_rc_conf() {
@@ -3179,8 +3173,8 @@ sh_chooseMirror() {
 			;;
 		esac
 		AConfMirror[_MIRROR]="$mirror"
-		url_mirror="$(sh_splitarray "${Amirror[$mirror]}" "$FLD_REPOSITORY")"
-		AConfMirror[url_mirror]="$(sh_splitarray "${Amirror[$mirror]}" "$FLD_REPOSITORY")"
+        url_mirror="$(sh_splitarray "${Amirror[$mirror]}" "$FLD_REPOSITORY")"
+		AConfMirror[url_mirror]="$url_mirror"
 		AConfMirror[location]="$(sh_splitarray "${Amirror[$mirror]}" "$FLD_LOCATION")"
 		LMIRROR=true
 
@@ -4438,6 +4432,15 @@ sh_copy_keys() {
 		sh_cmd_job "Copiando chaves da ISO para $destdirkeys" "cp -fv /var/db/xbps/keys/*.plist $destdirkeys/" $err_not_fatal
 	fi
 
+}
+
+sh_configure_rootfs() {
+    XBPS_REPOSITORY="$XBPS_REPOSITORY ""\
+    --repository=${url_mirror}/current""\
+    --repository=${url_mirror}/current--repository=https://home.chililinux.com/voidlinux/extra""\
+    --repository=--repository=${url_mirror}/current/nonfree""\
+    --repository=${url_mirror}/current/multilib""\
+    --repository=${url_mirror}/current/multilib/nonfree"
 }
 
 sh_install_prereqs() {
