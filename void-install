@@ -568,7 +568,7 @@ sh_choose_common_packages() {
 		declare -ga aPrinter=(cups system-config-printer system-config-printer-udev splix samsung-unified-driver brother-brlaser cups-pdf)
 		declare -ga aFilemanager=()
 		declare -ga aTerminal=(rxvt-unicode cool-retro-term)
-		declare -ga aEditorX=(kate mousepad libreoffice libreoffice-i18n-$(sh_get_language_without_utf8)
+		declare -ga aEditorX=(kate mousepad libreoffice libreoffice-i18n-$(sh_get_language_without_utf8))
 		declare -ga aNetworkX=(gvfs gvfs-smb gvfs-mtp gvfs-afc gvfs-cdda udisks2)
 		declare -ga aUtilityX=(mate-calc xkill menulibre mugshot ocs-url gparted vlc celluloid)
 		## tty
@@ -588,7 +588,7 @@ sh_choose_common_packages() {
 		declare -ga aPerfumery=()
 		declare -ga aPrinter=()
 		declare -ga aTerminal=()
-		declare -ga aEditorX=(mousepad libreoffice libreoffice-i18n-$(sh_get_language_without_utf8)
+		declare -ga aEditorX=(mousepad libreoffice libreoffice-i18n-$(sh_get_language_without_utf8))
 		declare -ga aNetworkX=()
 		declare -ga aUtilityX=(vlc celluloid)
 		## tty
@@ -647,7 +647,8 @@ sh_setEnvironment() {
 	readonly LOGGER='/dev/tty8'
 	shell='/bin/sh'
 
-	: "${ccabec="$APP v${_VERSION_} - https://github.com/voidlinuxbr/void-install"}"
+	ccabec="\Z6${APP} \Z5v${_VERSION_} - \Znhttps://github.com/voidlinuxbr/void-install"
+	baseccabec="\Z6${APP} \Z5v${_VERSION_} - \Znhttps://github.com/voidlinuxbr/void-install"
 	: "${ccabecmin="$APP v${_VERSION_}"}"
 	: "${DIALOG=${DIALOG:-dialog}}"
 	: "${ARCH:=x86_64}"
@@ -3084,7 +3085,7 @@ sh_chooseTimezone() {
 	LTIMEZONE=true
 }
 
-sh_chooseMirror() {
+sh_choose_mirror() {
 	declare -A Aflag
 	local exit_status
 	local array
@@ -5404,6 +5405,7 @@ sh_main_menu() {
 			DEFITEM="${cmsg_Mirror}"
 		fi
 
+        ccabec="${baseccabec} - ${RED}${url_mirror}"
 		$LMIRROR && MENU_MIRROR="${YELLOW}[${AConfMirror[_MIRROR]}]${RST} ● " || MENU_MIRROR="${RED}[not defined]${RST} ● "
 		$LSOURCE && MENU_SOURCE="${YELLOW}[${AConfMirror[_SOURCE]}]${RST} ● " || MENU_SOURCE="${RED}[not defined]${RST} ● "
 		$LDISK && MENU_DEVICE="${YELLOW}[${AConfDisk[_DEVICE]}]${RST} ● " || MENU_DEVICE="${RED}[not defined]${RST} ● "
@@ -5462,7 +5464,7 @@ sh_main_menu() {
 		fi
 
 		case "$menu" in
-		"${cmsg_Mirror}") sh_chooseMirror "$@" && [ -n "$LMIRROR" ] && DEFITEM="${cmsg_Source}" ;;
+		"${cmsg_Mirror}") sh_choose_mirror "$@" && [ -n "$LMIRROR" ] && DEFITEM="${cmsg_Source}" ;;
 		"${cmsg_Source}") sh_chooseSource && [ -n "$LSOURCE" ] && DEFITEM="${cmsg_Disco}" ;;
 		"${cmsg_Disco}") sh_chooseDisk && [ -n "$LDISK" ] && DEFITEM="${cmsg_BootLoader}" ;;
 		"${cmsg_BootLoader}") sh_setBootLoader && [ -n "$LGRUB" ] && DEFITEM="FileSystem" ;;
