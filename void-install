@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: seg 09 fev 2026 14:35:07 -04
+#  Updated: ter 10 fev 2026 21:32:42 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.2.09-20260209'
+readonly _VERSION_='3.2.10-20260210'
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 readonly LOCKFILE="/tmp/void-install.lock"
 
@@ -2245,6 +2245,15 @@ sh_openbox_minimal() {
 sh_plasma_minimal() {
 	local apkgs=(plasma-desktop plasma-nm plasma-pa plasma-disks kate konsole dolphin)
 	local DE='Plasma Desktop'
+
+    apkgs+=(
+        voidbr-plasma-config
+        voidbr-wallpapers
+        voidbr-tokyo-theme
+        voidbr-professional-theme
+        voidbr-beauty-icons
+    )
+
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
 
