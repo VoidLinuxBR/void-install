@@ -3111,9 +3111,9 @@ sh_choose_mirror() {
 		[mirrors.summithq.com]="https://mirrors.summithq.com/voidlinux/|North America|Chicago, USA|1"
 		[mirrors.servercentral.com]="https://mirrors.servercentral.com/voidlinux/|North America|Chicago, USA|1"
 		[mirrors.cicku.me]="https://mirrors.cicku.me/voidlinux/|Globally Available|Cloudflare Global CDN|2"
-		[void.chililinux.com]="https://void.chililinux.com/voidlinux/|South and Central America|Pimenta Bueno, Brazil|2"
-		[void.voidlinux.com.br]="https://void.voidlinux.com.br/voidlinux/|South and Central America|Pimenta Bueno, Brazil|2"
-		[void.voidbr.org]="https://void.voidbr.org/voidlinux/|South and Central America|Pimenta Bueno, Brazil|2"
+		[void.chililinux.com]="https://void.chililinux.com/voidlinux/|South and Central America|Pimenta Bueno/RO, Brazil|2"
+		[void.voidlinux.com.br]="https://void.voidlinux.com.br/voidlinux/|South and Central America|Cacoal/RO, Brazil|2"
+		[void.voidbr.org]="https://void.voidbr.org/voidlinux/|South and Central America|M. do Paranapanema, Brazil|2"
 		[mirror.sjtu.edu.cn]="https://mirror.sjtu.edu.cn/voidlinux/|Asia|Shanghai, China|2"
 		[mirror.clarkson.edu]="https://mirror.clarkson.edu/voidlinux/|North America/|New York, USA|2"
 		[void.webconverger.org]="https://void.webconverger.org/|Asia|Singapore|2"
@@ -3145,7 +3145,7 @@ sh_choose_mirror() {
 		while IFS='|' LC_ALL=C read -r -a fields; do
 			key="${fields[FLD_MIRROR]}"
 			[[ "${AConfMirror[_MIRROR]}" = "$key" ]] && Aflag["$key"]='on' || Aflag["$key"]='off'
-			array+=("$key" "$(printf "$sep%-6s$sep%-25s$sep%-23s$sep%-s" \
+			array+=("$key" "$(printf "$sep%-6s$sep%-25s$sep%-26s$sep%-s" \
 				"Tier ${fields[FLD_TIER]}" \
 				"${fields[FLD_REGION]}" \
 				"${fields[FLD_LOCATION]}" \
