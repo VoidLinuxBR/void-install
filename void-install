@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: ter 10 fev 2026 21:32:42 -04
+#  Updated: qua 11 fev 2026 00:42:27 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.2.10-20260210'
+readonly _VERSION_='3.2.11-20260211'
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 readonly LOCKFILE="/tmp/void-install.lock"
 
@@ -568,7 +568,7 @@ sh_choose_common_packages() {
 		declare -ga aPrinter=(cups system-config-printer system-config-printer-udev splix samsung-unified-driver brother-brlaser cups-pdf)
 		declare -ga aFilemanager=()
 		declare -ga aTerminal=(rxvt-unicode cool-retro-term)
-		declare -ga aEditorX=(kate mousepad libreoffice libreoffice-i18n-pt-BR)
+		declare -ga aEditorX=(kate mousepad libreoffice libreoffice-i18n-$(sh_get_language_without_utf8)
 		declare -ga aNetworkX=(gvfs gvfs-smb gvfs-mtp gvfs-afc gvfs-cdda udisks2)
 		declare -ga aUtilityX=(mate-calc xkill menulibre mugshot ocs-url gparted vlc celluloid)
 		## tty
@@ -588,7 +588,7 @@ sh_choose_common_packages() {
 		declare -ga aPerfumery=()
 		declare -ga aPrinter=()
 		declare -ga aTerminal=()
-		declare -ga aEditorX=(mousepad libreoffice libreoffice-i18n-pt-BR)
+		declare -ga aEditorX=(mousepad libreoffice libreoffice-i18n-$(sh_get_language_without_utf8)
 		declare -ga aNetworkX=()
 		declare -ga aUtilityX=(vlc celluloid)
 		## tty
@@ -829,11 +829,11 @@ sh_get_lang() {
 export -f sh_get_lang
 
 sh_get_language_without_utf8() {
-	local LangFilter="${LANG%%.*}"
-	local LangFilterModified="${LangFilter//_/-}"
-	echo "$LangFilterModified"
+#	local LangFilter="${LANG%%.*}"
+	local LangFilter="${AConfLocale[_LOCALE]}"
+    local LangFilterModified="${LangFilter//_/-}"
+    echo "$LangFilterModified"
 }
-export -f sh_get_language_without_utf8
 
 sh_get_code_language() {
 	local LangFilter="${LANGUAGE%%.*}"
