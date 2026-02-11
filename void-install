@@ -1553,11 +1553,11 @@ sh_update_mirror() {
 
       # ChiliLinux (sempre presente)
       if ! grep -qi 'chililinux' <<<\"${url_mirror}\"; then
-        echo \"repository=https://void.chililinux.com/void/current\"
-        echo \"repository=https://void.chililinux.com/void/extra\"
-        echo \"repository=https://void.chililinux.com/void/current/nonfree\"
-        echo \"repository=https://void.chililinux.com/void/current/multilib\"
-        echo \"repository=https://void.chililinux.com/void/current/multilib/nonfree\"
+        echo \"repository=https://void.chililinux.com/voidlinux/current\"
+        echo \"repository=https://void.chililinux.com/voidlinux/extra\"
+        echo \"#repository=https://void.chililinux.com/voidlinux/current/nonfree\"
+        echo \"#repository=https://void.chililinux.com/voidlinux/current/multilib\"
+        echo \"#repository=https://void.chililinux.com/voidlinux/current/multilib/nonfree\"
       fi
 
       # VoidBR (sempre presente)
