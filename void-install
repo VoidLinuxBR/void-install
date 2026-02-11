@@ -159,9 +159,12 @@ declare -gA AConfLocale=(
 )
 declare -gA AConfMirror=(
 	[_SOURCE]='network'
-	[_MIRROR]='repo.fastly.voidlinux.org'
-	[url_mirror]='https://repo-fastly.voidlinux.org'
-	[location]='Fastly Global CDN'
+#	[_MIRROR]='repo.fastly.voidlinux.org'
+#	[url_mirror]='https://repo-fastly.voidlinux.org'
+#	[location]='Fastly Global CDN'
+	[_MIRROR]='void.voidbr.org'
+	[url_mirror]='https://void.voidbr.org/voidlinux/'
+	[location]='M. do Paranapanema, Brazil'
 )
 declare -gA AConfAudio=(
 	[_AUDIOSERVER]='None'
