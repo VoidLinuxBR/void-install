@@ -831,7 +831,7 @@ export -f sh_get_lang
 
 sh_get_language_without_utf8() {
 #	local LangFilter="${LANG%%.*}"
-	local LangFilter="${AConfLocale[_LOCALE]}"
+	local LangFilter="${AConfLocale[_LOCALE],,}"
     local LangFilterModified="${LangFilter//_/-}"
     echo "$LangFilterModified"
 }
