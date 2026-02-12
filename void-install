@@ -2070,27 +2070,44 @@ sh_activating_services() {
 	fi
 }
 
+sh_global_audio_cleaning() {
+    local cuser="${AsUser[cuser]}"
+    # LIMPEZA GLOBAL — remover qualquer autostart do sistema
+    # (evita conflito com configuração do usuário)
+    sh_chroot_job "${cmsg_Ajustando} sound global" "
+        # remover PipeWire global
+        sudo rm -f /etc/xdg/autostart/pipewire.desktop
+        sudo rm -f /etc/xdg/autostart/pipewire-pulse.desktop
+        sudo rm -f /etc/xdg/autostart/wireplumber.desktop
+
+        # remover PulseAudio global
+        sudo rm -f /etc/xdg/autostart/pulseaudio.desktop
+        sudo rm -f /etc/xdg/autostart/pulseaudio-kde.desktop
+
+        # remover qualquer config ALSA global que redirecione áudio
+        sudo rm -f /etc/alsa/conf.d/50-pipewire.conf
+        sudo rm -f /etc/alsa/conf.d/99-pipewire-default.conf
+        sudo rm -f /etc/alsa/conf.d/50-pulseaudio.conf
+
+        # LIMPEZA DO USUÁRIO
+        rm -f /home/$cuser/.config/autostart/pipewire.desktop
+        rm -f /home/$cuser/.config/autostart/pipewire-pulse.desktop
+        rm -f /home/$cuser/.config/autostart/wireplumber.desktop
+        rm -f /home/$cuser/.config/autostart/pulseaudio.desktop
+        rm -f /home/$cuser/.config/autostart/pulseaudio-kde.desktop
+
+        rm -rf /home/$cuser/.config/pipewire
+        rm -rf /home/$cuser/.config/wireplumber
+        rm -rf /home/$cuser/.config/pulse
+
+    " $err_not_fatal
+}
+
 sh_activating_pipewire() {
   local cuser="${AsUser[cuser]}"
 
-  sh_chroot_job "${cmsg_Ajustando} pipewire (user autostart)" "
-    # LIMPEZA GLOBAL (não pode sobrar NADA)
-    rm -f /etc/xdg/autostart/pulseaudio.desktop
-    rm -f /etc/xdg/autostart/pulseaudio-kde.desktop
-    rm -f /etc/xdg/autostart/pipewire.desktop
-    rm -f /etc/xdg/autostart/pipewire-pulse.desktop
-    rm -f /etc/xdg/autostart/wireplumber.desktop
-
-    # LIMPEZA DO USUÁRIO
-    rm -f /home/$cuser/.config/autostart/pipewire.desktop
-    rm -f /home/$cuser/.config/autostart/pipewire-pulse.desktop
-    rm -f /home/$cuser/.config/autostart/wireplumber.desktop
-    rm -f /home/$cuser/.config/autostart/pulseaudio.desktop
-    rm -f /home/$cuser/.config/autostart/pulseaudio-kde.desktop
-
-    rm -rf /home/$cuser/.config/pipewire
-    rm -rf /home/$cuser/.config/wireplumber
-    rm -rf /home/$cuser/.config/pulse
+    sh_global_audio_cleaning
+    sh_chroot_job "${cmsg_Ajustando} Pipewire (user autostart)" "
 
    # DESATIVAR AUTOSPAWN DO PULSEAUDIO (usuário)
    # impede PulseAudio iniciar automaticamente
@@ -2107,7 +2124,37 @@ EOF
     ln -sf /usr/share/applications/pipewire-pulse.desktop /home/$cuser/.config/autostart/pipewire-pulse.desktop
     ln -sf /usr/share/applications/wireplumber.desktop /home/$cuser/.config/autostart/wireplumber.desktop
 
+    # ---- integração ALSA → PipeWire ----
+    mkdir -p ~/.config/alsa/conf.d
+    ln -sf /usr/share/alsa/alsa.conf.d/50-pipewire.conf /home/$cuser/.config/alsa/conf.d/50-pipewire.conf
+    ln -sf /usr/share/alsa/alsa.conf.d/99-pipewire-default.conf /home/$cuser/.config/alsa/conf.d/99-pipewire-default.conf
+
   " $err_not_fatal
+}
+
+sh_activating_pulseaudio() {
+    local cuser="${AsUser[cuser]}"
+
+    sh_global_audio_cleaning
+    sh_chroot_job "${cmsg_Ajustando} PulseAudio (user autostart)" "
+
+    #AUTOSTART CORRETO (SÓ USUÁRIO)
+    mkdir -p /home/$cuser/.config/autostart
+    # ---- autostart do PulseAudio ----
+    cat > ~/.config/autostart/pulseaudio.desktop <<EOF
+[Desktop Entry]
+Type=Application
+Exec=pulseaudio --start
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Name=PulseAudio
+EOF
+
+    # ---- integração ALSA → PulseAudio ----
+    ln -sf /usr/share/alsa/alsa.conf.d/50-pulseaudio.conf /home/$cuser/.config/alsa/conf.d/50-pulseaudio.conf
+
+    " $err_not_fatal
 }
 
 sh_mk_working_dir() {
@@ -4838,8 +4885,7 @@ sh_install() {
 			if [[ "${AConfAudio[_AUDIOSERVER]}" == 'Pipewire' ]]; then
 				sh_activating_pipewire
 			elif [[ "${AConfAudio[_AUDIOSERVER]}" == 'Pulseaudio' ]]; then
-            #sh_activating_pulseaudio
-            :
+			    sh_activating_pulseaudio
 			fi
 
 			case $_DISPLAYMANAGER in
