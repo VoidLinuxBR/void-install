@@ -105,7 +105,8 @@ declare LINSTALL=false
 declare HYPRLAND=false
 declare LVM=false
 declare LFDE=false
-declare LONLY_TTY=true
+declare LONLY_TTY=false
+declare LAUDIO=false
 declare LSERVER=false
 declare LEXTRA=false
 declare LLOCALE=true
@@ -2949,7 +2950,7 @@ sh_choosefstype() {
 	return 0
 }
 
-sh_chooseaudioserver() {
+sh_choose_audioserver() {
 	local exit_status
 	local array=()
 	local x
@@ -4053,9 +4054,11 @@ sh_choose_wm() {
 		esac
 	done
 	if $ok; then
+		LONLY_TTY=true
 		AConfAudio[_AUDIOSERVER]="None"
 		_DISPLAYMANAGER="None"
 	else
+		LONLY_TTY=false
 		AConfAudio[_AUDIOSERVER]="Pipewire"
 	    if grep -qi gnome <<<"${_WINDOWMANAGER[@]}"; then
     		_DISPLAYMANAGER="gdm"
@@ -5554,7 +5557,7 @@ sh_main_menu() {
 		"Locale") sh_chooseLocale && [ -n "$LTIMEZONE" ] && DEFITEM="Wm" ;;
 		"Wm") sh_choose_wm && [ -n "$LWM" ] && DEFITEM="Dm" ;;
 		"Dm") sh_choose_dm && [ -n "$LDM" ] && DEFITEM="Audio" ;;
-		"Audio") sh_chooseaudioserver "$@" && [ -n "$LAUDIO" ] && DEFITEM="${cmsg_Usuario}" ;;
+		"Audio") sh_choose_audioserver "$@" && [ -n "$LAUDIO" ] && DEFITEM="${cmsg_Usuario}" ;;
 		"${cmsg_Usuario}") sh_confadduser "$@" && [ -n "$LEXTRA" ] && DEFITEM="${cmsg_Instalar}" ;;
 		"${cmsg_Instalar}") sh_install ;;
 		'↑↓') : ;;
