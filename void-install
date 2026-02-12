@@ -2072,14 +2072,34 @@ sh_activating_services() {
 }
 
 sh_activating_pipewire() {
-	sh_chroot_job "${cmsg_Ajustando} pipewire" "
-     mkdir -p /etc/alsa/conf.d
-     ln -sf /usr/share/alsa/alsa.conf.d/{50-pipewire.conf,99-pipewire-default.conf} /etc/alsa/conf.d/
-     mkdir -p /etc/pipewire/pipewire.conf.d
-     ln -sf /usr/share/examples/{wireplumber/10-wireplumber.conf,pipewire/20-pipewire-pulse.conf} /etc/pipewire/pipewire.conf.d/
-     mkdir -p /etc/xdg/autostart
-     ln -sf /usr/share/applications/{pipewire.desktop,pipewire-pulse.desktop,wireplumber.desktop} /etc/xdg/autostart/
-   " $err_not_fatal
+  local cuser="${AsUser[cuser]}"
+
+  sh_chroot_job "${cmsg_Ajustando} pipewire (user autostart)" '
+    # LIMPEZA GLOBAL (não pode sobrar NADA)
+    rm -f /etc/xdg/autostart/pulseaudio.desktop
+    rm -f /etc/xdg/autostart/pulseaudio-kde.desktop
+    rm -f /etc/xdg/autostart/pipewire.desktop
+    rm -f /etc/xdg/autostart/pipewire-pulse.desktop
+    rm -f /etc/xdg/autostart/wireplumber.desktop
+
+    # LIMPEZA DO USUÁRIO
+    rm -f /home/$cuser/.config/autostart/pipewire.desktop
+    rm -f /home/$cuser/.config/autostart/pipewire-pulse.desktop
+    rm -f /home/$cuser/.config/autostart/wireplumber.desktop
+    rm -f /home/$cuser/.config/autostart/pulseaudio.desktop
+    rm -f /home/$cuser/.config/autostart/pulseaudio-kde.desktop
+
+    rm -rf /home/$cuser/.config/pipewire
+    rm -rf /home/$cuser/.config/wireplumber
+    rm -rf /home/$cuser/.config/pulse
+
+    #AUTOSTART CORRETO (SÓ USUÁRIO)
+    mkdir -p /home/$cuser/.config/autostart
+    ln -sf /usr/share/applications/pipewire.desktop /home/$cuser/.config/autostart/pipewire.desktop
+    ln -sf /usr/share/applications/pipewire-pulse.desktop /home/$cuser/.config/autostart/pipewire-pulse.desktop
+    ln -sf /usr/share/applications/wireplumber.desktop /home/$cuser/.config/autostart/wireplumber.desktop
+
+  ' $err_not_fatal
 }
 
 sh_mk_working_dir() {
@@ -4809,6 +4829,9 @@ sh_install() {
 
 			if [[ "${AConfAudio[_AUDIOSERVER]}" == 'Pipewire' ]]; then
 				sh_activating_pipewire
+			elif [[ "${AConfAudio[_AUDIOSERVER]}" == 'Pulseaudio' ]]; then
+                #sh_activating_pulseaudio
+                :
 			fi
 
 			case $_DISPLAYMANAGER in
