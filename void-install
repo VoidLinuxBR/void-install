@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+ç#!/usr/bin/env bash
 #shellcheck disable=SC2145,SC2001,SC2188,SC2015,SC2155,SC2317,SC2320,SC2291,SC2034,SC2120,SC2086,SC2319
 #shellcheck disable=SC2016,SC2154,SC2207,SC2166,SC2128,SC2059,SC2140,SC2031,SC2030,SC2036,SC2119,SC2027
 #
@@ -531,74 +531,73 @@ sh_choose_common_packages() {
 	declare -ga aVideo=(mesa-dri linux-firmware-intel xf86-video-amdgpu xf86-video-ati mesa-nouveau-dri)
 	declare -ga aPulseaudio=(pulseaudio pavucontrol pasystray gst-plugins-bad1 gst-plugins-good1 gst-plugins-ugly1 gst-plugins-base1 alsa-plugins-pulseaudio)
 	declare -ga aPipewire=(pipewire wireplumber alsa-pipewire pulseaudio-utils pavucontrol libspa-bluetooth libjack-pipewire alsa-plugins-pulseaudio)
+    declare -ga aDisplaymanager=()
+    declare -ga aDisplaymanagerConfig=()
+    declare -a custom=()
 
-	case $_DISPLAYMANAGER in
-	lxdm)
-		declare -ga aDisplaymanager=(lxdm)
-		declare -ga aDisplaymanagerConfig=(lxdm-theme-vdojo)
-		;;
-	sddm)
-		declare -ga aDisplaymanager=(sddm)
-		declare -ga aDisplaymanagerConfig=(voidbr-sddm-themes)
-		;;
-	gdm)
-		declare -ga aDisplaymanager=(gdm)
-		declare -ga aDisplaymanagerConfig=()
-		;;
-	lightdm)
-		declare -ga aDisplaymanager=(lightdm lightdm-gtk-greeter lightdm-gtk-greeter-settings arc-theme papirus-icon-theme dejavu-fonts-ttf)
-		declare -ga aDisplaymanagerConfig=(voidbr-lightdm-themes)
-		;;
-	*)
-		declare -ga aDisplaymanager=()
-		declare -ga aDisplaymanagerConfig=()
-		;;
-	esac
+    case $_DISPLAYMANAGER in
+      lxdm)
+        aDisplaymanager=(lxdm)
+        custom=(lxdm-theme-vdojo)
+        ;;
+
+      sddm)
+        aDisplaymanager=(sddm)
+        custom=(voidbr-sddm-themes)
+        ;;
+
+      gdm)
+        aDisplaymanager=(gdm)
+        ;;
+
+      lightdm)
+        aDisplaymanager=(
+          lightdm
+          lightdm-gtk-greeter
+          lightdm-gtk-greeter-settings
+          arc-theme
+          papirus-icon-theme
+          dejavu-fonts-ttf
+        )
+        custom=(voidbr-lightdm-themes)
+        ;;
+
+      *)
+        aDisplaymanager=()
+        custom=()
+        ;;
+    esac
+
+    # aplica config custom somente se LCUSTOM for true
+    if $LCUSTOM && ((${#custom[@]})); then
+      aDisplaymanagerConfig=("${custom[@]}")
+    fi
 
 	if $LCUSTOM; then
-		## X11
-		declare -ga aIconsAndThemes=()
-		declare -ga aArchiverX=(xarchiver)
-		declare -ga aBrowser=(brave-bin)
-		declare -ga aBluetooth=(bluez bluez-alsa bluedevil blueman bluez-cups bluez-deprecated gnome-bluetooth1 blueberry)
-		declare -ga aFont+=(liberation-fonts-ttf dejavu-fonts-ttf fonts-droid-ttf fonts-croscore-ttf
-			terminus-font ttf-ubuntu-font-family font-iosevka
-			unicode-emoji noto-fonts-emoji font-emoji-one-color unicode-emoji
-			nerd-fonts-symbols-ttf font-hack-ttf
-			font-awesome font-awesome5 font-awesome6 nerd-fonts-ttf
-		)
-		declare -ga aPerfumery=(conky setxkbmap numlockx nitrogen ristretto mate-notification-daemon)
-		declare -ga aPrinter=(cups system-config-printer system-config-printer-udev splix samsung-unified-driver brother-brlaser cups-pdf)
-		declare -ga aFilemanager=()
-		declare -ga aTerminal=(rxvt-unicode cool-retro-term)
-		declare -ga aEditorX=(kate mousepad libreoffice libreoffice-i18n-$(sh_get_language_without_utf8))
-		declare -ga aNetworkX=(gvfs gvfs-smb gvfs-mtp gvfs-afc gvfs-cdda udisks2)
-		declare -ga aUtilityX=(mate-calc xkill menulibre mugshot ocs-url gparted vlc celluloid)
-		## tty
-		declare -ga aDaemons=(acpi acpid irqbalance avahi avahi-discover)
-		declare -ga aArchiverTty=(unrar zip p7zip unzip bzip2)
-		declare -ga aDownloader=()
-		declare -ga aUtility=(binutils dfc btop parallel bubblewrap cmatrix pfetch bc bat xtools geoip geoipupdate)
-		declare -ga aEditorTxt=()
-	else
 		## X11
 		declare -ga aIconsAndThemes=()
 		declare -ga aArchiverX=()
 		declare -ga aBrowser=()
 		declare -ga aFilemanager=()
-		declare -ga aBluetooth=()
+		declare -ga aBluetooth=(bluez bluez-alsa bluedevil blueman bluez-cups bluez-deprecated gnome-bluetooth1 blueberry)
 		declare -ga aFont=(noto-fonts-emoji)
 		declare -ga aPerfumery=()
 		declare -ga aPrinter=()
-		declare -ga aTerminal=()
+		declare -ga aTerminal=(rxvt-unicode cool-retro-term)
 		declare -ga aEditorX=(mousepad libreoffice libreoffice-i18n-$(sh_get_language_without_utf8))
-		declare -ga aNetworkX=()
-		declare -ga aUtilityX=(vlc celluloid)
+		declare -ga aNetworkX=(gvfs gvfs-smb gvfs-mtp gvfs-afc gvfs-cdda udisks2)
+		declare -ga aUtilityX=(xkill menulibre mugshot ocs-url gparted vlc celluloid)
 		## tty
-		declare -ga aDaemons=()
-		declare -ga aArchiverTty=()
+		declare -ga aDaemons=(acpi acpid irqbalance avahi avahi-discover)
+		declare -ga aArchiverTty=(unrar zip p7zip unzip bzip2)
 		declare -ga aDownloader=()
-		declare -ga aUtility=()
+		declare -ga aUtility=(binutils dfc btop parallel bubblewrap cmatrix pfetch bc bat xtools geoip geoipupdate)
+	else
+	    declare -ga aIconsAndThemes=()
+	    declare -ga aTerminal=()
+	    declare -ga aBrowser=()
+	    declare -ga aFilemanager=()
+	    declare -ga aUtilityX=()
 	fi
 	aIconsAndThemes+=(Adapta adwaita-icon-theme)
 	aTerminal+=(xfce4-terminal)
