@@ -1,11 +1,11 @@
-ç#!/usr/bin/env bash
+#!/usr/bin/env bash
 #shellcheck disable=SC2145,SC2001,SC2188,SC2015,SC2155,SC2317,SC2320,SC2291,SC2034,SC2120,SC2086,SC2319
 #shellcheck disable=SC2016,SC2154,SC2207,SC2166,SC2128,SC2059,SC2140,SC2031,SC2030,SC2036,SC2119,SC2027
 #
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: qua 11 fev 2026 00:42:27 -04
+#  Updated: qui 12 fev 2026 05:15:44 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.2.11-20260211'
+readonly _VERSION_='3.2.12-20260212'
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 readonly LOCKFILE="/tmp/void-install.lock"
 
@@ -2073,7 +2073,7 @@ sh_activating_services() {
 sh_activating_pipewire() {
   local cuser="${AsUser[cuser]}"
 
-  sh_chroot_job "${cmsg_Ajustando} pipewire (user autostart)" '
+  sh_chroot_job "${cmsg_Ajustando} pipewire (user autostart)" "
     # LIMPEZA GLOBAL (não pode sobrar NADA)
     rm -f /etc/xdg/autostart/pulseaudio.desktop
     rm -f /etc/xdg/autostart/pulseaudio-kde.desktop
@@ -2092,13 +2092,22 @@ sh_activating_pipewire() {
     rm -rf /home/$cuser/.config/wireplumber
     rm -rf /home/$cuser/.config/pulse
 
+   # DESATIVAR AUTOSPAWN DO PULSEAUDIO (usuário)
+   # impede PulseAudio iniciar automaticamente
+   mkdir -p /home/$cuser/.config/pulse
+
+   cat > /home/$cuser/.config/pulse/client.conf <<EOF
+autospawn = no
+daemon-binary = /bin/true
+EOF
+
     #AUTOSTART CORRETO (SÓ USUÁRIO)
     mkdir -p /home/$cuser/.config/autostart
     ln -sf /usr/share/applications/pipewire.desktop /home/$cuser/.config/autostart/pipewire.desktop
     ln -sf /usr/share/applications/pipewire-pulse.desktop /home/$cuser/.config/autostart/pipewire-pulse.desktop
     ln -sf /usr/share/applications/wireplumber.desktop /home/$cuser/.config/autostart/wireplumber.desktop
 
-  ' $err_not_fatal
+  " $err_not_fatal
 }
 
 sh_mk_working_dir() {
@@ -4829,8 +4838,8 @@ sh_install() {
 			if [[ "${AConfAudio[_AUDIOSERVER]}" == 'Pipewire' ]]; then
 				sh_activating_pipewire
 			elif [[ "${AConfAudio[_AUDIOSERVER]}" == 'Pulseaudio' ]]; then
-                #sh_activating_pulseaudio
-                :
+            #sh_activating_pulseaudio
+            :
 			fi
 
 			case $_DISPLAYMANAGER in
