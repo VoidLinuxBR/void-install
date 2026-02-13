@@ -69,4 +69,3 @@ Run `void-install -i` to start the installer and choose language.
 <img alt="22" src="assets/22.png" width="600" />
 <img alt="23" src="assets/23.png" width="600" />
 <img alt="24" src="assets/24.png" width="600" />
-<img alt="25" src="assets/25.png" width="600" />
