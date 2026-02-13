@@ -2036,13 +2036,17 @@ sh_make_fstab() {
 }
 
 sh_activating_services() {
-	local aServicesTTY=(dbus dhcpcd sshd chronyd udevd wpa_supplicant uuidd dmeventd acpid)
-	local aServicesX=(elogind polkitd bluetoothd)
+    #dica: No Void, com dbus ativo, o elogind e o polkitd sobem automaticamente.
+    #      Você não precisa ativar os serviços deles no runit.
+	local aServicesTTY=(dbus sshd chronyd udevd wpa_supplicant uuidd dmeventd acpid)
+	local aServicesX=(bluetoothd)
 	local service
 	local level=2
 
 	if ! $LSERVER; then
 		aServicesTTY+=(NetworkManager)
+	else
+		aServicesTTY+=(dhcpcd)
 	fi
 
 	for x in "${aDE[@]}"; do
