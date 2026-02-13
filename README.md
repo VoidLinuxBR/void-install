@@ -45,6 +45,7 @@ Run `void-install` without any arguments to get help.
 
 Run `void-install -i` to start the installer and choose language.
 
+<img alt="01" src="assets/01.png" width="600" />
 <img alt="void-install-choose-language" src="assets/void-install-choose-language.jpg" width="600" />
 <img alt="void-install-main-menu" src="assets/void-install-main-menu.jpg" width="600" />
 <img alt="void-install-choose-mirror" src="assets/void-install-choose-mirror.jpg" width="600" />
