@@ -504,7 +504,6 @@ sh_choose_common_packages() {
 		declare -ga aExtra=(
 			bash-completion
 			fzf
-			gettext
 			dialog
 			pv
 			tree
@@ -535,6 +534,8 @@ sh_choose_common_packages() {
 	if $LXORG; then
 		return
 	fi
+
+	#	debug $LONLY_TTY
 
 	## begin packages
 	if ! $LONLY_TTY; then
@@ -599,9 +600,9 @@ sh_choose_common_packages() {
 				declare -ga aEditorX=(mousepad libreoffice libreoffice-i18n-$(sh_get_language_without_utf8))
 				declare -ga aNetworkX=(gvfs gvfs-smb gvfs-mtp gvfs-afc gvfs-cdda udisks2)
 				declare -ga aUtilityX=(xkill menulibre mugshot ocs-url gparted vlc celluloid lm_sensors)
+				declare -ga aDaemons+=(avahi-discover)
 			fi
 			## tty
-			declare -ga aDaemons=(acpi acpid irqbalance)
 			declare -ga aArchiverTty=(unrar zip p7zip unzip bzip2)
 			declare -ga aDownloader=()
 			declare -ga aUtility=(binutils dfc btop parallel bubblewrap cmatrix pfetch bc bat xtools geoip geoipupdate)
@@ -611,6 +612,7 @@ sh_choose_common_packages() {
 			declare -ga aBrowser=()
 			declare -ga aFilemanager=()
 			declare -ga aUtilityX=()
+			declare -ga aDaemons=()
 		fi
 
 		aIconsAndThemes+=(Adapta adwaita-icon-theme)
@@ -618,7 +620,7 @@ sh_choose_common_packages() {
 		aBrowser+=(firefox firefox-i18n-$(sh_get_language_without_utf8))
 		aFilemanager+=(octoxbps)
 		aUtilityX+=(chili-iso2usb)
-		aDaemons+=(avahi avahi-discover)
+		aDaemons+=(avahi acpi acpid irqbalance)
 		aNetworkX=(network-manager-applet)
 	fi
 
@@ -763,7 +765,6 @@ sh_touchConf() {
 		WIFI_PASSWORD=$_WIFI_PASSWORD
 	EOF
 	{
-		declare -p LONLY_TTY
 		declare -p LDHCP
 		declare -p LDISK
 		declare -p LEFI
@@ -2065,15 +2066,15 @@ sh_make_fstab() {
 sh_activating_services() {
 	#dica: No Void, com dbus ativo, o elogind e o polkitd sobem automaticamente.
 	#      Você não precisa ativar os serviços deles no runit.
-	local aServicesTTY=(dbus sshd chronyd udevd wpa_supplicant uuidd dmeventd acpid)
-	local aServicesX=(bluetoothd)
+	local aServicesTTY=(dbus sshd chronyd udevd wpa_supplicant uuidd dmeventd acpid socklog-unix)
+	local aServicesX=(bluetoothd avahi-daemon)
 	local service
 	local level=2
 
-	if ! $LSERVER; then
-		aServicesTTY+=(NetworkManager)
-	else
+	if $LSERVER; then
 		aServicesTTY+=(dhcpcd)
+	else
+		aServicesTTY+=(NetworkManager)
 	fi
 
 	for x in "${aDE[@]}"; do
@@ -2367,16 +2368,16 @@ sh_openbox_minimal() {
 }
 
 sh_plasma_minimal() {
-	local apkgs=(kde5 plasma-desktop plasma-nm plasma-pa plasma-disks kate konsole dolphin)
-	local DE='Plasma Desktop'
-
-	apkgs+=(
-		voidbr-plasma-config
-		voidbr-wallpapers
-		voidbr-tokyo-theme
-		voidbr-professional-theme
-		voidbr-beauty-icons
+	local apkgs=(kde5
+		plasma-desktop
+		plasma-nm
+		plasma-pa
+		plasma-disks
+		kate
+		konsole
+		dolphin
 	)
+	local DE='Plasma Desktop'
 
 	if $LCUSTOM; then
 		apkgs+=(
@@ -2385,6 +2386,15 @@ sh_plasma_minimal() {
 			kf6-kaccounts-integration
 			signon-kwallet-extension
 		)
+
+		apkgs+=(
+			voidbr-plasma-config
+			voidbr-wallpapers
+			voidbr-tokyo-theme
+			voidbr-professional-theme
+			voidbr-beauty-icons
+		)
+
 	fi
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
@@ -2397,16 +2407,13 @@ sh_cinnamon_minimal() {
 	if $LCUSTOM; then
 		apkgs+=(
 			plank
+			voidbr-cinnamon-config
+			voidbr-wallpapers
+			voidbr-tokyo-theme
+			voidbr-professional-theme
+			voidbr-beauty-icons
 		)
-
 	fi
-	apkgs+=(
-		voidbr-cinnamon-config
-		voidbr-wallpapers
-		voidbr-tokyo-theme
-		voidbr-professional-theme
-		voidbr-beauty-icons
-	)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -2420,12 +2427,17 @@ sh_enlightenment_minimal() {
 		acpi
 		acpid
 		connman
-		voidbr-enlightenment-config
-		voidbr-wallpapers
-		voidbr-tokyo-theme
-		voidbr-professional-theme
-		voidbr-beauty-icons
 	)
+
+	if $LCUSTOM; then
+		apkgs+=(
+			voidbr-enlightenment-config
+			voidbr-wallpapers
+			voidbr-tokyo-theme
+			voidbr-professional-theme
+			voidbr-beauty-icons
+		)
+	fi
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -2438,35 +2450,31 @@ sh_xfce4_minimal() {
 		xfce4-dict
 		xfce4-datetime-plugin
 		xfce4-pulseaudio-plugin
-		ristretto
-		engrampa
-		file-roller
-		thunar-archive-plugin
-		plank
-		gvfs
-		bluez
-		bluez-alsa
-		blueman
-		libspa-bluetooth
-		blueberry
-		mate-calc
-		umc
 	)
 
 	if $LCUSTOM; then
 		apkgs+=(
+			thunar-archive-plugin
+			gvfs
+			bluez
+			bluez-alsa
+			blueman
+			libspa-bluetooth
+			ristretto
+			engrampa
+			file-roller
+			blueberry
+			mate-calc
+			umc
 			plank
+			voidbr-xfce-config
+			voidbr-wallpapers
+			voidbr-tokyo-theme
+			voidbr-professional-theme
+			voidbr-beauty-icons
+			voidbr-xfwm-axiom-theme
 		)
-
 	fi
-	apkgs+=(
-		voidbr-xfce-config
-		voidbr-wallpapers
-		voidbr-tokyo-theme
-		voidbr-professional-theme
-		voidbr-beauty-icons
-		voidbr-xfwm-axiom-theme
-	)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -2539,7 +2547,6 @@ sh_gnome_minimal() {
 		"wireplumber"              # Gerenciador de sessão para Pipewire
 		"xdg-desktop-portal-gnome" # Integração de interface e permissões para Wayland
 		"xdg-user-dirs-gtk"        # Gerenciamento automático das pastas padrão de usuário
-		voidbr-change-gnome-wallpaper
 	)
 
 	if $LCUSTOM; then
@@ -2550,14 +2557,15 @@ sh_gnome_minimal() {
 			gnome-taquin gnome-tetravex gnome-tweaks gnome-usage hitori iagno lightsoff
 			polari quadrapassel swell-foop sysprof tali
 		)
+		apkgs+=(
+			voidbr-gnome-config
+			voidbr-wallpapers
+			voidbr-tokyo-theme
+			voidbr-professional-theme
+			voidbr-beauty-icons
+			voidbr-change-gnome-wallpaper
+		)
 	fi
-	apkgs+=(
-		voidbr-gnome-config
-		voidbr-wallpapers
-		voidbr-tokyo-theme
-		voidbr-professional-theme
-		voidbr-beauty-icons
-	)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -2604,16 +2612,19 @@ sh_mate_minimal() {
 		eom
 		mozo
 		pluma
-		plank
-		brisk-menu
 	)
-	apkgs+=(
-		voidbr-mate-config
-		voidbr-wallpapers
-		voidbr-tokyo-theme
-		voidbr-professional-theme
-		voidbr-beauty-icons
-	)
+
+	if $LCUSTOM; then
+		apkgs+=(
+			plank
+			brisk-menu
+			voidbr-mate-config
+			voidbr-wallpapers
+			voidbr-tokyo-theme
+			voidbr-professional-theme
+			voidbr-beauty-icons
+		)
+	fi
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -2654,8 +2665,13 @@ sh_bspwm_minimal() {
 		rofi
 		gtk-engine-murrine
 		gtk2-engines
-		chili-void-bspwm-skel
 	)
+
+	if $LCUSTOM; then
+		apkgs+=(
+			chili-void-bspwm-skel
+		)
+	fi
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -4095,6 +4111,7 @@ sh_choose_wm() {
 			;;
 		esac
 	done
+
 	if $ok; then
 		LONLY_TTY=true
 		AConfAudio[_AUDIOSERVER]="None"
@@ -4196,7 +4213,7 @@ sh_build_and_apply_dhcpcd_config() {
 	local CONFIG_FILE="$dir_install/etc/dhcpcd.conf"
 	local BACKUP_FILE="${CONFIG_FILE}.$(sh_diahora)"
 
-   sh_info_msg "%(gettext 'Aplicando configuração do dhcpd')"
+	sh_info_msg "%(gettext 'Aplicando configuração do dhcpd')"
 	# backup somente se existir
 	if [[ -f "$CONFIG_FILE" ]]; then
 		mv -f "$CONFIG_FILE" "$BACKUP_FILE"
@@ -4880,8 +4897,8 @@ sh_install() {
 	local end_datetime
 	local akernel=(linux)
 	local afirmware=(wifi-firmware)
-	local abase=(voidbr-base-config chrony wireless_tools wpa_supplicant pigz zstd xz sed grep voidbr-grub-theme) #voidbr-plymouth-theme
-	local agrub=(grub-i386-efi grub-utils)
+	local abase=(gettext voidbr-base-config chrony wireless_tools wpa_supplicant pigz zstd xz sed grep socklog socklog-void) #voidbr-plymouth-theme
+	local agrub=(grub-i386-efi grub-utils grub-terminus grub-btrfs-runit voidbr-grub-theme)
 
 	if $LVM; then
 		abase+=(lvm2)
@@ -4889,12 +4906,6 @@ sh_install() {
 
 	if $LFDE; then
 		abase+=(cryptsetup)
-	fi
-
-	if $LCUSTOM; then
-		abase+=(socklog-void)
-		agrub+=(grub-terminus)
-		agrub+=(grub-btrfs-runit)
 	fi
 
 	ncounter=0
@@ -4964,19 +4975,7 @@ sh_install() {
 			sh_grubInstall
 			sh_make_fstab
 
-			LONLY_TTY=false
-			if ((${#_WINDOWMANAGER[@]} == 1)) && [[ "${_WINDOWMANAGER[0]}" == "tty" ]]; then
-				LONLY_TTY=true
-				LSERVER=false
-				:
-			elif ((${#_WINDOWMANAGER[@]} == 1)) && [[ "${_WINDOWMANAGER[0]}" == "server" ]]; then
-				LONLY_TTY=true
-				LSERVER=true
-			elif [[ " ${_WINDOWMANAGER[*]} " == *" tty "* && " ${_WINDOWMANAGER[*]} " == *" server "* ]]; then
-				LONLY_TTY=true
-				LSERVER=true
-				:
-			else
+			if ! $LONLY_TTY; then
 				sh_update_Xkeymap
 				sh_X11_minimal
 			fi
@@ -6670,6 +6669,7 @@ sh_check_lock
 	exit $(($# ? 0 : 1))
 }
 
+reset
 sh_checkDependencies
 sh_checkRoot
 sh_checkDisplay
