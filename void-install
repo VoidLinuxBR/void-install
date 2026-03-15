@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: ter 10 mar 2026 20:52:10 -04
+#  Updated: sáb 14 mar 2026 23:48:21 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.3.10-20260310'
+readonly _VERSION_='3.3.14-20260314'
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 readonly LOCKFILE="/tmp/void-install.lock"
 
@@ -1543,17 +1543,17 @@ sh_mkparted() {
 			CSCRIPT+="mkpart primary $cini 100% set $cpart boot on "
 			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}$cpart"]="/|ext4|1")
 		fi
-		CSCRIPT+='align-check optimal 1'
-		CSCRIPT+='align-check optimal 2'
-		CSCRIPT+='align-check optimal 3'
+		#CSCRIPT+='align-check optimal 1'
+		#CSCRIPT+='align-check optimal 2'
+		#CSCRIPT+='align-check optimal 3'
 
 		if $withswap; then
 			CSCRIPT+='align-check optimal 4'
 		fi
 
-		parted --script "${AConfDisk[_DEVICE]}" -- "$CSCRIPT" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
+		parted -a optimal --script "${AConfDisk[_DEVICE]}" -- "$CSCRIPT" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 		evaluate_retval "${PIPESTATUS[0]}"
-		parted --script "${AConfDisk[_DEVICE]}" -- print 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
+		parted -a optimal --script "${AConfDisk[_DEVICE]}" -- print 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 		Amkfs+=(["vfat"]="mkfs.vfat")
 		Amkfs+=(["swap"]="mkswap")
 		Amkfs+=(["ext4"]="mkfs.ext4")
@@ -2813,7 +2813,7 @@ sh_disk_info() {
 	done < <(
 		lsblk -PAo TYPE,NAME,PATH,SIZE,TRAN,MODEL,LABEL,SERIAL,PTTYPE |
 			grep -P 'TYPE="(disk|loop|lvm)"' |
-			grep -Pv 'NAME=".*(_tdata|_tmeta|-tpool)"' |
+			grep -Pv 'NAME=".*(_tdata|-data|_tmeta|-tpool)"' |
 			awk -F'"' '!seen[$6]++'
 	)
 	#	done < <(lsblk -PAo TYPE,NAME,PATH,SIZE,TRAN,MODEL,LABEL,SERIAL,PTTYPE | grep -P 'TYPE="(disk|loop|lvm)"' | sort -k5,5 -k2,2)
@@ -2859,7 +2859,7 @@ sh_disk_part_info() {
 		fi
 	done < <(lsblk -PAo TYPE,NAME,PATH,SIZE,TRAN,MODEL,LABEL,SERIAL,PTTYPE,FSTYPE,PARTTYPENAME |
 		grep -P 'TYPE="(disk|loop|lvm|part)"' |
-		grep -Pv 'NAME=".*(_tdata|_tmeta|-tpool)"' |
+		grep -Pv 'NAME=".*(_tdata|-data|_tmeta|-tpool)"' |
 		sort -u -t'"' -k6,6)
 	#  	done < <(lsblk -PAo TYPE,NAME,PATH,SIZE,TRAN,MODEL,LABEL,SERIAL,PTTYPE,FSTYPE,PARTTYPENAME | grep -P 'TYPE="(disk|loop|lvm|part)"' | sort -k5,5 -k2,2)
 }
