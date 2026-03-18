@@ -1517,43 +1517,39 @@ sh_mkparted() {
 		CSCRIPT+="mklabel $label_type "
 
 		if [[ "$label_type" = "gpt" ]]; then
-			CSCRIPT+='mkpart primary fat32 1MiB   2MiB set 1 bios_grub on name 1 BIOS '
-			CSCRIPT+='mkpart primary fat32 2MiB 258MiB set 2 esp on       name 2 EFI  '
-			#			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}1"]="||0")
+			CSCRIPT+='mkpart primary fat32 2MiB   4MiB set 1 bios_grub on name 1 BIOS '
+			CSCRIPT+='mkpart primary fat32 4MiB 258MiB set 2 esp on       name 2 EFI  '
 			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}2"]="/boot/efi|vfat|1")
 			cini='258MiB'
 			cpart='3'
+
 			if $withswap; then
 				CSCRIPT+="mkpart primary linux-swap $cini 3G name $cpart SWAP "
 				Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}$cpart"]="none|swap|1")
 				cini='3G'
 				cpart='4'
 			fi
+
 			CSCRIPT+="mkpart primary $cini 100% name $cpart ROOT "
 			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}$cpart"]="/|ext4|1")
 		else
-			cini='1MiB'
+			cini='2MiB'
 			cpart='1'
+
 			if $withswap; then
 				CSCRIPT+="mkpart primary linux-swap $cini 3G "
 				Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}$cpart"]="none|swap|1")
 				cini='3G'
 				cpart='2'
 			fi
+
 			CSCRIPT+="mkpart primary $cini 100% set $cpart boot on "
 			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}$cpart"]="/|ext4|1")
 		fi
-		#CSCRIPT+='align-check optimal 1'
-		#CSCRIPT+='align-check optimal 2'
-		#CSCRIPT+='align-check optimal 3'
 
-		if $withswap; then
-			CSCRIPT+='align-check optimal 4'
-		fi
-
-		parted -a optimal --script "${AConfDisk[_DEVICE]}" -- "$CSCRIPT" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
+		parted --align=opt --script "${AConfDisk[_DEVICE]}" -- "$CSCRIPT" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 		evaluate_retval "${PIPESTATUS[0]}"
-		parted -a optimal --script "${AConfDisk[_DEVICE]}" -- print 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
+		parted --align=opt --script "${AConfDisk[_DEVICE]}" -- print 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 		Amkfs+=(["vfat"]="mkfs.vfat")
 		Amkfs+=(["swap"]="mkswap")
 		Amkfs+=(["ext4"]="mkfs.ext4")
