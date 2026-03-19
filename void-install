@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: sáb 14 mar 2026 23:48:21 -04
+#  Updated: qua 18 mar 2026 08:34:02 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.3.14-20260314'
+readonly _VERSION_='3.3.18-20260318'
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 readonly LOCKFILE="/tmp/void-install.lock"
 
@@ -1518,9 +1518,9 @@ sh_mkparted() {
 
 		if [[ "$label_type" = "gpt" ]]; then
 			CSCRIPT+='mkpart primary fat32 2MiB   4MiB set 1 bios_grub on name 1 BIOS '
-			CSCRIPT+='mkpart primary fat32 4MiB 258MiB set 2 esp on       name 2 EFI  '
+			CSCRIPT+='mkpart primary fat32 4MiB 260MiB set 2 esp on       name 2 EFI  '
 			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}2"]="/boot/efi|vfat|1")
-			cini='258MiB'
+			cini='260MiB'
 			cpart='3'
 
 			if $withswap; then
@@ -2063,15 +2063,12 @@ sh_activating_services() {
 	#dica: No Void, com dbus ativo, o elogind e o polkitd sobem automaticamente.
 	#      Você não precisa ativar os serviços deles no runit.
 	local aServicesTTY=(dbus sshd chronyd udevd wpa_supplicant uuidd dmeventd acpid socklog-unix)
-	local aServicesX=(bluetoothd avahi-daemon)
+	local aServicesX=(avahi-daemon)
 	local service
 	local level=2
 
-	if $LSERVER; then
-		aServicesTTY+=(dhcpcd)
-	else
-		aServicesTTY+=(NetworkManager)
-	fi
+	$LSERVER && aServicesTTY+=(dhcpcd) || aServicesTTY+=(NetworkManager)
+	! $ONLY_TTY && aServicesX+=(bluetoothd)
 
 	for x in "${aDE[@]}"; do
 		case $x in
