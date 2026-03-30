@@ -4226,6 +4226,22 @@ sh_configure_dhcpcd_static_ip_dialog() {
 	done
 }
 
+sh_create_empty_iptables_rules() {
+	local CONFIG_FILE="$dir_install/etc/iptables/iptables.rules"
+
+	sh_info_msg "%(gettext 'Aplicando configuração do iptables')"
+
+	# cria novo arquivo
+	cat >"$CONFIG_FILE" <<EOF
+# Empty iptables rule file
+*filter
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+COMMIT
+EOF
+}
+
 sh_build_and_apply_dhcpcd_config() {
 	local CONFIG_FILE="$dir_install/etc/dhcpcd.conf"
 	local BACKUP_FILE="${CONFIG_FILE}.$(sh_diahora)"
@@ -5053,6 +5069,7 @@ sh_install() {
 			sh_activating_services
 
 			if $LSERVER; then
+        sh_create_empty_iptables_rules
 				if $LDHCP; then
 					sh_build_and_apply_dhcpcd_config
 				fi
