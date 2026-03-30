@@ -2058,7 +2058,7 @@ sh_make_fstab() {
 		"sed 's/#.*//' /etc/fstab | column --table --table-columns SOURCES,DIR,TYPE,OPTIONS,DUMP,PASS --table-hide - >/tmp/fstab" "$err_not_fatal"
 	sh_chroot_job "${cmsg_Gerando} fstab pass3" \
 		"sed -i 's/SOURCES/#SOURCE/' /tmp/fstab" "$err_not_fatal"
-	sh_chroot_job "${ççççcmsg_Gerando} fstab pass4" \
+	sh_chroot_job "${cmsg_Gerando} fstab pass4" \
 		"cp /tmp/fstab /etc/fstab" "$err_not_fatal"
 }
 
