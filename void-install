@@ -4979,7 +4979,7 @@ sh_install() {
 	local end_datetime
 	local akernel=("${AConfKernel[_KERNEL]:-linux}" dracut)
 	local afirmware=(wifi-firmware)
-	local abase=(gettext voidbr-base-config chrony wireless_tools wpa_supplicant pigz zstd xz sed grep socklog socklog-void) #voidbr-plymouth-theme
+	local abase=(exa gettext voidbr-base-config chrony wireless_tools wpa_supplicant pigz zstd xz sed grep socklog socklog-void) #voidbr-plymouth-theme
 	local agrub=(grub-i386-efi grub-utils grub-terminus grub-btrfs-runit voidbr-grub-theme)
 
 	if $LVM; then
