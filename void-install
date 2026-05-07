@@ -3139,7 +3139,7 @@ sh_timedatectl() {
 	return 1
 }
 
-sh_chooseLocale() {
+sh_chooseLocaleOLD() {
 	local TMPFILE
 	local LOC
 	local LANG
@@ -3219,6 +3219,169 @@ sh_chooseLocale() {
 	done
 	AConfLocale[_LOCALE]="$selected"
 	AConfLocale[_REGION]="$desc"
+	LLOCALE=true
+}
+
+sh_chooseLocale() {
+	local locale
+	local selected
+	local desc
+	local exit_status
+
+	DEFITEM="${AConfLocale[_LOCALE]}"
+
+	declare -A ISO639=(
+		[pt]="Portuguese"
+		[en]="English"
+		[es]="Spanish"
+		[fr]="French"
+		[de]="German"
+		[it]="Italian"
+		[ja]="Japanese"
+		[zh]="Chinese"
+		[ru]="Russian"
+		[ko]="Korean"
+		[ar]="Arabic"
+		[nl]="Dutch"
+		[sv]="Swedish"
+		[pl]="Polish"
+		[tr]="Turkish"
+		[uk]="Ukrainian"
+		[cs]="Czech"
+		[hu]="Hungarian"
+		[fi]="Finnish"
+		[da]="Danish"
+		[no]="Norwegian"
+		[el]="Greek"
+		[he]="Hebrew"
+		[hi]="Hindi"
+		[bn]="Bengali"
+		[ta]="Tamil"
+		[th]="Thai"
+		[vi]="Vietnamese"
+	)
+
+	declare -A ISO3166=(
+		[BR]="Brazil"
+		[PT]="Portugal"
+		[US]="United States"
+		[GB]="United Kingdom"
+		[AR]="Argentina"
+		[ES]="Spain"
+		[FR]="France"
+		[DE]="Germany"
+		[IT]="Italy"
+		[JP]="Japan"
+		[CN]="China"
+		[TW]="Taiwan"
+		[RU]="Russia"
+		[KR]="South Korea"
+		[SA]="Saudi Arabia"
+		[NL]="Netherlands"
+		[SE]="Sweden"
+		[PL]="Poland"
+		[TR]="Turkey"
+		[UA]="Ukraine"
+		[CZ]="Czech Republic"
+		[HU]="Hungary"
+		[FI]="Finland"
+		[DK]="Denmark"
+		[NO]="Norway"
+		[GR]="Greece"
+		[IL]="Israel"
+		[IN]="India"
+		[BD]="Bangladesh"
+		[TH]="Thailand"
+		[VN]="Vietnam"
+	)
+
+	local LOCALES=(
+		"pt_BR.UTF-8"
+		"pt_PT.UTF-8"
+		"en_US.UTF-8"
+		"en_GB.UTF-8"
+		"es_ES.UTF-8"
+		"es_AR.UTF-8"
+		"fr_FR.UTF-8"
+		"de_DE.UTF-8"
+		"it_IT.UTF-8"
+		"ja_JP.UTF-8"
+		"zh_CN.UTF-8"
+		"zh_TW.UTF-8"
+		"ru_RU.UTF-8"
+		"ko_KR.UTF-8"
+		"ar_SA.UTF-8"
+		"nl_NL.UTF-8"
+		"sv_SE.UTF-8"
+		"pl_PL.UTF-8"
+		"tr_TR.UTF-8"
+		"uk_UA.UTF-8"
+		"cs_CZ.UTF-8"
+		"hu_HU.UTF-8"
+		"fi_FI.UTF-8"
+		"da_DK.UTF-8"
+		"no_NO.UTF-8"
+		"el_GR.UTF-8"
+		"he_IL.UTF-8"
+		"hi_IN.UTF-8"
+		"bn_BD.UTF-8"
+		"ta_IN.UTF-8"
+		"th_TH.UTF-8"
+		"vi_VN.UTF-8"
+	)
+
+	local MENU_ITEMS=()
+	local LOC
+	local LANG
+	local COUNTRY
+	local LANGNAME
+	local COUNTRYNAME
+
+	for LOC in "${LOCALES[@]}"; do
+		LANG="${LOC%%_*}"
+
+		COUNTRY="${LOC#*_}"
+		COUNTRY="${COUNTRY%%.*}"
+
+		LANGNAME="${ISO639[$LANG]:-$LANG}"
+		COUNTRYNAME="${ISO3166[$COUNTRY]:-$COUNTRY}"
+
+		MENU_ITEMS+=(
+			"$LOC"
+			"$LANGNAME $COUNTRYNAME"
+		)
+	done
+
+	locale=$(
+		${DIALOG} \
+			--title "$(gettext 'Selecionar locale')" \
+			--default-item "$DEFITEM" \
+			--menu "$(gettext 'Escolha seu locale')" \
+			20 70 18 \
+			"${MENU_ITEMS[@]}" \
+			2>&1 >/dev/tty
+	)
+
+	exit_status=$?
+
+	case $exit_status in
+		"$D_ESC" | "$D_CANCEL")
+			return
+			;;
+	esac
+
+	selected="$locale"
+
+	for ((i = 0; i < ${#MENU_ITEMS[@]}; i += 2)); do
+		if [[ "${MENU_ITEMS[i]}" == "$selected" ]]; then
+			desc="${MENU_ITEMS[i + 1]}"
+			break
+		fi
+	done
+
+	AConfLocale[_LOCALE]="$selected"
+	AConfLocale[_REGION]="$desc"
+
 	LLOCALE=true
 }
 
