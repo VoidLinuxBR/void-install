@@ -1,6 +1,6 @@
-# void-install - VOID Linux Brazilian installer
-## Download/install:
-- 0 - using distro VOID oficial
+# void-install - Instalador brasileiro do VOID Linux
+## Download/instalação:
+- 0 - usando a distro oficial do VOID
 ```bash
 {
   echo 'repository=https://repo-fastly.voidlinux.org/current'
@@ -13,38 +13,38 @@ sudo xbps-install -Syf void-install
 sudo void-install
 ```
 
-- 1 - using git
+- 1 - usando git
 	- git clone --depth=1 https://github.com/voidlinuxbr/void-install
 
-- 2 - using curl/wget stdin
+- 2 - usando curl/wget stdin
 	- bash <(curl -s -L https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh)
 	- bash <(wget -q -O - https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh)
 	- curl -s -O https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh | bash
 	- wget -q -O - https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh | bash
 
-- 3 - using curl/wget
+- 3 - usando curl/wget
 	- curl -O https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh
 	- wget https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh
 	- chmod +x install.sh
 	- bash install.sh
 
-## Installation (after download):
-- 1 - using make
+## Instalação (após o download):
+- 1 - usando make
 	- sudo make install
 
-- 2 - running in local repo
+- 2 - executando localmente no repositório
 	- ./void-install
 
-Examples
+Exemplos
 --------
 
-Run `void-install` without any arguments to get help.
+execute `void-install -h` para exibir a ajuda.
 
 <img alt="void-install-help" src="assets/void-install-help.jpg" width="600" />
 
-**Note:** `sudo` or escalated privileges are required to actually run the installer.
+**Nota:** `sudo` ou privilégios elevados são necessários para realmente executar o instalador.
 
-Run `void-install -i` to start the installer and choose language.
+execute `sudo void-install` para iniciar o instalador.
 
 <img alt="01" src="assets/01.png" width="600" />
 <img alt="02" src="assets/02.png" width="600" />
