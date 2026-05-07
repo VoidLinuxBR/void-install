@@ -3198,9 +3198,9 @@ sh_chooseLocale() {
 	rm -f "$TMPFILE"
 
 	locale=$(${DIALOG} \
-		--title "Select locale" \
+		--title "$(gettext 'Selecionar locale')" \
 		--default-item "$DEFITEM" \
-		--menu "Choose your locale" \
+		--menu "$(gettext 'Escolha seu locale')" \
 		20 70 18 \
 		"${MENU_ITEMS[@]}" 2>&1 >/dev/tty)
 
