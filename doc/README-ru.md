@@ -1,10 +1,11 @@
 # void-install — бразильский установщик VOID Linux
-## Скачать:
-- 0 - использование дистрибутива VOID
+## Загрузка/установка:
+- 0 — использование официального дистрибутива VOID
 ```bash
 {
   echo 'repository=https://repo-fastly.voidlinux.org/current'
-  echo 'repository=https://void.chililinux.com/voidlinux/current'
+  echo 'repository=https://void.voidbr.org/voidlinux/current'
+  echo 'repository=https://void.voidbr.org/voidlinux/extra'
 } | sudo tee /etc/xbps.d/00-repository-main.conf
 sudo xbps-install -Syu xbps
 sudo xbps-install -Syu libssh2
@@ -25,25 +26,25 @@ sudo void-install
 	- локон -O https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh
 	- wget https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh
 	- chmod +x install.sh
-	- Баш install.sh
+	- bash install.sh
 
 ## Установка (после скачивания):
-- 1 - использование make
+- 1 - использование макияжа
 	- sudo сделать установку
 
-- 2 - запуск в локальном репо
+- 2 — запуск локально в репозитории
 	- ./void-install
 
 Примеры
 --------
 
-Запустите void-install без каких-либо аргументов, чтобы получить помощь.
+запустите `void-install -h`, чтобы отобразить справку.
 
 <img alt="void-install-help" src="assets/void-install-help.jpg" width="600" />
 
-**Примечание.** Для запуска установщика необходимы `sudo` или повышенные привилегии.
+**Примечание.** Для запуска установщика необходимы права `sudo` или повышенные привилегии.
 
-Запустите `void-install -i`, чтобы запустить установщик, и выберите язык.
+запустите sudo void-install, чтобы запустить установщик.
 
 <img alt="01" src="assets/01.png" width="600" />
 <img alt="02" src="assets/02.png" width="600" />

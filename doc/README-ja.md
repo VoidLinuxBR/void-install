@@ -1,10 +1,11 @@
-# void-install - VOID Linux ブラジルインストーラー
-## ダウンロード：
-- 0 - ディストリビューション VOID を使用
+# void-install - ブラジルの VOID Linux インストーラー
+## ダウンロード/インストール:
+- 0 - 公式 VOID ディストリビューションを使用する
 ```bash
 {
   echo 'repository=https://repo-fastly.voidlinux.org/current'
-  echo 'repository=https://void.chililinux.com/voidlinux/current'
+  echo 'repository=https://void.voidbr.org/voidlinux/current'
+  echo 'repository=https://void.voidbr.org/voidlinux/extra'
 } | sudo tee /etc/xbps.d/00-repository-main.conf
 sudo xbps-install -Syu xbps
 sudo xbps-install -Syu libssh2
@@ -16,7 +17,7 @@ sudo void-install
 	- git clone -- Depth=1 https://github.com/voidlinuxbr/void-install
 
 - 2 -curl/wget stdin を使用する
-	- bash <(curl -s -L https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh)
+	- 
 	- bash <(wget -q -O - https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh)
 	- カール -s -O https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh |バッシュ
 	- wget -q -O - https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh |バッシュ
@@ -28,22 +29,22 @@ sudo void-install
 	- bash インストール.sh
 
 ## インストール (ダウンロード後):
-- 1 - make を使用する
+- 1 - メイクをする
 	- sudo メイクインストール
 
-- 2 - ローカル リポジトリで実行
+- 2 - リポジトリ内でローカルに実行
 	- ./void-install
 
 例
 --------
 
-ヘルプを表示するには、引数を指定せずに `void-install` を実行します。
+`void-install -h` を実行してヘルプを表示します。
 
 <img alt="void-install-help" src="assets/void-install-help.jpg" width="600" />
 
-**注意:** インストーラーを実際に実行するには、「sudo」または昇格された権限が必要です。
+**注意:** インストーラーを実際に実行するには、「sudo」または高い権限が必要です。
 
-`void-install -i` を実行してインストーラーを起動し、言語を選択します。
+`sudo void-install` を実行してインストーラーを開始します。
 
 <img alt="01" src="assets/01.png" width="600" />
 <img alt="02" src="assets/02.png" width="600" />

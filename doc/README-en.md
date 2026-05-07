@@ -1,10 +1,11 @@
-# void-install - VOID Linux Brazilian installer
-## Download:
-- 0 - using distro VOID
+# void-install - Brazilian VOID Linux installer
+## Download/installation:
+- 0 - using the official VOID distro
 ```bash
 {
   echo 'repository=https://repo-fastly.voidlinux.org/current'
-  echo 'repository=https://void.chililinux.com/voidlinux/current'
+  echo 'repository=https://void.voidbr.org/voidlinux/current'
+  echo 'repository=https://void.voidbr.org/voidlinux/extra'
 } | sudo tee /etc/xbps.d/00-repository-main.conf
 sudo xbps-install -Syu xbps
 sudo xbps-install -Syu libssh2
@@ -28,22 +29,22 @@ sudo void-install
 	- bash install.sh
 
 ## Installation (after download):
-- 1 - using make
+- 1 - using makeup
 	- sudo make install
 
-- 2 - running in local repo
+- 2 - running locally in the repository
 	- ./void-install
 
 Examples
 --------
 
-Run `void-install` without any arguments to get help.
+run `void-install -h` to display help.
 
 <img alt="void-install-help" src="assets/void-install-help.jpg" width="600" />
 
-**Note:** `sudo` or escalated privileges are required to actually run the installer.
+**Note:** `sudo` or elevated privileges are required to actually run the installer.
 
-Run `void-install -i` to start the installer and choose language.
+run `sudo void-install` to start the installer.
 
 <img alt="01" src="assets/01.png" width="600" />
 <img alt="02" src="assets/02.png" width="600" />

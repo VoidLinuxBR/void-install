@@ -1,10 +1,11 @@
-# void-install - VOID Linux 브라질 설치 프로그램
-## 다운로드:
-- 0 - distro VOID 사용
+# void-install - 브라질 VOID Linux 설치 프로그램
+## 다운로드/설치:
+- 0 - 공식 VOID 배포판 사용
 ```bash
 {
   echo 'repository=https://repo-fastly.voidlinux.org/current'
-  echo 'repository=https://void.chililinux.com/voidlinux/current'
+  echo 'repository=https://void.voidbr.org/voidlinux/current'
+  echo 'repository=https://void.voidbr.org/voidlinux/extra'
 } | sudo tee /etc/xbps.d/00-repository-main.conf
 sudo xbps-install -Syu xbps
 sudo xbps-install -Syu libssh2
@@ -28,22 +29,22 @@ sudo void-install
 	- 배시 설치.sh
 
 ## 설치(다운로드 후):
-- 1 - make 사용
+- 1 - 메이크업 사용
 	- sudo make 설치
 
-- 2 - 로컬 저장소에서 실행
+- 2 - 저장소에서 로컬로 실행
 	- ./void-install
 
 예
 --------
 
-도움을 받으려면 인수 없이 `void-install`을 실행하세요.
+도움말을 표시하려면 `void-install -h`를 실행하세요.
 
 <img alt="void-install-help" src="assets/void-install-help.jpg" width="600" />
 
-**참고:** 실제로 설치 프로그램을 실행하려면 `sudo` 또는 에스컬레이션된 권한이 필요합니다.
+**참고:** 실제로 설치 프로그램을 실행하려면 `sudo` 또는 높은 권한이 필요합니다.
 
-`void-install -i`를 실행하여 설치 프로그램을 시작하고 언어를 선택하세요.
+설치 프로그램을 시작하려면 `sudo void-install`을 실행하세요.
 
 <img alt="01" src="assets/01.png" width="600" />
 <img alt="02" src="assets/02.png" width="600" />
