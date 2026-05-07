@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: ter 05 mai 2026 23:04:01 -04
+#  Updated: qua 06 mai 2026 22:49:30 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.5.05-20260505'
+readonly _VERSION_='3.5.06-20260506'
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 readonly LOCKFILE="/tmp/void-install.lock"
 
@@ -2469,6 +2469,7 @@ sh_xfce4_minimal() {
 			umc
 			plank
 			voidbr-xfce-config
+			voidbr-xfce-theme-dracula
 			voidbr-wallpapers
 			voidbr-tokyo-theme
 			voidbr-professional-theme
