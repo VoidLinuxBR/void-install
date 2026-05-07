@@ -1,14 +1,14 @@
-# void-install — Instalador brasileiro do Void Linux
+# void-install — 巴西 Void Linux 安裝程序
 
-Instalador da comunidade VoidBR para o VOID Linux, focado em praticidade, automação e experiência moderna de instalação.
+適用於 VOID Linux 的 VoidBR 社群安裝程序，專注於實用性、自動化和現代安裝體驗。
 
 ---
 
-# Instalação
+# 安裝
 
-## Método 1 — Repositórios VoidBR (recomendado)
+## 方法 1 — VoidBR 儲存庫（建議）
 
-Usando a ISO oficial do Void Linux:
+使用官方 Void Linux ISO：
 
 ```bash
 {
@@ -26,7 +26,7 @@ sudo void-install
 
 ---
 
-## Método 2 — Git
+## 方法 2——Git
 
 ```bash
 git clone --depth=1 https://github.com/voidlinuxbr/void-install
@@ -35,7 +35,7 @@ cd void-install
 sudo make install
 ```
 
-Executar localmente sem instalar:
+本地運行，無需安裝：
 
 ```bash
 ./void-install
@@ -43,15 +43,15 @@ Executar localmente sem instalar:
 
 ---
 
-## Método 3 — Instalação rápida via curl/wget
+## 方法3——透過curl/wget快速安裝
 
-### curl
+### 捲曲
 
 ```bash
 bash <(curl -sL https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh)
 ```
 
-### wget
+### 獲取
 
 ```bash
 bash <(wget -qO- https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh)
@@ -59,21 +59,21 @@ bash <(wget -qO- https://raw.githubusercontent.com/voidlinuxbr/void-install/mast
 
 ---
 
-## Método 4 — Download manual do script
+## Método 4 — 下載手冊 do 腳本
 
-### curl
+### 捲曲
 
 ```bash
 curl -O https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh
 ```
 
-### wget
+### 獲取
 
 ```bash
 wget https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh
 ```
 
-Depois execute:
+然後運行：
 
 ```bash
 chmod +x install.sh
@@ -82,22 +82,22 @@ bash install.sh
 
 ---
 
-# Uso
+# 使用
 
-Iniciar instalador:
+啟動安裝程式：
 
 ```bash
 sudo void-install
 ```
 
-> `sudo` ou privilégios elevados são necessários para executar a instalação do sistema.
+> 需要 `sudo` 或提升的權限來執行系統安裝。
 
 ---
 
-# Screenshots
+# 截圖
 
 <img alt="01" src="assets/01.png" width="700" />
-<img alt="02" src="assets/02.png" width="700" />
+
 <img alt="03" src="assets/03.png" width="700" />
 <img alt="04" src="assets/04.png" width="700" />
 <img alt="05" src="assets/05.png" width="700" />
@@ -105,7 +105,7 @@ sudo void-install
 <img alt="07" src="assets/07.png" width="700" />
 <img alt="08" src="assets/08.png" width="700" />
 <img alt="09" src="assets/09.png" width="700" />
-<img alt="10" src="assets/10.png" width="700" />
+
 <img alt="11" src="assets/11.png" width="700" />
 <img alt="12" src="assets/12.png" width="700" />
 <img alt="13" src="assets/13.png" width="700" />
@@ -123,7 +123,7 @@ sudo void-install
 
 ---
 
-# Projeto
+# 專案
 
-GitHub:
-https://github.com/voidlinuxbr/void-install
+GitHub：
+辣椒_REF_0_辣椒
