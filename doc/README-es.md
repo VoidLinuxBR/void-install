@@ -1,47 +1,71 @@
 # void-install - Instalador brasileño de VOID Linux
-## Descargar:
-- 0 - usando distribución VOID
+
+## Descarga/instalación:
+
+### 0 - usando la distribución oficial de VOID
 ```bash
 {
   echo 'repository=https://repo-fastly.voidlinux.org/current'
-  echo 'repository=https://void.chililinux.com/voidlinux/current'
+  echo 'repository=https://void.voidbr.org/voidlinux/current'
+  echo 'repository=https://void.voidbr.org/voidlinux/extra'
 } | sudo tee /etc/xbps.d/00-repository-main.conf
+
 sudo xbps-install -Syu xbps
 sudo xbps-install -Syu libssh2
 sudo xbps-install -Syf void-install
 sudo void-install
 ```
 
-- 1 - usando git
-	- clon de git --profundidad=1 https://github.com/voidlinuxbr/void-install
+### 1 - usando git
+```bash
+git clone --depth=1 https://github.com/voidlinuxbr/void-install
+```
 
-- 2 - usando curl/wget stdin
-	- bash <(curl -s -L https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh)
-	- bash <(wget -q -O - https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh)
-	- rizo -s -O https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh | intento
-	- wget -q -O-https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh | intento
+### 2 - usando curl/wget a través de stdin
+```bash
+bash <(curl -s -L https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh)
 
-- 3 - usando curl/wget
-	- rizo -O https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh
-	- wget https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh
-	- chmod +x instalar.sh
-	- instalación de bash.sh
+bash <(wget -q -O - https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh)
 
-## Instalación (después de la descarga):
-- 1 - usando hacer
-	- sudo hacer instalar
+curl -s -O https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh | bash
 
-- 2 - ejecutándose en el repositorio local
-	- ./instalación nula
+wget -q -O - https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh | bash
+```
 
-Ejemplos
---------
+### 3 - usando curl/wget
+```bash
+curl -O https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh
 
-Ejecute `void-install` sin ningún argumento para obtener ayuda.
+wget https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh
+
+chmod +x install.sh
+
+bash install.sh
+```
+
+---
+
+# Instalación (después de la descarga)
+
+### 1 - usar maquillaje
+```bash
+sudo make install
+```
+
+### 2 - ejecutándose localmente en el repositorio
+```bash
+./void-install
+```
+
+---
+
+# Ejemplos
+
+Ejecute `void-install` sin argumentos para mostrar ayuda.
 
 <img alt="void-install-help" src="assets/void-install-help.jpg" width="600" />
 
-**Nota:** Se requieren `sudo` o privilegios escalados para ejecutar el instalador.
+> **Nota:** Se requieren `sudo` o privilegios elevados para ejecutar el instalador.
 
 Ejecute `void-install -i` para iniciar el instalador y elegir el idioma.
 
