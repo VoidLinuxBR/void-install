@@ -1,73 +1,50 @@
 # void-install - ブラジルの VOID Linux インストーラー
-
 ## ダウンロード/インストール:
-
-### 0 - 公式 VOID ディストリビューションを使用する
+- 0 - 公式 VOID ディストリビューションを使用する
 ```bash
 {
   echo 'repository=https://repo-fastly.voidlinux.org/current'
   echo 'repository=https://void.voidbr.org/voidlinux/current'
   echo 'repository=https://void.voidbr.org/voidlinux/extra'
 } | sudo tee /etc/xbps.d/00-repository-main.conf
-
 sudo xbps-install -Syu xbps
 sudo xbps-install -Syu libssh2
 sudo xbps-install -Syf void-install
 sudo void-install
 ```
 
-### 1 - git を使用する
-```bash
-git clone --depth=1 https://github.com/voidlinuxbr/void-install
-```
+- 1 - git を使用する
+	- git clone -- Depth=1 https://github.com/voidlinuxbr/void-install
 
-### 2 - 標準入力経由でcurl/wgetを使用する
-```bash
-bash <(curl -s -L https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh)
+- 2 -curl/wget stdin を使用する
+	- 
+	- bash <(wget -q -O - https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh)
+	- カール -s -O https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh |バッシュ
+	- wget -q -O - https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh |バッシュ
 
-bash <(wget -q -O - https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh)
+- 3 -curl/wgetを使用する
+	- カール -O https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh
+	- wget https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh
+	- chmod +x インストール.sh
+	- bash インストール.sh
 
-curl -s -O https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh | bash
+## インストール (ダウンロード後):
+- 1 - メイクをする
+	- sudo メイクインストール
 
-wget -q -O - https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh | bash
-```
+- 2 - リポジトリ内でローカルに実行
+	- ./void-install
 
-### 3 -curl/wgetを使用する
-```bash
-curl -O https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh
+例
+--------
 
-wget https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh
-
-chmod +x install.sh
-
-bash install.sh
-```
-
----
-
-# インストール（ダウンロード後）
-
-### 1 - メイクをする
-```bash
-sudo make install
-```
-
-### 2 - リポジトリ内でローカルに実行
-```bash
-./void-install
-```
-
----
-
-# 例
-
-ヘルプを表示するには、引数なしで `void-install` を実行します。
+`void-install -h` を実行してヘルプを表示します。
 
 <img alt="void-install-help" src="assets/void-install-help.jpg" width="600" />
 
-> **注意:** インストーラーを実際に実行するには、「sudo」または高い権限が必要です。
+**注意:** インストーラーを実際に実行するには、「sudo」または高い権限が必要です。
 
-`void-install -i` を実行してインストーラーを起動し、言語を選択します。
+`sudo void-install` を実行してインストーラーを開始します。
 
 <img alt="01" src="assets/01.png" width="600" />
 <img alt="02" src="assets/02.png" width="600" />

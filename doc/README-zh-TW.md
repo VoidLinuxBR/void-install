@@ -1,73 +1,50 @@
 # void-install - 巴西 VOID Linux 安裝程序
-
 ## 下載/安裝：
-
-### 0 - 使用官方 VOID 發行版
+- 0 - 使用官方 VOID 發行版
 ```bash
 {
   echo 'repository=https://repo-fastly.voidlinux.org/current'
   echo 'repository=https://void.voidbr.org/voidlinux/current'
   echo 'repository=https://void.voidbr.org/voidlinux/extra'
 } | sudo tee /etc/xbps.d/00-repository-main.conf
-
 sudo xbps-install -Syu xbps
 sudo xbps-install -Syu libssh2
 sudo xbps-install -Syf void-install
 sudo void-install
 ```
 
-### 1 - 使用git
-```bash
-git clone --depth=1 https://github.com/voidlinuxbr/void-install
-```
+- 1 - 使用git
+	- git克隆--深度= 1 https://github.com/voidlinuxbr/void-install
 
-### 2 - 透過標準輸入使用curl/wget
-```bash
-bash <(curl -s -L https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh)
+- 2 - 使用curl/wget stdin
+	- 
+	- 
+	- 捲曲-s -O https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh |巴什
+	- wget -q -O - https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh | wget -q -O - https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh |巴什
 
-bash <(wget -q -O - https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh)
+- 3 - 使用curl/wget
+	- 捲曲-O https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh
+	- wget https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh
+	- chmod +x install.sh
+	- bash安裝.sh
 
-curl -s -O https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh | bash
+## 安裝（下載後）：
+- 1 - 使用化妝品
+	- 須藤進行安裝
 
-wget -q -O - https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh | bash
-```
+- 2 - 在儲存庫中本地運行
+	- ./void-安裝
 
-### 3 - 使用curl/wget
-```bash
-curl -O https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh
+示例
+---------
 
-wget https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh
-
-chmod +x install.sh
-
-bash install.sh
-```
-
----
-
-# 安裝（下載後）
-
-### 1 - 使用化妝品
-```bash
-sudo make install
-```
-
-### 2 - 在儲存庫中本地運行
-```bash
-./void-install
-```
-
----
-
-# 示例
-
-執行不帶參數的“void-install”來顯示幫助。
+執行 `void-install -h` 以顯示幫助。
 
 <img alt="void-install-help" src="assets/void-install-help.jpg" width="600" />
 
-> **注意：** 實際執行安裝程式需要 `sudo` 或提升的權限。
+**注意：** 實際執行安裝程式需要`sudo`或提升的權限。
 
-執行“void-install -i”啟動安裝程式並選擇語言。
+執行“sudo void-install”來啟動安裝程式。
 
 <img alt="01" src="assets/01.png" width="600" />
 <img alt="02" src="assets/02.png" width="600" />
