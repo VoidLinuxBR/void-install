@@ -1,14 +1,14 @@
-# void-install — Instalador brasileiro do Void Linux
+# void-install — 巴西 Void Linux 安装程序
 
-Instalador da comunidade VoidBR para o VOID Linux, focado em praticidade, automação e experiência moderna de instalação.
+适用于 VOID Linux 的 VoidBR 社区安装程序，专注于实用性、自动化和现代安装体验。
 
 ---
 
-# Instalação
+# 安装
 
-## Método 1 — Repositórios VoidBR (recomendado)
+## 方法 1 — VoidBR 存储库（推荐）
 
-Usando a ISO oficial do Void Linux:
+使用官方 Void Linux ISO：
 
 ```bash
 {
@@ -26,7 +26,7 @@ sudo void-install
 
 ---
 
-## Método 2 — Git
+## 方法 2——Git
 
 ```bash
 git clone --depth=1 https://github.com/voidlinuxbr/void-install
@@ -35,7 +35,7 @@ cd void-install
 sudo make install
 ```
 
-Executar localmente sem instalar:
+本地运行，无需安装：
 
 ```bash
 ./void-install
@@ -43,15 +43,15 @@ Executar localmente sem instalar:
 
 ---
 
-## Método 3 — Instalação rápida via curl/wget
+## 方法3——通过curl/wget快速安装
 
-### curl
+### 卷曲
 
 ```bash
 bash <(curl -sL https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh)
 ```
 
-### wget
+### 获取
 
 ```bash
 bash <(wget -qO- https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh)
@@ -59,21 +59,21 @@ bash <(wget -qO- https://raw.githubusercontent.com/voidlinuxbr/void-install/mast
 
 ---
 
-## Método 4 — Download manual do script
+## Método 4 — 下载手册 do 脚本
 
-### curl
+### 卷曲
 
 ```bash
 curl -O https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh
 ```
 
-### wget
+### 获取
 
 ```bash
 wget https://raw.githubusercontent.com/voidlinuxbr/void-install/master/install.sh
 ```
 
-Depois execute:
+然后运行：
 
 ```bash
 chmod +x install.sh
@@ -82,19 +82,19 @@ bash install.sh
 
 ---
 
-# Uso
+# 使用
 
-Iniciar instalador:
+启动安装程序：
 
 ```bash
 sudo void-install
 ```
 
-> `sudo` ou privilégios elevados são necessários para executar a instalação do sistema.
+> 需要 `sudo` 或提升的权限来执行系统安装。
 
 ---
 
-# Screenshots
+# 截图
 
 <img alt="01" src="assets/01.png" width="700" />
 <img alt="02" src="assets/02.png" width="700" />
@@ -123,7 +123,7 @@ sudo void-install
 
 ---
 
-# Projeto
+# 项目
 
-GitHub:
-https://github.com/voidlinuxbr/void-install
+GitHub：
+辣椒_REF_0_辣椒
