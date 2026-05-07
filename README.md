@@ -1,6 +1,6 @@
 # void-install - VOID Linux Brazilian installer
-## Download:
-- 0 - using distro VOID
+## Download/install:
+- 0 - using distro VOID oficial
 ```bash
 {
   echo 'repository=https://repo-fastly.voidlinux.org/current'
