@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: qui 07 mai 2026 14:42:29 -04
+#  Updated: qui 07 mai 2026 21:22:11 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -3794,22 +3794,28 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 			LGRUB=true
 		fi
 
+    set_disk_choosed() {
+  	  AConfDisk[_DEVICE]="$sd"
+	  	AConfDisk[_BOOTLOADER]="$sd"
+  		sh_checkdisk "$sd"
+	  	sh_backup_partitions "$sd" "$NAME_ORIGEM"
+		  LDISK=true
+  		LGRUB=true
+	  	LOSPROBER=false
+		  sh_rebuild_amntpoint_for_new_disk
+    }
+
 		case $exit_status in
 		"$D_OK")
-			AConfDisk[_DEVICE]="$sd"
-			AConfDisk[_BOOTLOADER]="$sd"
-			sh_checkdisk "$sd"
-			sh_backup_partitions "$sd" "$NAME_ORIGEM"
-			LDISK=true
-			LGRUB=true
-			LOSPROBER=false
-			sh_rebuild_amntpoint_for_new_disk
-			return 0
+      set_disk_choosed
+      return 0
 			;;
 		"$D_CONFIG")
 			sh_checkdisk "${AConfDisk[_DEVICE]}"
 			sh_menuUtilDisk
-			continue
+			#continue
+      set_disk_choosed  # qui 07 mai 2026 21:22:11 -04
+      return 0          # qui 07 mai 2026 21:22:11 -04
 			;;
 		esac
 	done
