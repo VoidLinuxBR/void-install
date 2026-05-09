@@ -2897,6 +2897,18 @@ sh_part_info() {
 	#	done < <(lsblk -fPAo TYPE,NAME,PATH,SIZE,TRAN,MODEL,LABEL,SERIAL,FSTYPE,PARTTYPENAME | grep -P 'TYPE="(part)"' | sort -k5,5 -k2,2)
 }
 
+set_custom_install() {
+  local ctitle="$1"
+  if conf "${ctitle}" \
+  		"\n${BOLD}${WHITE}$(gettext "Uma instalação customizada irá instalar pacotes extras e também")" \
+  		"\n$(gettext "fazer diversas configurações, evitando faze-las manualmente posteriormente.")\n" \
+  		"\n${BOLD}${RED}$(gettext "Customizar a instalação?")\n\n"; then
+  		LCUSTOM=true
+  	else
+  		LCUSTOM=false
+  	fi
+}
+
 sh_getIso() {
 	if test -e '/run/initramfs/live/LiveOS/squashfs.img'; then
 		return 0
@@ -2968,6 +2980,8 @@ sh_chooseSource() {
 				else
 					LSOURCE=true
 					AConfMirror[_SOURCE]=$src
+          set_custom_install "=== ${cmsg_Source^^} ==="
+
 				fi
 			fi
 			;;
@@ -4165,16 +4179,6 @@ sh_choose_wm() {
 		alerta "$ccabec" "$(gettext 'Instalação escolhida foi via local/ISO, não é necessário alterar nada aqui.')"
 		_WINDOWMANAGER='tty'
 		LWM=true
-
-  	if conf "=== ${cmsg_Wm^^} ===" \
-  		"\n${BOLD}${WHITE}$(gettext "Uma instalação customizada irá instalar pacotes extras e também")" \
-  		"\n$(gettext "fazer diversas configurações, evitando faze-las manualmente posteriormente.")\n" \
-  		"\n${BOLD}${RED}$(gettext "Customizar a instalação?")\n\n"; then
-  		LCUSTOM=true
-  	else
-  		LCUSTOM=false
-  	fi
-
 		return
 	fi
 
@@ -4249,14 +4253,7 @@ sh_choose_wm() {
 	esac
 
 	HYPRLAND=false
-	if conf "=== ${cmsg_Wm^^} ===" \
-		"\n${BOLD}${WHITE}$(gettext "Uma instalação customizada irá instalar pacotes extras e também")" \
-		"\n$(gettext "fazer diversas configurações, evitando faze-las manualmente posteriormente.")\n" \
-		"\n${BOLD}${RED}$(gettext "Customizar a instalação?")\n\n"; then
-		LCUSTOM=true
-	else
-		LCUSTOM=false
-	fi
+  set_custom_install "=== ${cmsg_Wm^^} ==="
 
 	LWM=true
 	_WINDOWMANAGER=($(strtoarray "$wm"))
