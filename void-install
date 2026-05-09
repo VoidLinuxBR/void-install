@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: qui 07 mai 2026 21:22:11 -04
+#  Updated: sáb 09 mai 2026 01:16:42 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.5.07-20260507'
+readonly _VERSION_='3.5.09-20260509'
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 readonly LOCKFILE="/tmp/void-install.lock"
 
@@ -1738,6 +1738,7 @@ sh_make_fs() {
 		[jfs]="-f -L VOID"
 		[vfat]="-F32 -n EFI"
 		[reiserfs]="-f -l VOID"
+		[ntfs]="-F -L NTFS"
 	)
 
 	sh_check_util_fs
@@ -2996,6 +2997,7 @@ sh_choosefstype() {
 	Afs[ext4]="Linux ext4 (journal)"
 	Afs[vfat]="FAT32 (EFI)"
 	Afs[swap]="Linux swap"
+	Afs[ntfs]="Microsoft NTFS (ntfs-3g) (not for root '/')"
 
 	if [[ -z "$oldfstype" ]]; then
 		oldfstype=${AConfDisk[_FILESYSTEM]}
@@ -3137,89 +3139,6 @@ sh_timedatectl() {
 		fi
 	fi
 	return 1
-}
-
-sh_chooseLocaleOLD() {
-	local TMPFILE
-	local LOC
-	local LANG
-	local COUNTRY
-
-	TMPFILE=$(mktemp -t void-install-XXXXXXXX || exit 1)
-	DEFITEM="${AConfLocale[_LOCALE]}"
-
-	# tabelas básicas (expansível depois)
-	declare -A ISO639=(
-		[pt]="Portuguese"
-		[en]="English"
-		[es]="Spanish"
-		[fr]="French"
-		[de]="German"
-		[it]="Italian"
-		[ja]="Japanese"
-		[zh]="Chinese"
-		[ru]="Russian"
-	)
-
-	declare -A ISO3166=(
-		[BR]="Brazil"
-		[PT]="Portugal"
-		[US]="United States"
-		[AR]="Argentina"
-		[FR]="France"
-		[DE]="Germany"
-		[IT]="Italy"
-		[JP]="Japan"
-		[CN]="China"
-		[RU]="Russia"
-	)
-
-	# captura locales UTF-8 portável (vale Void, Debian, Arch, Alpine, etc)
-	# remove C, POSIX, C.utf8 e variantes
-	locale -a |
-		grep -i utf |
-		grep -vE '^(C|POSIX)(\.|$)' |
-		sort >"$TMPFILE"
-
-	local MENU_ITEMS=()
-
-	while read -r LOC; do
-		LANG="${LOC%%_*}"
-		COUNTRY="${LOC#*_}"
-		COUNTRY="${COUNTRY%%.*}"
-
-		# fallback se não tiver mapeado
-		LANGNAME="${ISO639[$LANG]:-$LANG}"
-		COUNTRYNAME="${ISO3166[$COUNTRY]:-$COUNTRY}"
-
-		MENU_ITEMS+=("$LOC" "$LANGNAME $COUNTRYNAME")
-	done <"$TMPFILE"
-
-	rm -f "$TMPFILE"
-
-	locale=$(${DIALOG} \
-		--title "$(gettext 'Selecionar locale')" \
-		--default-item "$DEFITEM" \
-		--menu "$(gettext 'Escolha seu locale')" \
-		20 70 18 \
-		"${MENU_ITEMS[@]}" 2>&1 >/dev/tty)
-
-	exit_status=$?
-	case $exit_status in
-	"$D_ESC" | "$D_CANCEL")
-		return
-		;;
-	esac
-	selected="$locale" # o que voltou do dialog
-	for ((i = 0; i < ${#MENU_ITEMS[@]}; i += 2)); do
-		if [[ "${MENU_ITEMS[i]}" == "$selected" ]]; then
-			desc="${MENU_ITEMS[i + 1]}"
-			break
-		fi
-	done
-	AConfLocale[_LOCALE]="$selected"
-	AConfLocale[_REGION]="$desc"
-	LLOCALE=true
 }
 
 sh_chooseLocale() {
@@ -5634,6 +5553,7 @@ sh_choosePartition() {
 		done
 		((nlen += 6))
 		part=$(${DIALOG} \
+      --defaultno \
 			--default-item "${AConfDisk[_DEVICE]}" \
 			--backtitle "$ccabec" \
 			--title "${cmsg_TitleFileSystem}" \
@@ -5655,7 +5575,6 @@ $(printf "%${nlen}s$sep%-11s$sep%6s$sep%-20s$sep%-20s$sep%-20s$sep%-8s$sep%s" \
 			24 0 2 "${array[@]}" 2>&1 >/dev/tty)
 
 		exit_status=$?
-		#    	dsk="${part%%?(p)+([0-9])}"
 		dsk="${part%%[p0-9]*([0-9])}"
 
 		case $exit_status in
@@ -5697,18 +5616,26 @@ $(printf "%${nlen}s$sep%-11s$sep%6s$sep%-20s$sep%-20s$sep%-20s$sep%-8s$sep%s" \
 				--colors \
 				--title "$xtitle" \
 				--backtitle "$ccabec" \
-				--inputbox "Please specify the mount point for $part:" 8 75 "$oldmntpoint" 2>&1 >/dev/tty)
+				--inputbox "$(gettext 'Por favor, especifique o ponto de montagem para') \n${CYAN}$part${RESET} -> $newfstype" 8 75 "$oldmntpoint" 2>&1 >/dev/tty)
 			exit_status=$?
 			if [[ $exit_status -eq 1 ]]; then
 				continue
 			elif [[ "$mntpoint" = "/usr" ]]; then
 				${DIALOG} \
 					--colors \
-					--msgbox "${BOLD}${RED}ERROR:${RESET} /usr mount point has been configured but is not supported, please remove it to continue." \
+					--msgbox "${BOLD}${RED}ERROR:${CYAN} /usr ${RESET}$(gettext 'esse ponto de montagem não é suportado. Altere e tente novamente.') ex.: ${CYAN}/ ${RESET}para raiz, ${CYAN}/home${RESET}" \
 					8 75
 				continue
 			elif [[ "$mntpoint" = "/" ]]; then
-				AConfDisk[_FILESYSTEM]="$newfstype"
+  			if [[ "$newfstype" = "ntfs" ]]; then
+  				${DIALOG} \
+	  				--colors \
+		  			--msgbox "${BOLD}${RED}ERROR:${CYAN} FS ntfs ${RESET}$(gettext 'ponto de montagem raiz nao pode ser NFTS. Altere e tente novamente.')" \
+			  		8 75
+  				continue
+   				AConfDisk[_FILESYSTEM]="$oldfstype"
+        fi
+ 				AConfDisk[_FILESYSTEM]="$newfstype"
 			elif [[ -z "$mntpoint" ]]; then
 				unset 'Amntpoint["$part"]'
 				continue
@@ -5725,7 +5652,7 @@ $(printf "%${nlen}s$sep%-11s$sep%6s$sep%-20s$sep%-20s$sep%-20s$sep%-8s$sep%s" \
 			--no-label "${cmsg_nolabel}" \
 			--yesno "Filesystem original : ${BLUE}$oldfstype${RESET}\n
 New filesystem      : ${RED}$newfstype${RESET}\n\n
-$(gettext "Você deseja criar um novo sistema de arquivos em") $part?" 8 75
+$(gettext "Criar um novo sistema de arquivos em") $part?" 8 75
 		exit_status=$?
 		if [ $exit_status -eq 0 ]; then
 			fsformat=1
@@ -5884,23 +5811,23 @@ sh_main_menu() {
 		fi
 
 		ccabec="${baseccabec} - ${RED}${url_mirror}"
-		$LMIRROR && MENU_MIRROR="${YELLOW}[${AConfMirror[_MIRROR]}]${RST} ● " || MENU_MIRROR="${RED}[not defined]${RST} ● "
-		$LSOURCE && MENU_SOURCE="${YELLOW}[${AConfMirror[_SOURCE]}]${RST} ● " || MENU_SOURCE="${RED}[not defined]${RST} ● "
-		$LDISK && MENU_DEVICE="${YELLOW}[${AConfDisk[_DEVICE]}]${RST} ● " || MENU_DEVICE="${RED}[not defined]${RST} ● "
-		$LGRUB && MENU_BOOTLOADER="${YELLOW}[${AConfDisk[_BOOTLOADER]}]${RST} ● " || MENU_BOOTLOADER="${RED}[not defined]${RST} ● "
-		$LMKPARTED && MENU_FS="${YELLOW}[OK => revise! ]${RST} ● " || MENU_FS="${RED}[not defined]${RST} ● "
-		$LKEYMAP && MENU_KEYMAP="${YELLOW}[${AConfLocale[_KEYMAP]}]${RST} ● " || MENU_KEYMAP="${RED}[not defined]${RST} ● "
-		$LTIMEZONE && MENU_TIMEZONE="${YELLOW}[${AConfLocale[_TIMEZONE]}${RST} ● " || MENU_TIMEZONE="${RED}[not defined]${RST} ● "
-		$LLOCALE && MENU_LOCALE="${YELLOW}[${AConfLocale[_LOCALE]} ${AConfLocale[_REGION]}]${RST} ● " || MENU_LOCALE="${RED}[not defined]${RST} ● "
+		$LMIRROR && MENU_MIRROR="${YELLOW}[${AConfMirror[_MIRROR]}]${RST} ● " || MENU_MIRROR="${RED}[${cmsg_Nao_definido}]${RST} ● "
+		$LSOURCE && MENU_SOURCE="${YELLOW}[${AConfMirror[_SOURCE]}]${RST} ● " || MENU_SOURCE="${RED}[${cmsg_Nao_definido}]${RST} ● "
+		$LDISK && MENU_DEVICE="${YELLOW}[${AConfDisk[_DEVICE]}]${RST} ● " || MENU_DEVICE="${RED}[${cmsg_Nao_definido}]${RST} ● "
+		$LGRUB && MENU_BOOTLOADER="${YELLOW}[${AConfDisk[_BOOTLOADER]}]${RST} ● " || MENU_BOOTLOADER="${RED}[${cmsg_Nao_definido}]${RST} ● "
+		$LMKPARTED && MENU_FS="${YELLOW}[${RED}OK${YELLOW} => revise! ]${RST} ● " || MENU_FS="${RED}[${cmsg_Nao_definido}]${RST} ● "
+		$LKEYMAP && MENU_KEYMAP="${YELLOW}[${AConfLocale[_KEYMAP]}]${RST} ● " || MENU_KEYMAP="${RED}[${cmsg_Nao_definido}]${RST} ● "
+		$LTIMEZONE && MENU_TIMEZONE="${YELLOW}[${AConfLocale[_TIMEZONE]}${RST} ● " || MENU_TIMEZONE="${RED}[${cmsg_Nao_definido}]${RST} ● "
+		$LLOCALE && MENU_LOCALE="${YELLOW}[${AConfLocale[_LOCALE]} ${AConfLocale[_REGION]}]${RST} ● " || MENU_LOCALE="${RED}[${cmsg_Nao_definido}]${RST} ● "
 		$LAUDIO && MENU_AUDIO="${YELLOW}[${AConfAudio[_AUDIOSERVER]}]${RST} ● " ||
-			{ $LONLY_TTY && MENU_AUDIO="${YELLOW}[${AConfAudio[_AUDIOSERVER]}]${RST} ● " || MENU_AUDIO="${RED}[not defined]${RST} ● "; }
+			{ $LONLY_TTY && MENU_AUDIO="${YELLOW}[${AConfAudio[_AUDIOSERVER]}]${RST} ● " || MENU_AUDIO="${RED}[${cmsg_Nao_definido}]${RST} ● "; }
 		$LCUSTOM && MENU_CUSTOM="CUSTOM" || MENU_CUSTOM=""
-		$LWM && MENU_WM="${YELLOW}[${_WINDOWMANAGER[*]} ${MENU_CUSTOM}]${RST} ● " || MENU_WM="${RED}[not defined]${RST} ● "
-		#		$LDM && MENU_DM="${YELLOW}[${_DISPLAYMANAGER}]${RST} ● " || MENU_DM="${RED}[not defined]${RST} ● "
-		$LDM && MENU_DM="${YELLOW}[${_DISPLAYMANAGER}]${RST} ● " || MENU_DM="${RED}[not defined]${RST} ● "
-		#			{ $LONLY_TTY && MENU_DM="${YELLOW}[${_DISPLAYMANAGER}]${RST} ● " || MENU_DM="${RED}[not defined]${RST} ● "; }
-		$LEXTRA && MENU_EXTRA="${YELLOW}[OK]${RST} ● " || MENU_EXTRA="${RED}[not defined]${RST} ● "
-		$LKERNEL && MENU_KERNEL="${YELLOW}[${AConfKernel[_KERNEL]}${RST} ● " || MENU_KERNEL="${RED}[not defined]${RST} ● "
+		$LWM && MENU_WM="${YELLOW}[${_WINDOWMANAGER[*]} ${MENU_CUSTOM}]${RST} ● " || MENU_WM="${RED}[${cmsg_Nao_definido}]${RST} ● "
+		#		$LDM && MENU_DM="${YELLOW}[${_DISPLAYMANAGER}]${RST} ● " || MENU_DM="${RED}[${cmsg_Nao_definido}]${RST} ● "
+		$LDM && MENU_DM="${YELLOW}[${_DISPLAYMANAGER}]${RST} ● " || MENU_DM="${RED}[${cmsg_Nao_definido}]${RST} ● "
+		#			{ $LONLY_TTY && MENU_DM="${YELLOW}[${_DISPLAYMANAGER}]${RST} ● " || MENU_DM="${RED}[${cmsg_Nao_definido}]${RST} ● "; }
+		$LEXTRA && MENU_EXTRA="${YELLOW}[OK]${RST} ● " || MENU_EXTRA="${RED}[${cmsg_Nao_definido}]${RST} ● "
+		$LKERNEL && MENU_KERNEL="${YELLOW}[${AConfKernel[_KERNEL]}${RST} ● " || MENU_KERNEL="${RED}[${cmsg_Nao_definido}]${RST} ● "
 
 		menu=$(${DIALOG} \
 			--backtitle "$ccabec" \
@@ -6535,6 +6462,7 @@ sh_setLanguage() {
 	cmsg_Aceitar=$(gettext "Aceitar")
 	cmsg_Configurar=$(gettext "Configurar")
 	cmsg_Particionar=$(gettext "Particionar")
+	cmsg_Nao_definido=$(gettext "Não definido")
 	cmsg_Mudar=$(gettext "Mudar")
 	cmsg_Sair=$(gettext "Sair")
 	cmsg_Instalar=$(gettext "Instalar")
