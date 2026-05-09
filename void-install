@@ -4162,9 +4162,19 @@ sh_choose_wm() {
 	local x
 
 	if [[ "${AConfMirror[_SOURCE]}" = "local" ]]; then
-		alerta "$ccabec" "Instalação escolhida foi via local/ISO, não é necessário alterar nada aqui"
+		alerta "$ccabec" "$(gettext 'Instalação escolhida foi via local/ISO, não é necessário alterar nada aqui.')"
 		_WINDOWMANAGER='tty'
 		LWM=true
+
+  	if conf "=== ${cmsg_Wm^^} ===" \
+  		"\n${BOLD}${WHITE}$(gettext "Uma instalação customizada irá instalar pacotes extras e também")" \
+  		"\n$(gettext "fazer diversas configurações, evitando faze-las manualmente posteriormente.")\n" \
+  		"\n${BOLD}${RED}$(gettext "Customizar a instalação?")\n\n"; then
+  		LCUSTOM=true
+  	else
+  		LCUSTOM=false
+  	fi
+
 		return
 	fi
 
