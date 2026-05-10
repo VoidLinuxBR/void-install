@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: sáb 09 mai 2026 01:16:42 -04
+#  Updated: sáb 09 mai 2026 22:34:53 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -5862,12 +5862,12 @@ sh_main_menu() {
 			"${cmsg_Usuario}" "${MENU_EXTRA}${cmsg_descExtra}" \
 			"${cmsg_Instalar}" "${cmsg_descInstalar}" \
 			'↑↓' '↓↑' \
-			"${cmsg_Tema}" "$(gettext 'Seletor de temas do dialog (opcional)')" \
-			"${cmsg_Servicos}" "${cmsg_utilvoidservices}" \
-			"Clonedisk" "$(gettext 'Utilitário para clonar discos (opcional)')" \
 			"Fde" "$(gettext 'Criptografia de disco completo + LVM (opcional)')" \
 			"Lvm" "$(gettext 'Gerenciamento de Volume Lógico LVM (opcional)')" \
 			"Vg" "Delete/Clear Volume Group (VG) from LVM (optional)" \
+			"${cmsg_Tema}" "$(gettext 'Seletor de temas do dialog (opcional)')" \
+			"${cmsg_Servicos}" "${cmsg_utilvoidservices}" \
+			"Clonedisk" "$(gettext 'Utilitário para clonar discos (opcional)')" \
 			"Wifi" "${cmsg_descWifi}" \
 			"${cmsg_Sair}" "${cmsg_descSair}" 2>&1 >/dev/tty)
 
