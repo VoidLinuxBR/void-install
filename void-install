@@ -731,6 +731,7 @@ sh_setEnvironment() {
 	: "${LTIMEZONE=}"
 	: "${LKERNEL=}"
 	: "${LFILE=}"
+	: "${LCUSTOM=}"
 
 	# dialog colors
 	GREEN="\Z2"
@@ -772,6 +773,7 @@ sh_touchConf() {
 	EOF
 	{
 		declare -p LDHCP
+		declare -p LCUSTOM
 		declare -p LDISK
 		declare -p LEFI
 		declare -p LAUDIO
@@ -1576,7 +1578,12 @@ sh_update_mirror() {
     conf=\"${dir_install}/etc/xbps.d/00-repository-main.conf\"
 
     {
-      # mirror escolhido (sempre primeiro)
+      echo \" repository=https://repo-fastly.voidlinux.org/current\"
+      echo \"repository=https://repo-fastly.voidlinux.org/current/nonfree\"
+      echo \"repository=https://repo-fastly.voidlinux.org/current/multilib\"
+      echo \"repository=https://repo-fastly.voidlinux.org/current/multilib/nonfree\"
+      echo
+      # mirror escolhido
       echo \"repository=${url_mirror}/current\"
 
       if grep -qiE 'voidbr\\.org|chililinux' <<<\"${url_mirror}\"; then
@@ -2978,10 +2985,13 @@ sh_chooseSource() {
 					info "$ccabec" "\n\n$cextra"
 					continue
 				else
+					alerta "=== ${cmsg_Source^^} ===" \
+						"$(gettext "Ao escolher ${CYAN}local${RESET} e usar a ${YELLOW}ISO oficial do Void${RESET}, \ntenha em mente que a ISO ${RED}tem pacotes desatualizados${RESET}, \ne será necessário atualizar pela internet.\n\nTalvez seja melhor escolher network ou networkfull!\n")"
 					LSOURCE=true
 					AConfMirror[_SOURCE]=$src
+					_WINDOWMANAGER=('tty' 'local')
+      		LONLY_TTY=false
           set_custom_install "=== ${cmsg_Source^^} ==="
-
 				fi
 			fi
 			;;
@@ -5131,11 +5141,11 @@ sh_install() {
 
 			# Go install
 			sh_chroot_job "${cmsg_Atualizando} xbps" "LC_ALL=C xbps-install --sync --update xbps --yes"
-			sh_chroot_job "${cmsg_AtualizandoRepositorio}" "LC_ALL=C xbps-install --sync --update --yes"
-
-			if [[ "${AConfMirror[_SOURCE]}" = "local" ]]; then
-				sh_install_pkgs_in_chroot "$(gettext 'Atualizando Pacotes Base')" "${agrub[*]}"
+      if [[ "${AConfMirror[_SOURCE]}" = "local" && "${LCUSTOM:-}" = "false" ]]; then
+  			#sh_chroot_job "${cmsg_AtualizandoRepositorio}" "LC_ALL=C xbps-install --sync --update --yes"
+				sh_install_pkgs_in_chroot "$(gettext 'Instalando') GRUB" "${agrub[*]}"
 			else
+  			sh_chroot_job "${cmsg_AtualizandoRepositorio}" "LC_ALL=C xbps-install --sync --update --yes"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Kernel')" "${akernel[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando') GRUB" "${agrub[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Atualizando Pacotes Base')" "${abase[*]}"
@@ -5156,7 +5166,11 @@ sh_install() {
 			#debug $LONLY_TTY
 			if ! $LONLY_TTY; then
 				sh_update_Xkeymap
-				sh_X11_minimal
+        if [[ "${AConfMirror[_SOURCE]}" = "local" && "${LCUSTOM:-}" = "false" ]]; then
+          :
+        else
+  				sh_X11_minimal
+	      fi
 			fi
 
 			aDE=()
@@ -5164,6 +5178,11 @@ sh_install() {
 				aDE+=("$x")
 				case "$x" in
 				"tty") : ;;
+				"local")
+				  if $LCUSTOM; then
+				    sh_xfce4_minimal
+          fi
+				  ;;
 				"server") sh_server_minimal ;;
 				"xorg") sh_xorg_minimal ;;
 				"awesome") sh_awesome_minimal ;;
@@ -5238,6 +5257,7 @@ sh_install() {
 			sh_chmod_tmp
 			sh_umount_fs
 			end_datetime=$(date)
+
 			alerta "$APP" "${cmsg_FinalizadaComSucesso}\n" \
 				"Start Date time  : $start_datetime" \
 				"Finish Date Time : $end_datetime" \
@@ -6536,7 +6556,7 @@ sh_setLanguage() {
 	cmsg_IniciandoDownload=$(gettext "Iniciando download de")
 	cmsg_CriandoParticoes=$(gettext "Criando partições em")
 	cmsg_CriandoDiretorio=$(gettext "Criando diretório")
-	cmsg_AtualizandoRepositorio=$(gettext "Atualizando repositório")
+	cmsg_AtualizandoRepositorio=$(gettext "Atualizando instalação")
 	cmsg_RemovendoPacotesAntigosObseletos=$(gettext "Removendo pacotes antigos/absoletos")
 	cmsg_InstalandoMetaPacotes=$(gettext "Instalando meta pacote X")
 	cmsg_AtualizandoPacotesBase=$(gettext "Atualizando pacotes base")
