@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: sáb 09 mai 2026 22:34:53 -04
+#  Updated: dom 10 mai 2026 21:52:33 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.5.09-20260509'
+readonly _VERSION_='3.5.10-20260510'
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 readonly LOCKFILE="/tmp/void-install.lock"
 
@@ -1576,40 +1576,34 @@ sh_mkparted() {
 sh_update_mirror() {
 	sh_cmd_job "${cmsg_Configurando} ${cmsg_Mirror,,}" "
     conf=\"${dir_install}/etc/xbps.d/00-repository-main.conf\"
-
     {
-      echo \" repository=https://repo-fastly.voidlinux.org/current\"
-      echo \"repository=https://repo-fastly.voidlinux.org/current/nonfree\"
-      echo \"repository=https://repo-fastly.voidlinux.org/current/multilib\"
-      echo \"repository=https://repo-fastly.voidlinux.org/current/multilib/nonfree\"
+      echo \"repository=https://repo-fastly.voidlinux.org/current\"
+      echo \"#repository=https://repo-fastly.voidlinux.org/current/nonfree\"
+      echo \"#repository=https://repo-fastly.voidlinux.org/current/multilib\"
+      echo \"#repository=https://repo-fastly.voidlinux.org/current/multilib/nonfree\"
       echo
       # mirror escolhido
       echo \"repository=${url_mirror}/current\"
-
       if grep -qiE 'voidbr\\.org|chililinux' <<<\"${url_mirror}\"; then
         echo \"repository=${url_mirror}/extra\"
       fi
-
       echo \"repository=${url_mirror}/current/nonfree\"
       echo \"repository=${url_mirror}/current/multilib\"
       echo \"repository=${url_mirror}/current/multilib/nonfree\"
-
+      echo
       # ChiliLinux (sempre presente)
       if ! grep -qi 'chililinux' <<<\"${url_mirror}\"; then
         echo \"repository=https://void.chililinux.com/voidlinux/current\"
         echo \"repository=https://void.chililinux.com/voidlinux/extra\"
-        echo \"#repository=https://void.chililinux.com/voidlinux/current/nonfree\"
-        echo \"#repository=https://void.chililinux.com/voidlinux/current/multilib\"
-        echo \"#repository=https://void.chililinux.com/voidlinux/current/multilib/nonfree\"
       fi
-
+      echo
       # VoidBR (sempre presente)
       if ! grep -qi 'voidbr\\.org' <<<\"${url_mirror}\"; then
         echo \"repository=https://void.voidbr.org/voidlinux/current\"
         echo \"repository=https://void.voidbr.org/voidlinux/extra\"
-        echo \"repository=https://void.voidbr.org/voidlinux/current/nonfree\"
-        echo \"repository=https://void.voidbr.org/voidlinux/current/multilib\"
-        echo \"repository=https://void.voidbr.org/voidlinux/current/multilib/nonfree\"
+        echo \"#repository=https://void.voidbr.org/voidlinux/current/nonfree\"
+        echo \"#repository=https://void.voidbr.org/voidlinux/current/multilib\"
+        echo \"#repository=https://void.voidbr.org/voidlinux/current/multilib/nonfree\"
       fi
     } > \"\$conf\"
   " $err_not_fatal
@@ -4186,7 +4180,7 @@ sh_choose_wm() {
 	local x
 
 	if [[ "${AConfMirror[_SOURCE]}" = "local" ]]; then
-		alerta "$ccabec" "$(gettext 'Instalação escolhida foi via local/ISO, não é necessário alterar nada aqui.')"
+		alerta "=== ${cmsg_Wm^^} ===" "$(gettext 'Instalação escolhida foi via local/ISO, não é necessário alterar nada aqui.')"
 		_WINDOWMANAGER='tty'
 		LWM=true
 		return
@@ -5085,7 +5079,7 @@ sh_install() {
 	local end_datetime
 	local akernel=("${AConfKernel[_KERNEL]:-linux}" dracut)
 	local afirmware=(wifi-firmware)
-	local abase=(exa gettext voidbr-base-config chrony wireless_tools wpa_supplicant pigz zstd xz sed grep socklog socklog-void) #voidbr-plymouth-theme
+	local abase=(bash-completion voidbr-base-config fzf voidbr-vinstall voidbr-utils chili-utils exa gettext chrony wireless_tools wpa_supplicant pigz zstd xz sed grep socklog socklog-void) #voidbr-plymouth-theme
 	local agrub=(grub-i386-efi grub-utils grub-terminus grub-btrfs-runit voidbr-grub-theme)
 
 	if $LVM; then
@@ -5144,6 +5138,7 @@ sh_install() {
       if [[ "${AConfMirror[_SOURCE]}" = "local" && "${LCUSTOM:-}" = "false" ]]; then
   			#sh_chroot_job "${cmsg_AtualizandoRepositorio}" "LC_ALL=C xbps-install --sync --update --yes"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando') GRUB" "${agrub[*]}"
+				sh_install_pkgs_in_chroot "$(gettext 'Atualizando Pacotes Base')" "${abase[*]}"
 			else
   			sh_chroot_job "${cmsg_AtualizandoRepositorio}" "LC_ALL=C xbps-install --sync --update --yes"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Kernel')" "${akernel[*]}"
@@ -5240,7 +5235,7 @@ sh_install() {
 				fi
 			fi
 
-			sh_chroot_job "$(gettext 'Validando configuração para finalizar em:') $dir_install" "
+			sh_chroot_job "$(gettext 'Validando configuração para FINALIZAR em:') $dir_install" "
                 xbps-reconfigure --force glibc-locales
                 xbps-reconfigure --force --all
             "
