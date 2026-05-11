@@ -1577,37 +1577,42 @@ sh_update_mirror() {
 	sh_cmd_job "${cmsg_Configurando} ${cmsg_Mirror,,}" "
     conf=\"${dir_install}/etc/xbps.d/00-repository-main.conf\"
     {
+      # default global
       echo \"repository=https://repo-fastly.voidlinux.org/current\"
       echo \"#repository=https://repo-fastly.voidlinux.org/current/nonfree\"
       echo \"#repository=https://repo-fastly.voidlinux.org/current/multilib\"
       echo \"#repository=https://repo-fastly.voidlinux.org/current/multilib/nonfree\"
       echo
+
       # mirror escolhido
       echo \"repository=${url_mirror}/current\"
-      if grep -qiE 'voidbr\\.org|chililinux' <<<\"${url_mirror}\"; then
+      if grep -qiE 'voidbr\\.org|chililinux|voidlinux\\.com\\.br' <<<\"${url_mirror}\"; then
         echo \"repository=${url_mirror}/extra\"
       fi
-      echo \"repository=${url_mirror}/current/nonfree\"
-      echo \"repository=${url_mirror}/current/multilib\"
-      echo \"repository=${url_mirror}/current/multilib/nonfree\"
-      echo
+      echo \"#repository=${url_mirror}/current/nonfree\"
+      echo \"#repository=${url_mirror}/current/multilib\"
+      echo \"#repository=${url_mirror}/current/multilib/nonfree\"
+
       # chililinux.com
       if ! grep -qi 'chililinux' <<<\"${url_mirror}\"; then
+        echo
         echo \"repository=https://void.chililinux.com/voidlinux/current\"
         echo \"repository=https://void.chililinux.com/voidlinux/extra\"
       fi
-      echo
+
       # voidbr.org
       if ! grep -qi 'voidbr\\.org' <<<\"${url_mirror}\"; then
+        echo
         echo \"repository=https://void.voidbr.org/voidlinux/current\"
         echo \"repository=https://void.voidbr.org/voidlinux/extra\"
         echo \"#repository=https://void.voidbr.org/voidlinux/current/nonfree\"
         echo \"#repository=https://void.voidbr.org/voidlinux/current/multilib\"
         echo \"#repository=https://void.voidbr.org/voidlinux/current/multilib/nonfree\"
       fi
-      echo
+
       # voidlinux.com.br
       if ! grep -qi 'voidlinux\\.com.\\br' <<<\"${url_mirror}\"; then
+        echo
         echo \"repository=https://void.voidlinux.com.br/voidlinux/current\"
         echo \"repository=https://void.voidlinux.com.br/voidlinux/extra\"
         echo \"#repository=https://void.voidlinux.com.br/voidlinux/current/nonfree\"
