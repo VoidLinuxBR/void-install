@@ -1579,9 +1579,9 @@ sh_update_mirror() {
     {
       # default global
       echo \"repository=https://repo-fastly.voidlinux.org/current\"
-      echo \"#repository=https://repo-fastly.voidlinux.org/current/nonfree\"
-      echo \"#repository=https://repo-fastly.voidlinux.org/current/multilib\"
-      echo \"#repository=https://repo-fastly.voidlinux.org/current/multilib/nonfree\"
+      echo \"repository=https://repo-fastly.voidlinux.org/current/nonfree\"
+      echo \"repository=https://repo-fastly.voidlinux.org/current/multilib\"
+      echo \"repository=https://repo-fastly.voidlinux.org/current/multilib/nonfree\"
       echo
 
       # mirror escolhido
@@ -1589,9 +1589,9 @@ sh_update_mirror() {
       if grep -qiE 'voidbr\\.org|chililinux|voidlinux\\.com\\.br' <<<\"${url_mirror}\"; then
         echo \"repository=${url_mirror}/extra\"
       fi
-      echo \"#repository=${url_mirror}/current/nonfree\"
-      echo \"#repository=${url_mirror}/current/multilib\"
-      echo \"#repository=${url_mirror}/current/multilib/nonfree\"
+      echo \"repository=${url_mirror}/current/nonfree\"
+      echo \"repository=${url_mirror}/current/multilib\"
+      echo \"repository=${url_mirror}/current/multilib/nonfree\"
 
       # chililinux.com
       if ! grep -qi 'chililinux' <<<\"${url_mirror}\"; then
@@ -1605,9 +1605,9 @@ sh_update_mirror() {
         echo
         echo \"repository=https://void.voidbr.org/voidlinux/current\"
         echo \"repository=https://void.voidbr.org/voidlinux/extra\"
-        echo \"#repository=https://void.voidbr.org/voidlinux/current/nonfree\"
-        echo \"#repository=https://void.voidbr.org/voidlinux/current/multilib\"
-        echo \"#repository=https://void.voidbr.org/voidlinux/current/multilib/nonfree\"
+        echo \"repository=https://void.voidbr.org/voidlinux/current/nonfree\"
+        echo \"repository=https://void.voidbr.org/voidlinux/current/multilib\"
+        echo \"repository=https://void.voidbr.org/voidlinux/current/multilib/nonfree\"
       fi
 
       # voidlinux.com.br
@@ -1615,9 +1615,9 @@ sh_update_mirror() {
         echo
         echo \"repository=https://void.voidlinux.com.br/voidlinux/current\"
         echo \"repository=https://void.voidlinux.com.br/voidlinux/extra\"
-        echo \"#repository=https://void.voidlinux.com.br/voidlinux/current/nonfree\"
-        echo \"#repository=https://void.voidlinux.com.br/voidlinux/current/multilib\"
-        echo \"#repository=https://void.voidlinux.com.br/voidlinux/current/multilib/nonfree\"
+        echo \"repository=https://void.voidlinux.com.br/voidlinux/current/nonfree\"
+        echo \"repository=https://void.voidlinux.com.br/voidlinux/current/multilib\"
+        echo \"repository=https://void.voidlinux.com.br/voidlinux/current/multilib/nonfree\"
       fi
     } > \"\$conf\"
   " $err_not_fatal
@@ -5161,7 +5161,7 @@ sh_install() {
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Editores Texto Gráfico ')" "${aEditorX[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Editores texto')" "${aEditorTxt[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Downloaders')" "${aDownloader[*]}"
-				sh_install_pkgs_in_chroot "$(gettext 'Instalando Utilitário')" "${aUtility[*]}"
+				sh_install_pkgs_in_chroot "$(gettext 'Instalando Utilitários')" "${aUtility[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Archiver tty')" "${aArchiverTty[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Extras')" "${aExtra[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Suplementos')" "${aSuplemento[*]}"
