@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: dom 10 mai 2026 21:52:33 -04
+#  Updated: dom 17 mai 2026 12:13:12 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -809,17 +809,15 @@ sh_touchConf() {
 }
 
 sh_checkDisplay() {
-	local msg1="$(gettext "Antes de continuar, redimensione o terminal")"
-	local msg2="$(gettext "para que ele meça pelo menos 80 x 24 caracteres.")"
-	local msg3="$(gettext "Caso contrário, ")"
-	local msg4="$(gettext "você não poderá usar as ferramentas de partição de Disco.")"
+	local cmsg1="$(gettext "Antes de continuar, redimensione o terminal")"
+	local cmsg2="$(gettext "para que ele meça pelo menos 80 x 24 caracteres.")"
+	local cmsg3="$(gettext "Caso contrário, ")"
+	local cmsg4="$(gettext "você não poderá usar as ferramentas de partição de Disco.")"
 
 	if [ "$(tput cols)" -lt 80 ] || [ "$(tput lines)" -lt 24 ]; then
 		${DIALOG} --backtitle "$ccabec" \
 			--title "$(gettext "TERMINAL MUITO PEQUENO")" \
-			--msgbox "\n\
-$cms1\n$cmsg2\n\
-$cmsg3$cmsg4" 11 68
+			--msgbox "\n${cmsg1}\n${cmsg2}\n${cmsg3}${cmsg4}" 0 0
 	fi
 }
 
@@ -6501,7 +6499,7 @@ sh_setLanguage() {
 	cmsg_Sair=$(gettext "Sair")
 	cmsg_Instalar=$(gettext "Instalar")
 	cmsg_Mirror=$(gettext "Espelho")
-	cmsg_BootLoader=$(gettext "Bootloader (GRUB)")
+	cmsg_BootLoader="Bootloader (GRUB)"
 	cmsg_FileSystem=$(gettext "Sistema de Arquivos")
 	cmsg_Disco=$(gettext "Armazenamento")
 	cmsg_Teclado=$(gettext "Teclado")
