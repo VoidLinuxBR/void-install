@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: dom 17 mai 2026 12:13:12 -04
+#  Updated: ter 19 mai 2026 16:26:00 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.5.10-20260510'
+readonly _VERSION_='3.5.19-20260519'
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 readonly LOCKFILE="/tmp/void-install.lock"
 
@@ -5576,7 +5576,7 @@ sh_choosePartition() {
 					"${ARRAY_PART_FSTYPE[$nc]}" \
 					"${ARRAY_PART_SIZE[$nc]}" \
 					"${ARRAY_PART_LABEL[$nc]}" \
-					"${ARRAY_PART_PARTTYPENAME[$nc]}" \
+          "${ARRAY_PART_PARTTYPENAME[$nc]:0:20}" \
 					"$(sh_splitarray "${Amntpoint[$i]}" 1)" \
 					"$(sh_splitarray "${Amntpoint[$i]}" 2)" \
 					"$(sh_getyes "$(sh_splitarray "${Amntpoint[$i]}" 3)")"
