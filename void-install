@@ -7129,13 +7129,22 @@ sh_rebuild_amntpoint_for_new_disk() {
 			esac
 		fi
 
-		# --- FILESYSTEM NORMAL (ext4, xfs, etc) ---
-		if ! $root_set; then
-			Amntpoint["$PATH_"]="/|$fs|1"
-			root_set=true
-		else
-			Amntpoint["$PATH_"]="none|$fs|0"
-		fi
+# --- FILESYSTEM NORMAL (ext4, xfs, etc) ---
+if ! $home_set; then
+  if $withhome && ! $home_set; then
+    Amntpoint["$PATH_"]="/home|$fs|0"
+    home_set=true
+  else
+    Amntpoint["$PATH_"]="/|$fs|1"
+    root_set=true
+  fi
+else
+  if ! $home_set; then
+    Amntpoint["$PATH_"]="/home|$fs|0"
+  else
+    Amntpoint["$PATH_"]="none|$fs|0"
+  fi
+fi
 
 	done < <(
 		lsblk -fPAo TYPE,NAME,PATH,SIZE,TRAN,MODEL,LABEL,SERIAL,FSTYPE,PARTTYPENAME "$device" |
