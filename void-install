@@ -1459,12 +1459,25 @@ sh_testDisk() {
 	return "$result"
 }
 
+
+valid_fs() {
+  case "$1" in
+  xfs|f2fs|ext2|ext3|ext4|vfat|reiserfs|ntfs|btrfs|jfs|swap)
+    return 0
+    ;;
+  esac
+  return 1
+}
+
 sh_getPartitionsPercent() {
   declare -gA AsPercent
+  declare -gA AsFs
   AsPercent[boot]="${AConfDisk[_DISKTABLE]}"
   AsPercent[root]="100"
   AsPercent[home]="0"
   AsPercent[swap]="0"
+  AsFs[root]="ext4"
+  AsFs[home]="ext4"
 
   # loop principal
   while :; do
@@ -1490,10 +1503,13 @@ $(gettext "➡ Informe HOME como 0 para não criar partição HOME separada.")
 $(gettext "➡ Informe SWAP como 0 para não criar partição SWAP")" \
         0 0 0 \
 \
-"Boot"          1 1  "${AsPercent[boot]}"  1 24 15 15 2 \
-"root (/) (%)"  2 1  "${AsPercent[root]}"  2 24 05 05 0 \
-"/home    (%)"  3 1  "${AsPercent[home]}"  3 24 05 05 0 \
-"swap     (%)"  4 1  "${AsPercent[swap]}"  4 24 10 10 0
+  "Boot"          1 1  "${AsPercent[boot]}"  1 24 15 15 2 \
+  "root (/) (%)"  2 1  "${AsPercent[root]}"  2 24 05 05 0 \
+  "FS"            2 32 "${AsFs[root]}"       2 37 10 10 0 \
+  "/home    (%)"  3 1  "${AsPercent[home]}"  3 24 05 05 0 \
+  "FS"            3 32 "${AsFs[home]}"       3 37 10 10 0 \
+  "swap     (%)"  4 1  "${AsPercent[swap]}"  4 24 10 10 0
+
     )
 
     exit_status=$?
@@ -1512,8 +1528,28 @@ $(gettext "➡ Informe SWAP como 0 para não criar partição SWAP")" \
 
     AsPercent[boot]="${aPercent[0]}"
     AsPercent[root]="${aPercent[1]}"
-    AsPercent[home]="${aPercent[2]}"
-    AsPercent[swap]="${aPercent[3]}"
+    AsPercent[home]="${aPercent[3]}"
+    AsPercent[swap]="${aPercent[5]}"
+    AsFs[root]="${aPercent[2]}"
+    AsFs[home]="${aPercent[4]}"
+
+    if [ "${AsPercent[root]}" -gt 0 ]; then
+      if ! valid_fs "${AsFs[root]}"; then
+        info "${RED}FILESYSTEM ERROR${RST}" \
+             "$(gettext 'Filesystem inválido para') ${CYAN}'/' ${RST}=> ${AsFs[root]}" \
+             "${YELLOW}$(gettext 'Válidos:') => ${CYAN}xfs|f2fs|ext2|ext3|ext4|vfat|reiserfs|ntfs|btrfs|jfs|swap"
+        continue
+      fi
+    fi
+
+    if [ "${AsPercent[home]}" -gt 0 ]; then
+      if ! valid_fs "${AsFs[home]}"; then
+        info "${RED}FILESYSTEM ERROR${RST}" \
+             "$(gettext 'Filesystem inválido para') ${CYAN}'/home' ${RST}=> ${AsFs[home]}" \
+             "${YELLOW}$(gettext 'Válidos:') => ${CYAN}xfs|f2fs|ext2|ext3|ext4|vfat|reiserfs|ntfs|btrfs|jfs|swap"
+        continue
+      fi
+    fi
 
     # valida ROOT
     case "${AsPercent[root]}" in
@@ -1746,20 +1782,15 @@ sh_mkparted() {
 			if $withhome; then
 			  ((++cnextpart))
 				cnextpercent=$(( AsPercent[swap] + AsPercent[home] ))
-				CSCRIPT+="mkpart primary ext4 ${cini}% ${cnextpercent}% name ${cnextpart} HOME "
-  			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="/home|ext4|1")
+				CSCRIPT+="mkpart primary ${AsFs[home]:-ext4} ${cini}% ${cnextpercent}% name ${cnextpart} HOME "
+  			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="/home|${AsFs[home]:-ext4}|1")
 				cini="${cnextpercent}"
 			fi
 
 		  ((++cnextpart))
 			cnextpercent=$(( AsPercent[swap] + AsPercent[home] + AsPercent[root] ))
-			CSCRIPT+="mkpart primary ext4 ${cini}% ${cnextpercent}% name ${cnextpart} ROOT "
-			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="/|ext4|1")
-
-#clear
-#echo "${CSCRIPT}"
-#exit 0
-
+			CSCRIPT+="mkpart primary ${AsFs[root]:-ext4} ${cini}% ${cnextpercent}% name ${cnextpart} ROOT "
+			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="/|${AsFs[root]:-ext4}|1")
 		else
 			cini='2MiB'
 			cnextpart='1'
@@ -7129,29 +7160,19 @@ sh_rebuild_amntpoint_for_new_disk() {
 			esac
 		fi
 
-# --- FILESYSTEM NORMAL (ext4, xfs, etc) ---
-if ! $home_set; then
-  if $withhome && ! $home_set; then
-    Amntpoint["$PATH_"]="/home|$fs|0"
-    home_set=true
-  else
-    Amntpoint["$PATH_"]="/|$fs|1"
-    root_set=true
-  fi
-else
-  if ! $home_set; then
-    Amntpoint["$PATH_"]="/home|$fs|0"
-  else
-    Amntpoint["$PATH_"]="none|$fs|0"
-  fi
-fi
+    # --- FILESYSTEM NORMAL (ext4, xfs, etc) ---
+    #info "" "$PARTLABEL_"
+    case "$PARTLABEL_" in
+    HOME) Amntpoint["$PATH_"]="/home|$fs|1";;
+    ROOT) Amntpoint["$PATH_"]="/|$fs|1";;
+    *)    Amntpoint["$PATH_"]="none|$fs|0";
+    esac
 
 	done < <(
-		lsblk -fPAo TYPE,NAME,PATH,SIZE,TRAN,MODEL,LABEL,SERIAL,FSTYPE,PARTTYPENAME "$device" |
+		lsblk -fPAo TYPE,NAME,PATH,SIZE,TRAN,MODEL,LABEL,SERIAL,FSTYPE,PARTTYPENAME,PARTLABEL "$device" |
 			grep -P 'TYPE="(part)"' |
 			sort -k5,5 -k2,2
 	)
-
 	((${#Amntpoint[@]})) && LMKPARTED=true || LMKPARTED=false
 }
 
