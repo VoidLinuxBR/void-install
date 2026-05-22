@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: dom 17 mai 2026 12:13:12 -04
+#  Updated: sex 22 mai 2026 06:14:29 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.5.10-20260510'
+readonly _VERSION_='3.5.22-20260522'
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 readonly LOCKFILE="/tmp/void-install.lock"
 
@@ -196,16 +196,25 @@ declare -gA Alocale=(
 	[5]=it_IT
 )
 declare -gA AsDhcp=(
-	AsDhcp [IFACE]="${Asdhcp[IFACE]:-eth0}"
-	AsDhcp [IP]="${AsDhcp[IP]:-192.168.1.100}"
-	AsDhcp [CIDR]="${AsDhcp[CIDR]:-24}"
-	AsDhcp [GATEWAY]="${AsDhcp[GATEWAY]:-192.168.1.1}"
-	AsDhcp [DNS1]="${AsDhcp[DNS1]:-1.1.1.1}"
-	AsDhcp [DNS2]="${AsDhcp[DNS2]:-8.8.8.8}"
+	AsDhcp[IFACE]="${Asdhcp[IFACE]:-eth0}"
+	AsDhcp[IP]="${AsDhcp[IP]:-192.168.1.100}"
+	AsDhcp[CIDR]="${AsDhcp[CIDR]:-24}"
+	AsDhcp[GATEWAY]="${AsDhcp[GATEWAY]:-192.168.1.1}"
+	AsDhcp[DNS1]="${AsDhcp[DNS1]:-1.1.1.1}"
+	AsDhcp[DNS2]="${AsDhcp[DNS2]:-8.8.8.8}"
+)
+declare -gA AsDiskPercent=(
+  [boot]="EFI"
+  [root]="100"
+  [home]="0"
+  [swap]="0"
+)
+declare -gA AsFs=(
+  [root]="ext4"
+  [home]="ext4"
 )
 
 declare dialogRcFile="$HOME/.dialogrc"
-#
 declare _DISPLAYMANAGER='None'
 declare _WINDOWMANAGER=('tty')
 declare _WIFI_NETWORK="wifi_ssid"
@@ -708,7 +717,9 @@ sh_setEnvironment() {
 	# flag dialog exit status codes
 	: "${D_OK=0}"
 	: "${D_DONE=0}"
+	: "${D_NO=1}"
 	: "${D_CANCEL=1}"
+	: "${D_AJUDA=2}"
 	: "${D_HELP=2}"
 	: "${D_EXTRA=3}"
 	: "${D_CONFIG=3}"
@@ -788,6 +799,8 @@ sh_touchConf() {
 		declare -p AsUser
 		declare -p Amkfs
 		declare -p AsDhcp
+		declare -p AsDiskPercent
+		declare -p AsFs
 		declare -p Amntpoint
 		declare -p AmntpointFDE
 		declare -p AConfDisk
@@ -1401,9 +1414,9 @@ infoconf() {
 	conftitle=$3
 	shift 3
 	${DIALOG} --title "$infotitle" \
-		--begin 05 10 --infobox "$inforesult" 14 75 \
+		--begin 03 10 --infobox "$inforesult" 14 75 \
 		--and-widget \
-		--begin 20 10 \
+		--begin 17 10 \
 		--colors \
 		--no-collapse \
 		--no-cr-wrap \
@@ -1457,13 +1470,233 @@ sh_testDisk() {
 	return "$result"
 }
 
+
+is_valid_fs() {
+  local cFs="$1"
+  local cPath="$2"
+  local xtitle
+
+  case "$cPath" in
+  "/")
+    case "$cFs" in
+    xfs|f2fs|ext2|ext3|ext4|reiserfs|btrfs|jfs)
+      return 0
+      ;;
+    *)
+      xtitle="${RED}FILESYSTEM ERROR${RST}\
+\n$(gettext 'Filesystem inválido para') ${CYAN}'${cPath}' ${RST}=> ${cFs} \
+\n${YELLOW}$(gettext 'Válidos:') ${CYAN}xfs|f2fs|ext2|ext3|ext4|reiserfs|btrfs|jfs"
+
+      if sh_choosefstype "${AsFs[root]}" "$xtitle"; then
+        AsFs[root]="${AConfDisk[_FILESYSTEM]}"
+        return 1
+      fi
+      return 1
+      ;;
+    esac
+    ;;
+  "/home")
+    case "$cFs" in
+    xfs|f2fs|ext2|ext3|ext4|vfat|reiserfs|ntfs|btrfs|jfs)
+      return 0
+      ;;
+    *)
+      xtitle="${RED}FILESYSTEM ERROR${RST} \
+\n$(gettext 'Filesystem inválido para') ${CYAN}'${cPath}' ${RST}=> ${cFs} \
+\n${YELLOW}$(gettext 'Válidos:') ${CYAN}xfs|f2fs|ext2|ext3|ext4|vfat|reiserfs|ntfs|btrfs|jfs"
+
+      if sh_choosefstype "${AsFs[home]}" "$xtitle"; then
+        AsFs[home]="${AConfDisk[_FILESYSTEM]}"
+        return 1
+      fi
+      return 1
+      ;;
+    esac
+    ;;
+  esac
+
+  return 1
+}
+
+sh_getPartitionsPercent() {
+  local -a aPercent=()
+  local percent_text
+  AsDiskPercent[boot]="${AConfDisk[_DISKTABLE]}"
+
+  # loop principal
+  while :; do
+    percent_text=$(
+      "${DIALOG}" \
+        --stdout \
+        --colors \
+        --title "${AConfDisk[_DEVICE]} - $(gettext "Configuração de Partições")" \
+        --ok-label "${cmsg_Aceitar}" \
+        --cancel-label "${cmsg_ButtonBack}" \
+        --mixedform "\
+${YELLOW}$(gettext "Configure os percentuais desejados.")${RST}
+
+➡ ROOT + HOME + SWAP $(gettext "não pode ultrapassar") ${RED}100% ${RST}
+➡ $(gettext "Você também pode utilizar menos de 100% do disco")
+
+${GREEN}$(gettext "Exemplos válidos:")${RST}
+root(/)=${RED}100 ${RST} /home=${RED}0  ${RST}swap=${RED}0 ${RST}
+root(/)=${RED}35  ${RST} /home=${RED}60 ${RST}swap=${RED}5 ${RST}
+root(/)=${RED}50  ${RST} /home=${RED}0  ${RST}swap=${RED}0 ${RST}
+
+$(gettext "➡ Informe HOME como 0 para não criar partição HOME separada.")
+$(gettext "➡ Informe SWAP como 0 para não criar partição SWAP")" \
+        0 0 0 \
+\
+  "Boot"          1 01 "${AsDiskPercent[boot]}" 1 24 15 15 2 \
+  "root (/) (%)"  2 01 "${AsDiskPercent[root]}" 2 24 05 05 0 \
+  "FS"            2 32 "${AsFs[root]}"          2 37 10 10 0 \
+  "/home    (%)"  3 01 "${AsDiskPercent[home]}" 3 24 05 05 0 \
+  "FS"            3 32 "${AsFs[home]}"          3 37 10 10 0 \
+  "swap     (%)"  4 01 "${AsDiskPercent[swap]}" 4 24 10 10 0
+
+    )
+
+    exit_status=$?
+
+    #
+    # cancelar / esc
+    #
+    case "$exit_status" in
+      "$D_ESC" | "$D_CANCEL")
+        return 1
+        ;;
+    esac
+
+    # captura retorno
+    mapfile -t aPercent <<<"$percent_text"
+
+    AsDiskPercent[boot]="${aPercent[0]}"
+    AsDiskPercent[root]="${aPercent[1]}"
+    AsDiskPercent[home]="${aPercent[3]}"
+    AsDiskPercent[swap]="${aPercent[5]}"
+    AsFs[root]="${aPercent[2]}"
+    AsFs[home]="${aPercent[4]}"
+
+    if [ "${AsDiskPercent[root]}" -gt 0 ]; then
+      if ! is_valid_fs "${AsFs[root]}" "/"; then
+        continue
+      fi
+    fi
+
+    if [ "${AsDiskPercent[home]}" -gt 0 ]; then
+      if ! is_valid_fs "${AsFs[home]}" "/home"; then
+        continue
+      fi
+    fi
+
+    # valida ROOT
+    case "${AsDiskPercent[root]}" in
+      ''|*[!0-9]*)
+        info \
+          "${AConfDisk[_DEVICE]} - ${RED}${cmsg_ERRO}${RST}" \
+          "\n$(gettext "Valor inválido para ROOT.")" \
+          "\n$(gettext "ROOT deve estar entre 1 e 100.")"
+        continue
+        ;;
+    esac
+
+    # valida HOME
+    case "${AsDiskPercent[home]}" in
+      ''|*[!0-9]*)
+        info \
+          "${AConfDisk[_DEVICE]} - ${RED}${cmsg_ERRO}${RST}" \
+          "\n$(gettext "Valor inválido para HOME.")" \
+          "\n$(gettext "HOME deve estar entre 0 e 99.")"
+        continue
+        ;;
+    esac
+
+    # valida SWAP
+    case "${AsDiskPercent[swap]}" in
+      ''|*[!0-9]*)
+        info "${AConfDisk[_DEVICE]} - ${RED}${cmsg_ERRO}${RST}" \
+          "\n$(gettext "Valor inválido para SWAP.")" \
+          "\n$(gettext "SWAP deve estar entre 0 e 99.")"
+        continue
+        ;;
+    esac
+
+    # faixa ROOT
+    if [ "${AsDiskPercent[root]}" -lt 1 ] || [ "${AsDiskPercent[root]}" -gt 100 ]; then
+      info \
+        "${AConfDisk[_DEVICE]} - ${RED}${cmsg_ERRO}${RST}" \
+        "\n$(gettext "ROOT deve estar entre 1 e 100.")"
+      continue
+    fi
+
+    # faixa HOME
+    if [ "${AsDiskPercent[home]}" -lt 0 ] || [ "${AsDiskPercent[home]}" -gt 99 ]; then
+      info \
+        "${AConfDisk[_DEVICE]} - ${RED}${cmsg_ERRO}${RST}" \
+        "\n$(gettext "HOME deve estar entre 0 e 99.")"
+      continue
+    fi
+
+    # faixa SWAP
+    if [ "${AsDiskPercent[swap]}" -lt 0 ] || [ "${AsDiskPercent[swap]}" -gt 99 ]; then
+      info \
+        "${AConfDisk[_DEVICE]} - ${RED}${cmsg_ERRO}${RST}" \
+        "\n$(gettext "SWAP deve estar entre 0 e 99.")"
+      continue
+    fi
+
+    # soma
+    total=$(( AsDiskPercent[root] + AsDiskPercent[home] + AsDiskPercent[swap] ))
+
+    if [ "$total" -gt 100 ]; then
+      info \
+        "${AConfDisk[_DEVICE]} - ${RED}${cmsg_ERRO}${RST}" \
+        "\nROOT + HOME + SWAP $(gettext "não pode ultrapassar") ${RED}100% ${RST}" \
+        "$(gettext "Valor atual:") ${total}%"
+      continue
+    fi
+
+    # tudo OK
+    break
+  done
+
+  withhome=true
+  withswap=true
+  [[ "${AsDiskPercent[home]}" -eq 0 ]] && withhome=false
+  [[ "${AsDiskPercent[swap]}" -eq 0 ]] && withswap=false
+# info "${cmsg_Disco}" "HOME separado: ${withhome}" "SWAP separado: ${withswap}"
+
+  return 0
+
+}
+
+sh_checkSpaceToSwap() {
+  if [[ $(sh_toBytes "$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_DEVICE]}]}" 2)") -lt $(sh_toBytes "4G") ]]; then
+		if ! infoconf "${cmsg_Disco}" "$(fdisk -l "${AConfDisk[_DEVICE]}")" \
+			"${YELLOW}${AConfDisk[_DEVICE]} - ${cmsg_CriandoPartSwap}" \
+			"\n${cmsg_TamanhoInsuficiente}\n${cmsg_DesejaProsseguir}"; then
+			return 1
+		fi
+		withswap=false
+	else
+		if ! infoconf "${AConfDisk[_DEVICE]} - ${cmsg_Disco}" "$(fdisk -l "${AConfDisk[_DEVICE]}")" \
+			"${AConfDisk[_DEVICE]} - ${YELLOW}${cmsg_CriandoPartSwap}" \
+			"\n${cmsg_DesejaCriarParticaoSwap}"; then
+			withswap=false
+			return 1
+		fi
+  fi
+  return 0
+}
+
 sh_mkparted() {
 	local nchoice=false
 	local withswap=true
+	local withhome=true
 	local label_type='gpt'
 	local ext=$(sh_getNvme)
 	local cini=''
-	local cpart=''
+	local cnextpart=''
 	local CSCRIPT=''
 
 	sh_info_msg "${cmsg_TestandoDisco} ${AConfDisk[_DEVICE]}"
@@ -1493,66 +1726,131 @@ sh_mkparted() {
 			nchoice=true
 		fi
 	else
-		if [[ $(sh_toBytes "$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_DEVICE]}]}" 2)") -lt $(sh_toBytes "4G") ]]; then
-			if ! infoconf "${cmsg_Disco}" "$(fdisk -l "${AConfDisk[_DEVICE]}")" \
-				"${YELLOW}${cmsg_CriandoParticoes} ${AConfDisk[_DEVICE]}" \
-				"\n${cmsg_TamanhoInsuficiente}\n${cmsg_DesejaProsseguir}"; then
-				return 1
-			fi
-			withswap=false
-		else
-			if ! infoconf "${cmsg_Disco}" "$(fdisk -l "${AConfDisk[_DEVICE]}")" \
-				"${YELLOW}${cmsg_CriandoParticoes} ${AConfDisk[_DEVICE]}" \
-				"\n${cmsg_DesejaCriarParticaoSwap}"; then
-				withswap=false
-			fi
-		fi
+#		if [[ $(sh_toBytes "$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_DEVICE]}]}" 2)") -lt $(sh_toBytes "4G") ]]; then
+#			if ! infoconf "${cmsg_Disco}" "$(fdisk -l "${AConfDisk[_DEVICE]}")" \
+#				"${YELLOW}${AConfDisk[_DEVICE]} - ${cmsg_CriandoPartSwap}" \
+#				"\n${cmsg_TamanhoInsuficiente}\n${cmsg_DesejaProsseguir}"; then
+#				return 1
+#			fi
+#			withswap=false
+#		else
+#			if ! infoconf "${AConfDisk[_DEVICE]} - ${cmsg_Disco}" "$(fdisk -l "${AConfDisk[_DEVICE]}")" \
+#				"${AConfDisk[_DEVICE]} - ${YELLOW}${cmsg_CriandoPartSwap}" \
+#				"\n${cmsg_DesejaCriarParticaoSwap}"; then
+#				withswap=false
+#			fi
+#		fi
 
-		if ! conf "${YELLOW}${cwarning}" \
-			"DEVICE  : ${RED}${AConfDisk[_DEVICE]}${RESET}\n" \
-			"MODEL  : ${RED}$MODEL_ORIGEM${RESET}\n" \
-			"\n${RED}${cmsg_todos_os_dados_serao_perdidos}${RESET}" \
-			"\n${cmsg_ContinuarParticionamento} ${AConfDisk[_DEVICE]} ?\n"; then
-			return 1
-		fi
+#   sh_checkSpaceToSwap
+    if ! sh_getPartitionsPercent; then
+      info "${AConfDisk[_DEVICE]} - ${cmsg_Disco^^} - AUTOMATIC" \
+           "\n$(gettext '✗ Particionamento e formatação automatica cancelado pelo usuário')"
+	 		return 1
+    fi
+
+#		if ! conf "${YELLOW}${cwarning}" \
+#			"DEVICE  : ${RED}${AConfDisk[_DEVICE]}${RESET}\n" \
+#			"MODEL  : ${RED}$MODEL_ORIGEM${RESET}\n" \
+#			"\n${RED}${cmsg_todos_os_dados_serao_perdidos}${RESET}" \
+#			"\n${cmsg_ContinuarParticionamento} ${AConfDisk[_DEVICE]} ?\n"; then
+#      info "${cmsg_Disco} - AUTOMATIC" "\n$(gettext 'Particionamento e formatação automatica cancelado')"
+#			return 1
+#		fi
+#		nchoice=true
+
+		if ! infoconf "${AConfDisk[_DEVICE]} - ${cmsg_Disco}" \
+		  "$(fdisk -l "${AConfDisk[_DEVICE]}")" \
+			"${YELLOW}${cwarning}" \
+  		"DEVICE  : ${RED}${AConfDisk[_DEVICE]}${RESET}\n" \
+	 		"MODEL  : ${RED}$MODEL_ORIGEM${RESET}\n" \
+	  	"\n${RED}${cmsg_todos_os_dados_serao_perdidos}${RESET}" \
+  		"\n${cmsg_ContinuarParticionamento} ${AConfDisk[_DEVICE]} ?\n"; then
+      info "${AConfDisk[_DEVICE]} - ${cmsg_Disco^^} - AUTOMATIC" \
+           "\n$(gettext '✗ Particionamento e formatação automatica cancelado pelo usuário')"
+	 		return 1
+  	fi
 		nchoice=true
 	fi
 
 	if $nchoice; then
 		sh_info_msg "${cmsg_CriandoParticoes} ${AConfDisk[_DEVICE]}"
+		if [[ "${AConfDisk[_DISKTABLE]}" = "EFI" || "${AConfDisk[_DISKTABLE]}" = "GPT_BIOS" ]]; then
+		  label_type='gpt'
+		else
+		  label_type='msdos'
+    fi
+
 		Amntpoint=()
-		[[ "${AConfDisk[_DISKTABLE]}" = "EFI" || "${AConfDisk[_DISKTABLE]}" = "GPT_BIOS" ]] && label_type='gpt' || label_type='msdos'
 		CSCRIPT+="mklabel $label_type "
 
 		if [[ "$label_type" = "gpt" ]]; then
-			CSCRIPT+='mkpart primary fat32 2MiB   4MiB set 1 bios_grub on name 1 BIOS '
-			CSCRIPT+='mkpart primary fat32 4MiB 260MiB set 2 esp on       name 2 EFI  '
+  		cnextpart=0
+	  	cini="2MiB"
+  		cnextini="4MiB"
+  	  ((++cnextpart))
+  		CSCRIPT+='mkpart primary fat32 ${cini} ${cnextini} set 1 bios_grub on name 1 BIOS '
+  	  ((++cnextpart))
+  		cini="${cnextini}"
+  		cnextini="260MiB"
+			CSCRIPT+='mkpart primary fat32 ${cini} ${cnextini} set 2 esp       on name 2 EFI  '
 			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}2"]="/boot/efi|vfat|1")
-			cini='260MiB'
-			cpart='3'
+  		cini="${cnextini}"
 
 			if $withswap; then
-				CSCRIPT+="mkpart primary linux-swap $cini 3G name $cpart SWAP "
-				Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}$cpart"]="none|swap|1")
-				cini='3G'
-				cpart='4'
+#				CSCRIPT+="mkpart primary linux-swap $cini 3G name $cnextpart SWAP "
+#				Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}$cnextpart"]="none|swap|1")
+#				cini="3G"
+#				cnextpart="4"
+  		  ((++cnextpart))
+				CSCRIPT+="mkpart primary linux-swap ${cini} ${AsDiskPercent[swap]}% name ${cnextpart} SWAP "
+				Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="none|swap|1")
+				cini="${AsDiskPercent[swap]}"
 			fi
 
-			CSCRIPT+="mkpart primary $cini 100% name $cpart ROOT "
-			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}$cpart"]="/|ext4|1")
+			if $withhome; then
+			  ((++cnextpart))
+				cnextpercent=$(( AsDiskPercent[swap] + AsDiskPercent[home] ))
+				CSCRIPT+="mkpart primary ${AsFs[home]:-ext4} ${cini}% ${cnextpercent}% name ${cnextpart} HOME "
+  			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="/home|${AsFs[home]:-ext4}|1")
+				cini="${cnextpercent}"
+			fi
+
+		  ((++cnextpart))
+			cnextpercent=$(( AsDiskPercent[swap] + AsDiskPercent[home] + AsDiskPercent[root] ))
+			CSCRIPT+="mkpart primary ${AsFs[root]:-ext4} ${cini}% ${cnextpercent}% name ${cnextpart} ROOT "
+			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="/|${AsFs[root]:-ext4}|1")
+      #info '' "${Amntpoint[@]}"
 		else
-			cini='2MiB'
-			cpart='1'
+			cnextpart=0
+			cini="2MiB"
+
+#			if $withswap; then
+#				CSCRIPT+="mkpart primary linux-swap ${cini} 3G "
+#				Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}$cnextpart"]="none|swap|1")
+#				cini='3G'
+#				cnextpart='2'
+#			fi
 
 			if $withswap; then
-				CSCRIPT+="mkpart primary linux-swap $cini 3G "
-				Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}$cpart"]="none|swap|1")
-				cini='3G'
-				cpart='2'
+  		  ((++cnextpart))
+				CSCRIPT+="mkpart primary linux-swap ${cini} ${AsDiskPercent[swap]}% "
+				Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="none|swap|1")
+				cini="${AsDiskPercent[swap]}%"
 			fi
 
-			CSCRIPT+="mkpart primary $cini 100% set $cpart boot on "
-			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}$cpart"]="/|ext4|1")
+			if $withhome; then
+			  ((++cnextpart))
+				cnextpercent=$(( AsDiskPercent[swap] + AsDiskPercent[home] ))
+				CSCRIPT+="mkpart primary ${AsFs[home]:-ext4} ${cini} ${cnextpercent}% "
+  			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="/home|${AsFs[home]:-ext4}|1")
+				cini="${cnextpercent}%"
+			fi
+
+#			CSCRIPT+="mkpart primary ${cini} 100% set ${cnextpart} boot on "
+		  ((++cnextpart))
+			cnextpercent=$(( AsDiskPercent[swap] + AsDiskPercent[home] + AsDiskPercent[root] ))
+			CSCRIPT+="mkpart primary ${AsFs[root]:-ext4} ${cini} ${cnextpercent}% set ${cnextpart} boot on "
+			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}$cnextpart"]="/|ext4|1")
 		fi
 
 		parted --align=opt --script "${AConfDisk[_DEVICE]}" -- "$CSCRIPT" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
@@ -3010,9 +3308,11 @@ sh_chooseSource() {
 
 sh_choosefstype() {
 	local oldfstype="$1"
+  local xtitle="$2"
 	declare -A Afs
 	declare -A Aflag
 	local cextra
+	local cnewmenu
 	local exit_status
 	local array=()
 	local x
@@ -3039,13 +3339,14 @@ sh_choosefstype() {
 	done
 
 	cextra="${cmsg_mkfs}"
+  cnewmenu="${xtitle:-${cmsg_MENU}}"
 	mkfs=$(${DIALOG} \
 		--title "${cmsg_TitleFileSystem}" \
 		--default-item "$oldfstype" \
 		--colors \
 		--cancel-label "${cmsg_ButtonBack}" \
 		--ok-label "${cmsg_Aceitar}" \
-		--radiolist "${cmsg_MENU}\n\n$cextra" \
+		--radiolist "${cnewmenu}\n\n$cextra" \
 		24 0 2 "${array[@]}" 2>&1 >/dev/tty)
 
 	exit_status=$?
@@ -3469,7 +3770,8 @@ sh_choose_mirror() {
 			--colors \
 			--cancel-label "${cmsg_ButtonBack}" \
 			--ok-label "${cmsg_Aceitar}" \
-			--extra-button --extra-label "void-testmirror" \
+			--extra-button \
+			--extra-label "void-testmirror" \
 			--radiolist "${cmsg_MENU}" \
 			24 0 2 "${array[@]}")
 
@@ -3584,28 +3886,40 @@ sh_menuUtilDisk() {
 	local result
 	local sep="\xe2\x94\x82"
 	local -A ARRAY_UTIL_DISK=()
+	local cRecommended="$(gettext 'Recomendado')"
+	local cRecommendedDesc="$(gettext 'Particionamento e formatação automatica')"
+	local cNotDisp="$(gettext 'Não disponível')"
+	local ccfdisk="$(gettext 'Simples de usar')"
+	local ccfdiskDesc="$(gettext 'Programa baseado em curses para particionar dispositivos de bloco')"
+	local  cfdisk="$(gettext 'Tradicional e poderoso')"
+	local  cfdiskDesc="$(gettext 'Manipulador de tabela de particoes para Linux')"
+  local  cgdisk="$(gettext 'Modernoo para GPT')"
+  local  cgdiskDesc="$(gettext 'Ferramenta em modo texto para particionamento GPT')"
+  local cparted="$(gettext 'Avancado e flexivel')"
+  local cpartedDesc="$(gettext 'Editor de particoes GNU para criar e gerenciar particoes')"
 
-	ARRAY_UTIL_DISK+=(["automatic"]="Recommended|Automatic partitioning and formatting|")
-	ARRAY_UTIL_DISK+=(["cfdisk"]=$([[ -z $(command -v "cfdisk") ]] && echo "Not available||" || echo "Easy to use|cfdisk is a curses-based program for partitioning any block device|"))
-	ARRAY_UTIL_DISK+=(["fdisk"]=$([[ -z $(command -v "fdisk") ]] && echo "Not available||" || echo "More advanced|fdisk is a dialog-driven program for creation and manipulation of partition tables|"))
-	ARRAY_UTIL_DISK+=(["gdisk"]=$([[ -z $(command -v "gdisk") ]] && echo "Not available||" || echo "More advanced|GPT fdisk (aka gdisk) is a text-mode menu-driven program for creation and manipulation of partition tables.|"))
-	ARRAY_UTIL_DISK+=(["parted"]=$([[ -z $(command -v "parted") ]] && echo "Not available||" || echo "More advanced|parted is a program to manipulate disk partitions|"))
+	ARRAY_UTIL_DISK+=(["automatic"]="${cRecommended}|${cRecommendedDesc}|")
+	ARRAY_UTIL_DISK+=(["cfdisk"]=$([[ -z $(command -v "cfdisk") ]] && echo "${cNotDisp}||" || echo "${ccfdisk}|${ccfdiskDesc}|"))
+	ARRAY_UTIL_DISK+=( ["fdisk"]=$([[ -z $(command -v "fdisk")  ]] && echo "${cNotDisp}||" || echo "${cfdisk}|${cfdiskDesc}|"))
+	ARRAY_UTIL_DISK+=( ["gdisk"]=$([[ -z $(command -v "gdisk")  ]] && echo "${cNotDisp}||" || echo "${cgdisk}|${cgdiskDesc}|"))
+	ARRAY_UTIL_DISK+=(["parted"]=$([[ -z $(command -v "parted") ]] && echo "${cNotDisp}||" || echo "${cparted}|${cpartedDesc}|"))
 
 	for i in $(echo "${!ARRAY_UTIL_DISK[@]}" | tr ' ' '\n' | sort); do
 		array[n++]="$i"
-		array[n++]=$(printf "%-20s$sep%-30s" "$(sh_splitarray "${ARRAY_UTIL_DISK[$i]}" 1)" "$(sh_splitarray "${ARRAY_UTIL_DISK[$i]}" 2)")
+		array[n++]=$(printf "%-22s$sep%-30s" "$(sh_splitarray "${ARRAY_UTIL_DISK[$i]}" 1)" "$(sh_splitarray "${ARRAY_UTIL_DISK[$i]}" 2)")
 		((nc++))
 	done
 
 	software=$(${DIALOG} \
-		--colors --backtitle "$ccabec" \
+		--colors \
+		--backtitle "$ccabec" \
 		--title "$(gettext "Selecione o software para particionamento")" \
 		--ok-label "${cmsg_Aceitar}" \
 		--cancel-label "${cmsg_ButtonBack}" \
 		--menu "${cmsg_MENU}\n\n\
 ${BOLD}DEVICE  : ${RESET}${RED}${AConfDisk[_DEVICE]}${RESET}\n\
-${BOLD}MODEL   : ${RESET}${RED}$MODEL_ORIGEM${RESET}\n" \
-		0 0 0 "${array[@]}" 2>&1 >/dev/tty)
+${BOLD}MODEL   : ${RESET}${RED}${MODEL_ORIGEM}${RESET}\n" \
+		12 0 0 "${array[@]}" 2>&1 >/dev/tty)
 
 	exit_status=$?
 	case $exit_status in
@@ -3711,7 +4025,8 @@ sh_choose_disk() {
 			--cancel-label "${cmsg_ButtonBack}" \
 			--colors \
 			--extra-button \
-			--extra-button --extra-label "${cmsg_Particionar}" \
+			--extra-button \
+			--extra-label "$(gettext 'Particionamento')" \
 			--menu "${cmsg_MENU}\n\n\
 $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "BOOT" "TRAN" "SIZE" "PTTYPE" "LABEL" "MODEL")" \
 			24 0 2 "${array[@]}" 2>&1 >/dev/tty)
@@ -3749,7 +4064,10 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 		  LDISK=true
   		LGRUB=true
 	  	LOSPROBER=false
-		  sh_rebuild_amntpoint_for_new_disk
+
+      if [[ "${#Amntpoint[@]}" -eq 0 ]]; then
+  		  sh_rebuild_amntpoint_for_new_disk
+      fi
     }
 
 		case $exit_status in
@@ -3784,6 +4102,41 @@ sh_setBootLoader() {
 	return 1
 }
 
+sh_chooseTablePartitionAjuda() {
+  ${DIALOG} \
+    --colors \
+    --title "\Zb$(gettext "Resumo de Boot e Particionamento")\Zn" \
+    --msgbox "\
+  \Z1$(gettext "EFI / UEFI")\Zn
+  $(gettext "Sistema moderno de boot que substituiu o BIOS antigo.")
+  $(gettext "Suporta discos grandes, Secure Boot e inicialização rápida.")
+  $(gettext "Usado normalmente com tabela GPT.")
+
+  \Z2$(gettext "GPT_BIOS")\Zn
+  $(gettext "Pequena partição especial usada quando o disco é GPT")
+  $(gettext "mas o boot ainda utiliza BIOS legado.")
+  $(gettext "Necessária para GRUB em modo BIOS + GPT.")
+
+  \Z3$(gettext "MBR")\Zn
+  $(gettext "Método antigo de particionamento e boot.")
+  $(gettext "Limite de até 2 TB.")
+  $(gettext "Suporta até 4 partições primárias")
+  $(gettext "(ou 3 primárias + 1 estendida com várias lógicas).")
+
+  \Z4$(gettext "GPT")\Zn
+  $(gettext "Tabela de particionamento moderna usada com UEFI.")
+  $(gettext "Suporta discos enormes e normalmente até 128 partições")
+  $(gettext "sem necessidade de partição estendida.")
+
+  \Z5$(gettext "Importante")\Zn
+  $(gettext "Se a ISO foi iniciada em modo UEFI, o GRUB poderá")
+  $(gettext "ser instalado em modo UEFI utilizando EFI + GPT.")
+
+  $(gettext "Se a ISO foi iniciada em modo BIOS/Legacy, utilize")
+  $(gettext "GPT_BIOS com GPT ou utilize MBR.")" \
+  0 0
+}
+
 sh_chooseTablePartition() {
 	local -A Atable
 	local -A Aflag
@@ -3793,15 +4146,15 @@ sh_chooseTablePartition() {
 	local x
 
 	Atable[EFI]="${cmsg_Efi} - ${cmsg_TabelaGPT}"
-	Atable[GPT_BIOS]="${cmsg_Bios} - ${cmsg_TabelaGPT}"
-	Atable[MBR_BIOS]="${cmsg_Bios} - ${cmsg_TabelaMBR}"
-	cextra="${cmsg_ExtraNotEfi}"
+	Atable[GPT_BIOS]="${cmsg_BiosGpt} - ${cmsg_TabelaGPT}"
+	Atable[MBR_BIOS]="${cmsg_BiosMbr} - ${cmsg_TabelaMBR}"
+	cextra="${YELLOW}${cmsg_ExtraNotEfi}\n${GREEN}${cmsg_ExtraNotEfiRecommended}${RESET}"
 
 	for x in "${!Atable[@]}"; do
 		Aflag[$x]='off'
 		if sh_getBootEFI; then
 			Aflag[EFI]='on'
-			cextra="${cmsg_ExtraEfi}"
+			cextra="${YELLOW}${cmsg_ExtraEfi}\n${GREEN}${cmsg_ExtraEfiRecommended}${RESET}"
 		fi
 		if [[ -z "${AConfDisk[_DISKTABLE]}" ]]; then
 			sh_getBootEFI && AConfDisk[_DISKTABLE]='EFI' || AConfDisk[_DISKTABLE]='GPT_BIOS'
@@ -3816,6 +4169,8 @@ sh_chooseTablePartition() {
 		--colors \
 		--cancel-label "${cmsg_ButtonBack}" \
 		--ok-label "${cmsg_Aceitar}" \
+    --help-button \
+    --help-label "$(gettext 'Ajuda')" \
 		--radiolist "${cmsg_MENU}\n\n$cextra" \
 		12 85 0 "${array[@]}" 2>&1 >/dev/tty)
 
@@ -3823,6 +4178,10 @@ sh_chooseTablePartition() {
 	case $exit_status in
 	"$D_ESC" | "$D_CANCEL")
 		return 1
+		;;
+	"$D_AJUDA")
+    sh_chooseTablePartitionAjuda
+    sh_chooseTablePartition
 		;;
 	"$D_OK")
 		if [[ "$table" = "GPT" ]]; then
@@ -5576,7 +5935,7 @@ sh_choosePartition() {
 					"${ARRAY_PART_FSTYPE[$nc]}" \
 					"${ARRAY_PART_SIZE[$nc]}" \
 					"${ARRAY_PART_LABEL[$nc]}" \
-					"${ARRAY_PART_PARTTYPENAME[$nc]}" \
+          "${ARRAY_PART_PARTTYPENAME[$nc]:0:20}" \
 					"$(sh_splitarray "${Amntpoint[$i]}" 1)" \
 					"$(sh_splitarray "${Amntpoint[$i]}" 2)" \
 					"$(sh_getyes "$(sh_splitarray "${Amntpoint[$i]}" 3)")"
@@ -5861,6 +6220,8 @@ sh_main_menu() {
 		#			{ $LONLY_TTY && MENU_DM="${YELLOW}[${_DISPLAYMANAGER}]${RST} ● " || MENU_DM="${RED}[${cmsg_Nao_definido}]${RST} ● "; }
 		$LEXTRA && MENU_EXTRA="${YELLOW}[OK]${RST} ● " || MENU_EXTRA="${RED}[${cmsg_Nao_definido}]${RST} ● "
 		$LKERNEL && MENU_KERNEL="${YELLOW}[${AConfKernel[_KERNEL]}${RST} ● " || MENU_KERNEL="${RED}[${cmsg_Nao_definido}]${RST} ● "
+
+#			"Sistema" "${MENU_KEYMAP}Configurações regionais" \
 
 		menu=$(${DIALOG} \
 			--backtitle "$ccabec" \
@@ -6494,7 +6855,6 @@ sh_setLanguage() {
 	cmsg_ERRO=$(gettext "ERRO")
 	cmsg_Aceitar=$(gettext "Aceitar")
 	cmsg_Configurar=$(gettext "Configurar")
-	cmsg_Particionar=$(gettext "Particionar")
 	cmsg_Nao_definido=$(gettext "Não definido")
 	cmsg_Mudar=$(gettext "Mudar")
 	cmsg_Sair=$(gettext "Sair")
@@ -6561,6 +6921,7 @@ sh_setLanguage() {
 	cmsg_VerificandoIntegridadeTarball=$(gettext "Verificando a integridade do tarball")
 	cmsg_IniciandoDownload=$(gettext "Iniciando download de")
 	cmsg_CriandoParticoes=$(gettext "Criando partições em")
+	cmsg_CriandoPartSwap=$(gettext "Partição Swap")
 	cmsg_CriandoDiretorio=$(gettext "Criando diretório")
 	cmsg_AtualizandoRepositorio=$(gettext "Atualizando instalação")
 	cmsg_RemovendoPacotesAntigosObseletos=$(gettext "Removendo pacotes antigos/absoletos")
@@ -6568,7 +6929,7 @@ sh_setLanguage() {
 	cmsg_AtualizandoPacotesBase=$(gettext "Atualizando pacotes base")
 	cmsg_AtualizandoPacotesAdicionais=$(gettext "Atualizando pacotes adicionais em")
 	cmsg_part_disk=$(gettext "Visualizar partições do disco")
-	cmsg_TitleDisco=$(gettext "=== DISCO ===")
+	cmsg_TitleDisco=$(gettext "=== ARMAZENAMENTO ===")
 	cmsg_TitleFileSystem=$(gettext "=== FILE SYSTEM ===")
 	cmsg_ChecandoParticoesMontadas=$(gettext "Checando por partições montadas no disco")
 	cmsg_all_mounted_part=$(gettext "O disco selecionado contém partições montadas")
@@ -6590,18 +6951,22 @@ sh_setLanguage() {
 	cmsg_Wm=$(gettext "gerenciador de janelas (wm)")
 	cmsg_Dm=$(gettext "gerenciador de login (dm)")
 	cmsg_TabelaMBR=$(gettext "Tabela MBR (dos)")
-	cmsg_ExtraEfi=$(gettext "Detectado boot via EFI ↓ é recomendável instalar EFI ↓")
-	cmsg_ExtraNotEfi=$(gettext "EFI não detectado ↓ é recomendável GPT_BIOS ou MBR_BIOS ↓")
+#	cmsg_ExtraEfi=$(gettext "Detectado boot via EFI ↓ é recomendável usar EFI ↓")
+	cmsg_ExtraEfi=$(gettext "✓ Detectado: sistema iniciado em modo EFI")
+	cmsg_ExtraEfiRecommended=$(gettext "✓ Recomendado: EFI")
+#	cmsg_ExtraNotEfi=$(gettext "EFI não detectado ↓ é recomendável GPT_BIOS ou MBR_BIOS ↓")
+	cmsg_ExtraNotEfi=$(gettext "✗ EFI não detectado: sistema iniciado em modo BIOS")
+	cmsg_ExtraNotEfiRecommended=$(gettext "✓ Recomendado: GPT_BIOS ou MBR_BIOS")
 	cmsg_ExtraIso=$(gettext "Detectado boot via ISO ↓ é recomendável instalar ↓")
-	cmsg_ExtraNotIso=$(gettext "ISO não detectado ↓ é recomendável NETWORK ↓")
-	cmsg_ExtraNotHostVoid=$(gettext "Host VOID não detectado ↓ é recomendável NETWORK↓")
+	cmsg_ExtraNotIso=$(gettext "ISO não detectado ↓ é recomendável usar NETWORK ↓")
+	cmsg_ExtraNotHostVoid=$(gettext "Host VOID não detectado ↓ é recomendável usar NETWORK↓")
 	welcome=$(gettext "Bem-vindo ao instalador $APP")
 	escolhaIdioma=$(gettext "Escolha o idioma")
 	cmsg_Usuario=$(gettext "Usuário")
-	cmsg_adduser1=$(gettext "Usuário não pode estar root! Novamente?")
+	cmsg_adduser1=$(gettext "Usuário não pode ser root! Novamente?")
 	cmsg_adduser2=$(gettext "Usuário não pode estar vazio! Novamente?")
-	cmsg_adduser3=$(gettext "Senha do usuário não pode estar vazia! Novamente?")
-	cmsg_adduser4=$(gettext "Senha de root não pode estar vazia! Novamente?")
+	cmsg_adduser3=$(gettext "Senha do usuário não pode ser vazia! Novamente?")
+	cmsg_adduser4=$(gettext "Senha de root não pode ser vazia! Novamente?")
 	cmsg_adduser5=$(gettext "Usuário não pode iniciar com números! Novamente?")
 	cmsg_adduser6=$(gettext "Usuário não pode iniciar com letras maiúsculas! Novamente?")
 	cmsg_adduserCancel=$(gettext "Cadastro de usuário cancelado")
@@ -6625,8 +6990,12 @@ sh_setLanguage() {
 	cmsg_Extra4=$(gettext "Senha root")
 	cmsg_Extra6=$(gettext "Disco destino")
 	cmsg_Extra11=$(gettext "Gerenciador Janelas")
-	cmsg_Bios=$(gettext "Sistema Básico de Entrada e Saída")
-	cmsg_Efi=$(gettext "Interface de Firmware Extensível")
+#	cmsg_Efi=$(gettext "Interface de Firmware Extensível")
+#	cmsg_BiosGpt=$(gettext "Sistema Básico de Entrada e Saída")
+#	cmsg_BiosMbr=$(gettext "Sistema Básico de Entrada e Saída")
+	cmsg_Efi=$(gettext "EFI + GPT (recomendado) PCs modernos")
+	cmsg_BiosGpt=$(gettext "BIOS + GPT Compatibilide avançada")
+	cmsg_BiosMbr=$(gettext "BIOS + MBR Computadores antigos")
 	cmsg_TabelaGPT=$(gettext "Tabela GPT")
 	cmsg_NotConfDefault=$(gettext "não foi configurado!")
 	cmsg_NotConfDisco=$(gettext "Disco não foi configurado!")
@@ -6844,20 +7213,19 @@ sh_rebuild_amntpoint_for_new_disk() {
 			esac
 		fi
 
-		# --- FILESYSTEM NORMAL (ext4, xfs, etc) ---
-		if ! $root_set; then
-			Amntpoint["$PATH_"]="/|$fs|1"
-			root_set=true
-		else
-			Amntpoint["$PATH_"]="none|$fs|0"
-		fi
+    # --- FILESYSTEM NORMAL (ext4, xfs, etc) ---
+    #info "" "$PARTLABEL_"
+    case "$PARTLABEL_" in
+    HOME) Amntpoint["$PATH_"]="/home|$fs|1";;
+    ROOT) Amntpoint["$PATH_"]="/|$fs|1";;
+    *)    Amntpoint["$PATH_"]="none|$fs|0";
+    esac
 
 	done < <(
-		lsblk -fPAo TYPE,NAME,PATH,SIZE,TRAN,MODEL,LABEL,SERIAL,FSTYPE,PARTTYPENAME "$device" |
+		lsblk -fPAo TYPE,NAME,PATH,SIZE,TRAN,MODEL,LABEL,SERIAL,FSTYPE,PARTTYPENAME,PARTLABEL "$device" |
 			grep -P 'TYPE="(part)"' |
 			sort -k5,5 -k2,2
 	)
-
 	((${#Amntpoint[@]})) && LMKPARTED=true || LMKPARTED=false
 }
 
