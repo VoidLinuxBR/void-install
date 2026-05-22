@@ -31,7 +31,7 @@
 #  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ##############################################################################
 export LANGUAGE="${LANGUAGE:-pt_BR}"
-export TEXTDOMAINDIR=usr/share/locale
+export TEXTDOMAINDIR=/usr/share/locale
 export TEXTDOMAIN=void-install
 
 #todo
