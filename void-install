@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: qui 21 mai 2026 21:50:40 -04
+#  Updated: sex 22 mai 2026 06:14:29 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.5.21-20260521'
+readonly _VERSION_='3.5.22-20260522'
 readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
 readonly LOCKFILE="/tmp/void-install.lock"
 
@@ -196,16 +196,25 @@ declare -gA Alocale=(
 	[5]=it_IT
 )
 declare -gA AsDhcp=(
-	AsDhcp [IFACE]="${Asdhcp[IFACE]:-eth0}"
-	AsDhcp [IP]="${AsDhcp[IP]:-192.168.1.100}"
-	AsDhcp [CIDR]="${AsDhcp[CIDR]:-24}"
-	AsDhcp [GATEWAY]="${AsDhcp[GATEWAY]:-192.168.1.1}"
-	AsDhcp [DNS1]="${AsDhcp[DNS1]:-1.1.1.1}"
-	AsDhcp [DNS2]="${AsDhcp[DNS2]:-8.8.8.8}"
+	AsDhcp[IFACE]="${Asdhcp[IFACE]:-eth0}"
+	AsDhcp[IP]="${AsDhcp[IP]:-192.168.1.100}"
+	AsDhcp[CIDR]="${AsDhcp[CIDR]:-24}"
+	AsDhcp[GATEWAY]="${AsDhcp[GATEWAY]:-192.168.1.1}"
+	AsDhcp[DNS1]="${AsDhcp[DNS1]:-1.1.1.1}"
+	AsDhcp[DNS2]="${AsDhcp[DNS2]:-8.8.8.8}"
+)
+declare -gA AsDiskPercent=(
+  [boot]="EFI"
+  [root]="100"
+  [home]="0"
+  [swap]="0"
+)
+declare -gA AsFs=(
+  [root]="ext4"
+  [home]="ext4"
 )
 
 declare dialogRcFile="$HOME/.dialogrc"
-#
 declare _DISPLAYMANAGER='None'
 declare _WINDOWMANAGER=('tty')
 declare _WIFI_NETWORK="wifi_ssid"
@@ -790,6 +799,8 @@ sh_touchConf() {
 		declare -p AsUser
 		declare -p Amkfs
 		declare -p AsDhcp
+		declare -p AsDiskPercent
+		declare -p AsFs
 		declare -p Amntpoint
 		declare -p AmntpointFDE
 		declare -p AConfDisk
@@ -1460,24 +1471,25 @@ sh_testDisk() {
 }
 
 
-valid_fs() {
-  case "$1" in
+is_valid_fs() {
+  local cFs="$1"
+  local cPath="$2"
+
+  case "$cFs" in
   xfs|f2fs|ext2|ext3|ext4|vfat|reiserfs|ntfs|btrfs|jfs|swap)
     return 0
     ;;
   esac
+  info "${RED}FILESYSTEM ERROR${RST}" \
+    "\n$(gettext 'Filesystem inválido para') ${CYAN}'${cPath}' ${RST}=> ${cFs}" \
+    "${YELLOW}$(gettext 'Válidos:') => ${CYAN}xfs|f2fs|ext2|ext3|ext4|vfat|reiserfs|ntfs|btrfs|jfs|swap"
   return 1
 }
 
 sh_getPartitionsPercent() {
-  declare -gA AsPercent
-  declare -gA AsFs
-  AsPercent[boot]="${AConfDisk[_DISKTABLE]}"
-  AsPercent[root]="100"
-  AsPercent[home]="0"
-  AsPercent[swap]="0"
-  AsFs[root]="ext4"
-  AsFs[home]="ext4"
+  local -a aPercent=()
+  local percent_text
+  AsDiskPercent[boot]="${AConfDisk[_DISKTABLE]}"
 
   # loop principal
   while :; do
@@ -1503,12 +1515,12 @@ $(gettext "➡ Informe HOME como 0 para não criar partição HOME separada.")
 $(gettext "➡ Informe SWAP como 0 para não criar partição SWAP")" \
         0 0 0 \
 \
-  "Boot"          1 1  "${AsPercent[boot]}"  1 24 15 15 2 \
-  "root (/) (%)"  2 1  "${AsPercent[root]}"  2 24 05 05 0 \
-  "FS"            2 32 "${AsFs[root]}"       2 37 10 10 0 \
-  "/home    (%)"  3 1  "${AsPercent[home]}"  3 24 05 05 0 \
-  "FS"            3 32 "${AsFs[home]}"       3 37 10 10 0 \
-  "swap     (%)"  4 1  "${AsPercent[swap]}"  4 24 10 10 0
+  "Boot"          1 01 "${AsDiskPercent[boot]}" 1 24 15 15 2 \
+  "root (/) (%)"  2 01 "${AsDiskPercent[root]}" 2 24 05 05 0 \
+  "FS"            2 32 "${AsFs[root]}"          2 37 10 10 0 \
+  "/home    (%)"  3 01 "${AsDiskPercent[home]}" 3 24 05 05 0 \
+  "FS"            3 32 "${AsFs[home]}"          3 37 10 10 0 \
+  "swap     (%)"  4 01 "${AsDiskPercent[swap]}" 4 24 10 10 0
 
     )
 
@@ -1526,104 +1538,88 @@ $(gettext "➡ Informe SWAP como 0 para não criar partição SWAP")" \
     # captura retorno
     mapfile -t aPercent <<<"$percent_text"
 
-    AsPercent[boot]="${aPercent[0]}"
-    AsPercent[root]="${aPercent[1]}"
-    AsPercent[home]="${aPercent[3]}"
-    AsPercent[swap]="${aPercent[5]}"
+    AsDiskPercent[boot]="${aPercent[0]}"
+    AsDiskPercent[root]="${aPercent[1]}"
+    AsDiskPercent[home]="${aPercent[3]}"
+    AsDiskPercent[swap]="${aPercent[5]}"
     AsFs[root]="${aPercent[2]}"
     AsFs[home]="${aPercent[4]}"
 
-    if [ "${AsPercent[root]}" -gt 0 ]; then
-      if ! valid_fs "${AsFs[root]}"; then
-        info "${RED}FILESYSTEM ERROR${RST}" \
-             "$(gettext 'Filesystem inválido para') ${CYAN}'/' ${RST}=> ${AsFs[root]}" \
-             "${YELLOW}$(gettext 'Válidos:') => ${CYAN}xfs|f2fs|ext2|ext3|ext4|vfat|reiserfs|ntfs|btrfs|jfs|swap"
+    if [ "${AsDiskPercent[root]}" -gt 0 ]; then
+      if ! is_valid_fs "${AsFs[root]}" "/"; then
         continue
       fi
     fi
 
-    if [ "${AsPercent[home]}" -gt 0 ]; then
-      if ! valid_fs "${AsFs[home]}"; then
-        info "${RED}FILESYSTEM ERROR${RST}" \
-             "$(gettext 'Filesystem inválido para') ${CYAN}'/home' ${RST}=> ${AsFs[home]}" \
-             "${YELLOW}$(gettext 'Válidos:') => ${CYAN}xfs|f2fs|ext2|ext3|ext4|vfat|reiserfs|ntfs|btrfs|jfs|swap"
+    if [ "${AsDiskPercent[home]}" -gt 0 ]; then
+      if ! is_valid_fs "${AsFs[home]}" "/home"; then
         continue
       fi
     fi
 
     # valida ROOT
-    case "${AsPercent[root]}" in
+    case "${AsDiskPercent[root]}" in
       ''|*[!0-9]*)
-        "${DIALOG}" \
-          --colors \
-          --title "\Z1$(gettext "Erro")\Zn" \
-          --msgbox "$(gettext "Valor inválido para ROOT.")" \
-          7 45
+        info \
+          "${AConfDisk[_DEVICE]} - ${RED}${cmsg_ERRO}${RST}" \
+          "\n$(gettext "Valor inválido para ROOT.")" \
+          "\n$(gettext "ROOT deve estar entre 1 e 100.")"
         continue
         ;;
     esac
 
     # valida HOME
-    case "${AsPercent[home]}" in
+    case "${AsDiskPercent[home]}" in
       ''|*[!0-9]*)
-        "${DIALOG}" \
-          --colors \
-          --title "\Z1$(gettext "Erro")\Zn" \
-          --msgbox "$(gettext "Valor inválido para HOME.")" \
-          7 45
+        info \
+          "${AConfDisk[_DEVICE]} - ${RED}${cmsg_ERRO}${RST}" \
+          "\n$(gettext "Valor inválido para HOME.")" \
+          "\n$(gettext "HOME deve estar entre 0 e 99.")"
         continue
         ;;
     esac
 
     # valida SWAP
-    case "${AsPercent[swap]}" in
+    case "${AsDiskPercent[swap]}" in
       ''|*[!0-9]*)
-        "${DIALOG}" \
-          --colors \
-          --title "\Z1$(gettext "Erro")\Zn" \
-          --msgbox "$(gettext "Valor inválido para SWAP.")" \
-          7 45
+        info "${AConfDisk[_DEVICE]} - ${RED}${cmsg_ERRO}${RST}" \
+          "\n$(gettext "Valor inválido para SWAP.")" \
+          "\n$(gettext "SWAP deve estar entre 0 e 99.")"
         continue
         ;;
     esac
 
     # faixa ROOT
-    if [ "${AsPercent[root]}" -lt 1 ] || [ "${AsPercent[root]}" -gt 100 ]; then
-      "${DIALOG}" \
-        --colors \
-        --title "\Z1$(gettext "Erro")\Zn" \
-        --msgbox "$(gettext "ROOT deve estar entre 1 e 100.")" \
-        7 50
+    if [ "${AsDiskPercent[root]}" -lt 1 ] || [ "${AsDiskPercent[root]}" -gt 100 ]; then
+      info \
+        "${AConfDisk[_DEVICE]} - ${RED}${cmsg_ERRO}${RST}" \
+        "\n$(gettext "ROOT deve estar entre 1 e 100.")"
       continue
     fi
 
     # faixa HOME
-    if [ "${AsPercent[home]}" -lt 0 ] || [ "${AsPercent[home]}" -gt 99 ]; then
-      "${DIALOG}" \
-        --colors \
-        --title "\Z1$(gettext "Erro")\Zn" \
-        --msgbox "$(gettext "HOME deve estar entre 0 e 99.")" \
-        7 50
+    if [ "${AsDiskPercent[home]}" -lt 0 ] || [ "${AsDiskPercent[home]}" -gt 99 ]; then
+      info \
+        "${AConfDisk[_DEVICE]} - ${RED}${cmsg_ERRO}${RST}" \
+        "\n$(gettext "HOME deve estar entre 0 e 99.")"
       continue
     fi
 
     # faixa SWAP
-    if [ "${AsPercent[swap]}" -lt 0 ] || [ "${AsPercent[swap]}" -gt 99 ]; then
-      "${DIALOG}" \
-        --colors \
-        --title "\Z1$(gettext "Erro")\Zn" \
-        --msgbox "$(gettext "SWAP deve estar entre 0 e 99.")" \
-        7 50
+    if [ "${AsDiskPercent[swap]}" -lt 0 ] || [ "${AsDiskPercent[swap]}" -gt 99 ]; then
+      info \
+        "${AConfDisk[_DEVICE]} - ${RED}${cmsg_ERRO}${RST}" \
+        "\n$(gettext "SWAP deve estar entre 0 e 99.")"
       continue
     fi
 
     # soma
-    total=$(( AsPercent[root] + AsPercent[home] + AsPercent[swap] ))
+    total=$(( AsDiskPercent[root] + AsDiskPercent[home] + AsDiskPercent[swap] ))
 
     if [ "$total" -gt 100 ]; then
       info \
-        "$(gettext 'Erro')" \
-        "ROOT + HOME + SWAP $(gettext "não pode ultrapassar") ${RED}100% ${RST}" \
+        "${AConfDisk[_DEVICE]} - ${RED}${cmsg_ERRO}${RST}" \
+        "\nROOT + HOME + SWAP $(gettext "não pode ultrapassar") ${RED}100% ${RST}" \
         "$(gettext "Valor atual:") ${total}%"
       continue
     fi
@@ -1632,15 +1628,10 @@ $(gettext "➡ Informe SWAP como 0 para não criar partição SWAP")" \
     break
   done
 
-#  echo "BOOT_MODE=${AsPercent[boot]}"
-#  echo "ROOT_PERCENT=${AsPercent[root]}"
-#  echo "HOME_PERCENT=${AsPercent[home]}"
-#  echo "SWAP=${AsPercent[swap]}"
-
   withhome=true
   withswap=true
-  [[ "${AsPercent[home]}" -eq 0 ]] && withhome=false
-  [[ "${AsPercent[swap]}" -eq 0 ]] && withswap=false
+  [[ "${AsDiskPercent[home]}" -eq 0 ]] && withhome=false
+  [[ "${AsDiskPercent[swap]}" -eq 0 ]] && withswap=false
 # info "${cmsg_Disco}" "HOME separado: ${withhome}" "SWAP separado: ${withswap}"
 
   return 0
@@ -1774,21 +1765,21 @@ sh_mkparted() {
 #				cini="3G"
 #				cnextpart="4"
   		  ((++cnextpart))
-				CSCRIPT+="mkpart primary linux-swap ${cini} ${AsPercent[swap]}% name ${cnextpart} SWAP "
+				CSCRIPT+="mkpart primary linux-swap ${cini} ${AsDiskPercent[swap]}% name ${cnextpart} SWAP "
 				Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="none|swap|1")
-				cini="${AsPercent[swap]}"
+				cini="${AsDiskPercent[swap]}"
 			fi
 
 			if $withhome; then
 			  ((++cnextpart))
-				cnextpercent=$(( AsPercent[swap] + AsPercent[home] ))
+				cnextpercent=$(( AsDiskPercent[swap] + AsDiskPercent[home] ))
 				CSCRIPT+="mkpart primary ${AsFs[home]:-ext4} ${cini}% ${cnextpercent}% name ${cnextpart} HOME "
   			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="/home|${AsFs[home]:-ext4}|1")
 				cini="${cnextpercent}"
 			fi
 
 		  ((++cnextpart))
-			cnextpercent=$(( AsPercent[swap] + AsPercent[home] + AsPercent[root] ))
+			cnextpercent=$(( AsDiskPercent[swap] + AsDiskPercent[home] + AsDiskPercent[root] ))
 			CSCRIPT+="mkpart primary ${AsFs[root]:-ext4} ${cini}% ${cnextpercent}% name ${cnextpart} ROOT "
 			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="/|${AsFs[root]:-ext4}|1")
 
