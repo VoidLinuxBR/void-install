@@ -1779,17 +1779,22 @@ sh_mkparted() {
 		else
 		  label_type='msdos'
     fi
+
 		Amntpoint=()
 		CSCRIPT+="mklabel $label_type "
 
-		cnextpart=0
 		if [[ "$label_type" = "gpt" ]]; then
+  		cnextpart=0
+	  	cini="2MiB"
+  		cnextini="4MiB"
   	  ((++cnextpart))
-  		CSCRIPT+='mkpart primary fat32 2MiB   4MiB set 1 bios_grub on name 1 BIOS '
+  		CSCRIPT+='mkpart primary fat32 ${cini} ${cnextini} set 1 bios_grub on name 1 BIOS '
   	  ((++cnextpart))
-			CSCRIPT+='mkpart primary fat32 4MiB 260MiB set 2 esp       on name 2 EFI  '
+  		cini="${cnextini}"
+  		cnextini="260MiB"
+			CSCRIPT+='mkpart primary fat32 ${cini} ${cnextini} set 2 esp       on name 2 EFI  '
 			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}2"]="/boot/efi|vfat|1")
-			cini='260MiB'
+  		cini="${cnextini}"
 
 			if $withswap; then
 #				CSCRIPT+="mkpart primary linux-swap $cini 3G name $cnextpart SWAP "
@@ -1814,21 +1819,37 @@ sh_mkparted() {
 			cnextpercent=$(( AsDiskPercent[swap] + AsDiskPercent[home] + AsDiskPercent[root] ))
 			CSCRIPT+="mkpart primary ${AsFs[root]:-ext4} ${cini}% ${cnextpercent}% name ${cnextpart} ROOT "
 			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="/|${AsFs[root]:-ext4}|1")
-
-#      info '' "${Amntpoint[@]}"
-
+      #info '' "${Amntpoint[@]}"
 		else
-			cini='2MiB'
-			cnextpart='1'
+			cnextpart=0
+			cini="2MiB"
+
+#			if $withswap; then
+#				CSCRIPT+="mkpart primary linux-swap ${cini} 3G "
+#				Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}$cnextpart"]="none|swap|1")
+#				cini='3G'
+#				cnextpart='2'
+#			fi
 
 			if $withswap; then
-				CSCRIPT+="mkpart primary linux-swap $cini 3G "
-				Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}$cnextpart"]="none|swap|1")
-				cini='3G'
-				cnextpart='2'
+  		  ((++cnextpart))
+				CSCRIPT+="mkpart primary linux-swap ${cini} ${AsDiskPercent[swap]}% "
+				Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="none|swap|1")
+				cini="${AsDiskPercent[swap]}%"
 			fi
 
-			CSCRIPT+="mkpart primary $cini 100% set $cnextpart boot on "
+			if $withhome; then
+			  ((++cnextpart))
+				cnextpercent=$(( AsDiskPercent[swap] + AsDiskPercent[home] ))
+				CSCRIPT+="mkpart primary ${AsFs[home]:-ext4} ${cini} ${cnextpercent}% "
+  			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="/home|${AsFs[home]:-ext4}|1")
+				cini="${cnextpercent}%"
+			fi
+
+#			CSCRIPT+="mkpart primary ${cini} 100% set ${cnextpart} boot on "
+		  ((++cnextpart))
+			cnextpercent=$(( AsDiskPercent[swap] + AsDiskPercent[home] + AsDiskPercent[root] ))
+			CSCRIPT+="mkpart primary ${AsFs[root]:-ext4} ${cini} ${cnextpercent}% set ${cnextpart} boot on "
 			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}$cnextpart"]="/|ext4|1")
 		fi
 
