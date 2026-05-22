@@ -1791,6 +1791,9 @@ sh_mkparted() {
 			cnextpercent=$(( AsPercent[swap] + AsPercent[home] + AsPercent[root] ))
 			CSCRIPT+="mkpart primary ${AsFs[root]:-ext4} ${cini}% ${cnextpercent}% name ${cnextpart} ROOT "
 			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="/|${AsFs[root]:-ext4}|1")
+
+info '' "${Amntpoint[@]}"
+
 		else
 			cini='2MiB'
 			cnextpart='1'
@@ -4014,7 +4017,10 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 		  LDISK=true
   		LGRUB=true
 	  	LOSPROBER=false
-		  sh_rebuild_amntpoint_for_new_disk
+
+      if [[ "${#Amntpoint[@]}" -eq 0 ]]; then
+  		  sh_rebuild_amntpoint_for_new_disk
+      fi
     }
 
 		case $exit_status in
