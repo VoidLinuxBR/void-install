@@ -1474,15 +1474,47 @@ sh_testDisk() {
 is_valid_fs() {
   local cFs="$1"
   local cPath="$2"
+  local xtitle
 
-  case "$cFs" in
-  xfs|f2fs|ext2|ext3|ext4|vfat|reiserfs|ntfs|btrfs|jfs|swap)
-    return 0
+  case "$cPath" in
+  "/")
+    case "$cFs" in
+    xfs|f2fs|ext2|ext3|ext4|reiserfs|btrfs|jfs)
+      return 0
+      ;;
+    *)
+      xtitle="${RED}FILESYSTEM ERROR${RST}\
+\n$(gettext 'Filesystem inválido para') ${CYAN}'${cPath}' ${RST}=> ${cFs} \
+\n${YELLOW}$(gettext 'Válidos:') ${CYAN}xfs|f2fs|ext2|ext3|ext4|reiserfs|btrfs|jfs"
+
+      if sh_choosefstype "${AsFs[root]}" "$xtitle"; then
+        AsFs[root]="${AConfDisk[_FILESYSTEM]}"
+        return 1
+      fi
+      return 1
+      ;;
+    esac
+    ;;
+  "/home")
+    case "$cFs" in
+    xfs|f2fs|ext2|ext3|ext4|vfat|reiserfs|ntfs|btrfs|jfs)
+      return 0
+      ;;
+    *)
+      xtitle="${RED}FILESYSTEM ERROR${RST} \
+\n$(gettext 'Filesystem inválido para') ${CYAN}'${cPath}' ${RST}=> ${cFs} \
+\n${YELLOW}$(gettext 'Válidos:') ${CYAN}xfs|f2fs|ext2|ext3|ext4|vfat|reiserfs|ntfs|btrfs|jfs"
+
+      if sh_choosefstype "${AsFs[home]}" "$xtitle"; then
+        AsFs[home]="${AConfDisk[_FILESYSTEM]}"
+        return 1
+      fi
+      return 1
+      ;;
+    esac
     ;;
   esac
-  info "${RED}FILESYSTEM ERROR${RST}" \
-    "\n$(gettext 'Filesystem inválido para') ${CYAN}'${cPath}' ${RST}=> ${cFs}" \
-    "${YELLOW}$(gettext 'Válidos:') => ${CYAN}xfs|f2fs|ext2|ext3|ext4|vfat|reiserfs|ntfs|btrfs|jfs|swap"
+
   return 1
 }
 
@@ -3255,9 +3287,11 @@ sh_chooseSource() {
 
 sh_choosefstype() {
 	local oldfstype="$1"
+  local xtitle="$2"
 	declare -A Afs
 	declare -A Aflag
 	local cextra
+	local cnewmenu
 	local exit_status
 	local array=()
 	local x
@@ -3284,13 +3318,14 @@ sh_choosefstype() {
 	done
 
 	cextra="${cmsg_mkfs}"
+  cnewmenu="${xtitle:-${cmsg_MENU}}"
 	mkfs=$(${DIALOG} \
 		--title "${cmsg_TitleFileSystem}" \
 		--default-item "$oldfstype" \
 		--colors \
 		--cancel-label "${cmsg_ButtonBack}" \
 		--ok-label "${cmsg_Aceitar}" \
-		--radiolist "${cmsg_MENU}\n\n$cextra" \
+		--radiolist "${cnewmenu}\n\n$cextra" \
 		24 0 2 "${array[@]}" 2>&1 >/dev/tty)
 
 	exit_status=$?
