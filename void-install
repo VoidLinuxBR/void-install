@@ -53,7 +53,29 @@ shopt -s extglob
 #system
 readonly APP="${0##*/}"
 readonly _VERSION_='3.5.22-20260522'
-readonly DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr chroot blkid fdisk parted lsblk curl xz mkfs.vfat tee lvm cryptsetup gettext)
+readonly DEPENDENCIES=(
+  dialog
+  rsync
+  awk
+  tar
+  sed
+  cat
+  grep
+  sort
+  tr
+  chroot
+  blkid
+  fdisk
+  parted
+  lsblk
+  curl
+  xz
+  mkfs.vfat
+  tee
+  lvm
+  cryptsetup
+  gettext
+)
 readonly LOCKFILE="/tmp/void-install.lock"
 
 # Mapa: [distro]="lista de pacotes"
@@ -96,6 +118,7 @@ declare LWM=true
 declare LDM=true
 declare LAUTO=true
 declare LMKPARTED=false
+declare LFSREVISED=false
 declare LFS=false
 declare LPARTITION=false
 declare LBIND=false
@@ -792,6 +815,7 @@ sh_touchConf() {
 		declare -p LBIOS
 		declare -p LKERNEL
 		declare -p LMKPARTED
+		declare -p LFSREVISED
 		declare -p _WIFI_NETWORK
 		declare -p _WIFI_PASSWORD
 		declare -p _DISPLAYMANAGER
@@ -1784,73 +1808,73 @@ sh_mkparted() {
 		CSCRIPT+="mklabel $label_type "
 
 		if [[ "$label_type" = "gpt" ]]; then
+      #bios
   		cnextpart=0
 	  	cini="2MiB"
   		cnextini="4MiB"
   	  ((++cnextpart))
-  		CSCRIPT+='mkpart primary fat32 ${cini} ${cnextini} set 1 bios_grub on name 1 BIOS '
+  		CSCRIPT+="mkpart primary fat32 ${cini} ${cnextini} set 1 bios_grub on name 1 BIOS "
+
+      #efi
   	  ((++cnextpart))
   		cini="${cnextini}"
   		cnextini="260MiB"
-			CSCRIPT+='mkpart primary fat32 ${cini} ${cnextini} set 2 esp       on name 2 EFI  '
+			CSCRIPT+="mkpart primary fat32 ${cini} ${cnextini} set 2 esp       on name 2 EFI  "
 			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}2"]="/boot/efi|vfat|1")
   		cini="${cnextini}"
 
+      #swap
 			if $withswap; then
-#				CSCRIPT+="mkpart primary linux-swap $cini 3G name $cnextpart SWAP "
-#				Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}$cnextpart"]="none|swap|1")
-#				cini="3G"
-#				cnextpart="4"
   		  ((++cnextpart))
-				CSCRIPT+="mkpart primary linux-swap ${cini} ${AsDiskPercent[swap]}% name ${cnextpart} SWAP "
+  			cnextpercent=$(( AsDiskPercent[swap] ))
+				CSCRIPT+="mkpart primary linux-swap ${cini} ${cnextpercent}% name ${cnextpart} SWAP "
 				Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="none|swap|1")
-				cini="${AsDiskPercent[swap]}"
+				cini="${cnextpercent}%"
 			fi
 
+      #root
+		  ((++cnextpart))
+			cnextpercent=$(( AsDiskPercent[swap] + AsDiskPercent[root] ))
+			CSCRIPT+="mkpart primary ${AsFs[root]:-ext4} ${cini} ${cnextpercent}% name ${cnextpart} ROOT "
+			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="/|${AsFs[root]:-ext4}|1")
+			cini="${cnextpercent}%"
+
+      #home
 			if $withhome; then
 			  ((++cnextpart))
-				cnextpercent=$(( AsDiskPercent[swap] + AsDiskPercent[home] ))
-				CSCRIPT+="mkpart primary ${AsFs[home]:-ext4} ${cini}% ${cnextpercent}% name ${cnextpart} HOME "
+        (( cnextpercent = cnextpercent + AsDiskPercent[home], cnextpercent = cnextpercent >= 99 ? 100 : cnextpercent ))
+				CSCRIPT+="mkpart primary ${AsFs[home]:-ext4} ${cini} ${cnextpercent}% name ${cnextpart} HOME "
   			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="/home|${AsFs[home]:-ext4}|1")
-				cini="${cnextpercent}"
 			fi
 
-		  ((++cnextpart))
-			cnextpercent=$(( AsDiskPercent[swap] + AsDiskPercent[home] + AsDiskPercent[root] ))
-			CSCRIPT+="mkpart primary ${AsFs[root]:-ext4} ${cini}% ${cnextpercent}% name ${cnextpart} ROOT "
-			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="/|${AsFs[root]:-ext4}|1")
-      #info '' "${Amntpoint[@]}"
 		else
 			cnextpart=0
 			cini="2MiB"
 
-#			if $withswap; then
-#				CSCRIPT+="mkpart primary linux-swap ${cini} 3G "
-#				Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}$cnextpart"]="none|swap|1")
-#				cini='3G'
-#				cnextpart='2'
-#			fi
-
+      #swap
 			if $withswap; then
   		  ((++cnextpart))
-				CSCRIPT+="mkpart primary linux-swap ${cini} ${AsDiskPercent[swap]}% "
+  			cnextpercent=$(( AsDiskPercent[swap] ))
+				CSCRIPT+="mkpart primary linux-swap ${cini} ${cnextpercent}% "
 				Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="none|swap|1")
-				cini="${AsDiskPercent[swap]}%"
-			fi
-
-			if $withhome; then
-			  ((++cnextpart))
-				cnextpercent=$(( AsDiskPercent[swap] + AsDiskPercent[home] ))
-				CSCRIPT+="mkpart primary ${AsFs[home]:-ext4} ${cini} ${cnextpercent}% "
-  			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="/home|${AsFs[home]:-ext4}|1")
 				cini="${cnextpercent}%"
 			fi
 
-#			CSCRIPT+="mkpart primary ${cini} 100% set ${cnextpart} boot on "
+      #root
 		  ((++cnextpart))
-			cnextpercent=$(( AsDiskPercent[swap] + AsDiskPercent[home] + AsDiskPercent[root] ))
+			cnextpercent=$(( AsDiskPercent[swap] + AsDiskPercent[root] ))
 			CSCRIPT+="mkpart primary ${AsFs[root]:-ext4} ${cini} ${cnextpercent}% set ${cnextpart} boot on "
 			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}$cnextpart"]="/|ext4|1")
+ 			cini="${cnextpercent}%"
+
+      #home
+			if $withhome; then
+			  ((++cnextpart))
+        (( cnextpercent = cnextpercent + AsDiskPercent[home], cnextpercent = cnextpercent >= 99 ? 100 : cnextpercent ))
+				CSCRIPT+="mkpart primary ${AsFs[home]:-ext4} ${cini} ${cnextpercent}% "
+  			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="/home|${AsFs[home]:-ext4}|1")
+			fi
+
 		fi
 
 		parted --align=opt --script "${AConfDisk[_DEVICE]}" -- "$CSCRIPT" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
@@ -1862,6 +1886,7 @@ sh_mkparted() {
 		LMKPARTED=true
 		LFS=true
 		LPARTITION=true
+    LFSREVISED=true
 		#		sync 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 		#		partprobe 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 	else
@@ -4054,6 +4079,7 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 			TRAN_ORIGEM="$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_DEVICE]}]}" "$DSK_TRAN")"
 			LDISK=true
 			LGRUB=true
+	    [[ "$old_device" != "${AConfDisk[_DEVICE]}" ]] && LFSREVISED=false
 		fi
 
     set_disk_choosed() {
@@ -4064,9 +4090,12 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 		  LDISK=true
   		LGRUB=true
 	  	LOSPROBER=false
+	    [[ "$old_device" != "${AConfDisk[_DEVICE]}" ]] && LFSREVISED=false
 
-      if [[ "${#Amntpoint[@]}" -eq 0 ]]; then
-  		  sh_rebuild_amntpoint_for_new_disk
+#     if [[ "${#Amntpoint[@]}" -eq 0 ]]; then
+#	    if [[ "$old_device" != "${AConfDisk[_DEVICE]}" || ! $LFSREVISED ]]; then
+	    if ! $LFSREVISED; then
+   		  sh_rebuild_amntpoint_for_new_disk
       fi
     }
 
@@ -4085,6 +4114,7 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 		esac
 	done
 	LDISK=true
+	LFSREVISED=false
 	return 0
 }
 
@@ -5973,6 +6003,7 @@ $(printf "%${nlen}s$sep%-11s$sep%6s$sep%-20s$sep%-20s$sep%-20s$sep%-8s$sep%s" \
 		"$D_ESC" | "$D_CANCEL")
 			LFS=true
 			LPARTITION=true
+      LFSREVISED=true
 			return 0
 			;;
 		3)
@@ -6195,31 +6226,45 @@ sh_getparamfile() {
 }
 
 sh_main_menu() {
-	sh_disk_part_info
-	while true; do
+  local cOK="${RST}${BOLD}${GREEN}"
+  local cWARN="${RST}${YELLOW}"
+  local cERRO="${RST}${UNDERLINE}${RED}"
+
+  sh_disk_part_info
+  while true; do
 		sh_touchConf
 		if [ -z "$DEFITEM" ]; then
 			DEFITEM="${cmsg_Mirror}"
 		fi
 
-		ccabec="${baseccabec} - ${RED}${url_mirror}"
-		$LMIRROR && MENU_MIRROR="${YELLOW}[${AConfMirror[_MIRROR]}]${RST} ● " || MENU_MIRROR="${RED}[${cmsg_Nao_definido}]${RST} ● "
-		$LSOURCE && MENU_SOURCE="${YELLOW}[${AConfMirror[_SOURCE]}]${RST} ● " || MENU_SOURCE="${RED}[${cmsg_Nao_definido}]${RST} ● "
-		$LDISK && MENU_DEVICE="${YELLOW}[${AConfDisk[_DEVICE]}]${RST} ● " || MENU_DEVICE="${RED}[${cmsg_Nao_definido}]${RST} ● "
-		$LGRUB && MENU_BOOTLOADER="${YELLOW}[${AConfDisk[_BOOTLOADER]}]${RST} ● " || MENU_BOOTLOADER="${RED}[${cmsg_Nao_definido}]${RST} ● "
-		$LMKPARTED && MENU_FS="${YELLOW}[${RED}OK${YELLOW} => revise! ]${RST} ● " || MENU_FS="${RED}[${cmsg_Nao_definido}]${RST} ● "
-		$LKEYMAP && MENU_KEYMAP="${YELLOW}[${AConfLocale[_KEYMAP]}]${RST} ● " || MENU_KEYMAP="${RED}[${cmsg_Nao_definido}]${RST} ● "
-		$LTIMEZONE && MENU_TIMEZONE="${YELLOW}[${AConfLocale[_TIMEZONE]}${RST} ● " || MENU_TIMEZONE="${RED}[${cmsg_Nao_definido}]${RST} ● "
-		$LLOCALE && MENU_LOCALE="${YELLOW}[${AConfLocale[_LOCALE]} ${AConfLocale[_REGION]}]${RST} ● " || MENU_LOCALE="${RED}[${cmsg_Nao_definido}]${RST} ● "
-		$LAUDIO && MENU_AUDIO="${YELLOW}[${AConfAudio[_AUDIOSERVER]}]${RST} ● " ||
-			{ $LONLY_TTY && MENU_AUDIO="${YELLOW}[${AConfAudio[_AUDIOSERVER]}]${RST} ● " || MENU_AUDIO="${RED}[${cmsg_Nao_definido}]${RST} ● "; }
+		ccabec="${baseccabec} - ${cERRO}${url_mirror}"
+		$LMIRROR && MENU_MIRROR="${cWARN}[${AConfMirror[_MIRROR]}]${RST} ● " || MENU_MIRROR="${cERRO}[${cmsg_Nao_definido}]${RST} ● "
+		$LSOURCE && MENU_SOURCE="${cWARN}[${AConfMirror[_SOURCE]}]${RST} ● " || MENU_SOURCE="${cERRO}[${cmsg_Nao_definido}]${RST} ● "
+		$LDISK && MENU_DEVICE="${cWARN}[${AConfDisk[_DEVICE]}]${RST} ● " || MENU_DEVICE="${cERRO}[${cmsg_Nao_definido}]${RST} ● "
+		$LGRUB && MENU_BOOTLOADER="${cWARN}[${AConfDisk[_BOOTLOADER]}]${RST} ● " || MENU_BOOTLOADER="${cERRO}[${cmsg_Nao_definido}]${RST} ● "
+#		$LMKPARTED && MENU_FS="${cWARN}[${cERRO}OK${cWARN} => revise! ]${RST} ● " || MENU_FS="${cERRO}[${cmsg_Nao_definido}]${RST} ● "
+#		if $LMKPARTED; then
+#		  if $LFSREVISED; then
+#  		  MENU_FS="${cWARN}[${cOK}OK${cWARN} => revisado! ]${RST} ● "
+#	    else
+#	  	  MENU_FS="${cWARN}[${cERRO}OK${cWARN} => revise! ]${RST} ● "
+#	  	fi
+#    else
+#		  MENU_FS="${cERRO}[${cmsg_Nao_definido}]${RST} ● "
+#    fi
+    $LMKPARTED && { $LFSREVISED && MENU_FS="${cWARN}[${cOK}OK${cWARN} => revisado!]${RST} ● " || MENU_FS="${cWARN}[${cERRO}NOK${cWARN} => revise!]${RST} ● "; } || MENU_FS="${cERRO}[${cmsg_Nao_definido}]${RST} ● "
+		$LKEYMAP && MENU_KEYMAP="${cWARN}[${AConfLocale[_KEYMAP]}]${RST} ● " || MENU_KEYMAP="${cERRO}[${cmsg_Nao_definido}]${RST} ● "
+		$LTIMEZONE && MENU_TIMEZONE="${cWARN}[${AConfLocale[_TIMEZONE]}${RST} ● " || MENU_TIMEZONE="${cERRO}[${cmsg_Nao_definido}]${RST} ● "
+		$LLOCALE && MENU_LOCALE="${cWARN}[${AConfLocale[_LOCALE]} ${AConfLocale[_REGION]}]${RST} ● " || MENU_LOCALE="${cERRO}[${cmsg_Nao_definido}]${RST} ● "
+		$LAUDIO && MENU_AUDIO="${cWARN}[${AConfAudio[_AUDIOSERVER]}]${RST} ● " ||
+			{ $LONLY_TTY && MENU_AUDIO="${cWARN}[${AConfAudio[_AUDIOSERVER]}]${RST} ● " || MENU_AUDIO="${cERRO}[${cmsg_Nao_definido}]${RST} ● "; }
 		$LCUSTOM && MENU_CUSTOM="CUSTOM" || MENU_CUSTOM=""
-		$LWM && MENU_WM="${YELLOW}[${_WINDOWMANAGER[*]} ${MENU_CUSTOM}]${RST} ● " || MENU_WM="${RED}[${cmsg_Nao_definido}]${RST} ● "
-		#		$LDM && MENU_DM="${YELLOW}[${_DISPLAYMANAGER}]${RST} ● " || MENU_DM="${RED}[${cmsg_Nao_definido}]${RST} ● "
-		$LDM && MENU_DM="${YELLOW}[${_DISPLAYMANAGER}]${RST} ● " || MENU_DM="${RED}[${cmsg_Nao_definido}]${RST} ● "
-		#			{ $LONLY_TTY && MENU_DM="${YELLOW}[${_DISPLAYMANAGER}]${RST} ● " || MENU_DM="${RED}[${cmsg_Nao_definido}]${RST} ● "; }
-		$LEXTRA && MENU_EXTRA="${YELLOW}[OK]${RST} ● " || MENU_EXTRA="${RED}[${cmsg_Nao_definido}]${RST} ● "
-		$LKERNEL && MENU_KERNEL="${YELLOW}[${AConfKernel[_KERNEL]}${RST} ● " || MENU_KERNEL="${RED}[${cmsg_Nao_definido}]${RST} ● "
+		$LWM && MENU_WM="${cWARN}[${_WINDOWMANAGER[*]} ${MENU_CUSTOM}]${RST} ● " || MENU_WM="${cERRO}[${cmsg_Nao_definido}]${RST} ● "
+		#		$LDM && MENU_DM="${cWARN}[${_DISPLAYMANAGER}]${RST} ● " || MENU_DM="${cERRO}[${cmsg_Nao_definido}]${RST} ● "
+		$LDM && MENU_DM="${cWARN}[${_DISPLAYMANAGER}]${RST} ● " || MENU_DM="${cERRO}[${cmsg_Nao_definido}]${RST} ● "
+		#			{ $LONLY_TTY && MENU_DM="${cWARN}[${_DISPLAYMANAGER}]${RST} ● " || MENU_DM="${cERRO}[${cmsg_Nao_definido}]${RST} ● "; }
+		$LEXTRA && MENU_EXTRA="${cWARN}[OK]${RST} ● " || MENU_EXTRA="${cERRO}[${cmsg_Nao_definido}]${RST} ● "
+		$LKERNEL && MENU_KERNEL="${cWARN}[${AConfKernel[_KERNEL]}${RST} ● " || MENU_KERNEL="${cERRO}[${cmsg_Nao_definido}]${RST} ● "
 
 #			"Sistema" "${MENU_KEYMAP}Configurações regionais" \
 
@@ -7156,7 +7201,12 @@ sh_rebind_amntpoint_device() {
 
 sh_rebuild_amntpoint_for_new_disk() {
 	local device="${AConfDisk[_DEVICE]}"
+	local efi_set=false
+	local efi_set=false
+	local swap_set=false
+	local efi_set=false
 	local root_set=false
+	local home_set=false
 	local fs
 
 	[[ -n "$device" ]] || return 1
@@ -7179,10 +7229,12 @@ sh_rebuild_amntpoint_for_new_disk() {
 			case "$FSTYPE_" in
 			vfat)
 				Amntpoint["$PATH_"]="/boot/efi|vfat|1"
+				efi_set=true
 				continue
 				;;
 			swap)
 				Amntpoint["$PATH_"]="none|swap|1"
+				swap_set=true
 				continue
 				;;
 			*)
@@ -7198,13 +7250,20 @@ sh_rebuild_amntpoint_for_new_disk() {
 				;;
 			*EFI*)
 				Amntpoint["$PATH_"]="/boot/efi|vfat|1"
+			  efi_set=true
 				continue
 				;;
 			*swap*)
 				Amntpoint["$PATH_"]="none|swap|1"
+				swap_set=true
 				continue
 				;;
-			*"Linux filesystem"*)
+			*NTFS*)
+				Amntpoint["$PATH_"]="/home|ntfs|1"
+				home_set=true
+				continue
+				;;
+			*"Linux"*)
 				fs="ext4"
 				;;
 			*)
@@ -7214,15 +7273,29 @@ sh_rebuild_amntpoint_for_new_disk() {
 		fi
 
     # --- FILESYSTEM NORMAL (ext4, xfs, etc) ---
-    #info "" "$PARTLABEL_"
     case "$PARTLABEL_" in
-    HOME) Amntpoint["$PATH_"]="/home|$fs|1";;
-    ROOT) Amntpoint["$PATH_"]="/|$fs|1";;
-    *)    Amntpoint["$PATH_"]="none|$fs|0";
+    ROOT) Amntpoint["$PATH_"]="/|$fs|1"; root_set=true ;;
+    HOME) Amntpoint["$PATH_"]="/home|$fs|1"; home_set=true ;;
+    *)
+      case "$PTTYPE_" in
+      gpt) Amntpoint["$PATH_"]="none|$fs|0";;
+      dos)
+        if ! $root_set; then
+          Amntpoint["$PATH_"]="/|$fs|1"; root_set=true
+        else
+          if ! $home_set; then
+            Amntpoint["$PATH_"]="/home|$fs|1"; home_set=true
+          else
+            Amntpoint["$PATH_"]="none|$fs|0"
+          fi
+        fi
+        ;;
+      esac
+      ;;
     esac
 
 	done < <(
-		lsblk -fPAo TYPE,NAME,PATH,SIZE,TRAN,MODEL,LABEL,SERIAL,FSTYPE,PARTTYPENAME,PARTLABEL "$device" |
+		lsblk -fPAo PTTYPE,TYPE,NAME,PATH,SIZE,TRAN,MODEL,LABEL,SERIAL,FSTYPE,PARTTYPENAME,PARTLABEL "$device" |
 			grep -P 'TYPE="(part)"' |
 			sort -k5,5 -k2,2
 	)
