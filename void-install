@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: sex 22 mai 2026 06:14:29 -04
+#  Updated: sex 22 mai 2026 20:26:44 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -1805,6 +1805,7 @@ sh_mkparted() {
     fi
 
 		Amntpoint=()
+		Amntpoint+=([_DEVICE]="${AConfDisk[_DEVICE]}")
 		CSCRIPT+="mklabel $label_type "
 
 		if [[ "$label_type" = "gpt" ]]; then
@@ -4094,8 +4095,10 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 
 #     if [[ "${#Amntpoint[@]}" -eq 0 ]]; then
 #	    if [[ "$old_device" != "${AConfDisk[_DEVICE]}" || ! $LFSREVISED ]]; then
-	    if ! $LFSREVISED; then
-   		  sh_rebuild_amntpoint_for_new_disk
+#	    if ! $LFSREVISED; then
+#     if [[ "${#Amntpoint[@]}" -eq 0 ]]; then
+      if [[ "${AConfDisk[_DEVICE]}" != "${Amntpoint[_DEVICE]}" ]]; then
+        sh_rebuild_amntpoint_for_new_disk
       fi
     }
 
@@ -5976,7 +5979,7 @@ sh_choosePartition() {
 		((nlen += 6))
 		part=$(${DIALOG} \
       --defaultno \
-			--default-item "${AConfDisk[_DEVICE]}" \
+			--default-item "${Amntpoint[_DEVICE]}p1" \
 			--backtitle "$ccabec" \
 			--title "${cmsg_TitleFileSystem}" \
 			--ok-label "${cmsg_Mudar}" \
