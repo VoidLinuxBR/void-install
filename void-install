@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: sex 22 mai 2026 21:22:48 -04
+#  Updated: sáb 23 mai 2026 08:21:27 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.5.22-20260522'
+readonly _VERSION_='3.5.23-20260523'
 readonly DEPENDENCIES=(
   dialog
   rsync
@@ -5176,6 +5176,12 @@ sh_cp_rootfs() {
 	return "$lretval"
 }
 
+sh_update_etc_issue() {
+	sh_cmd_job "${cmsg_Ajustando} issue" '
+    mv -f $dir_install/etc/issue.pos $dir_install/etc/issue
+  ' $err_not_fatal
+}
+
 sh_touch_keys() {
 	sh_cmd_job "Criando chaves" "mkdir -p keys" $err_not_fatal
 
@@ -5654,6 +5660,7 @@ sh_install() {
 			fi
 
 			sh_chmod_tmp
+			sh_update_etc_issue
 			sh_umount_fs
 			end_datetime=$(date)
 
