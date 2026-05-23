@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: sex 22 mai 2026 20:26:44 -04
+#  Updated: sex 22 mai 2026 21:22:48 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -233,6 +233,7 @@ declare -gA AsDiskPercent=(
   [swap]="0"
 )
 declare -gA AsFs=(
+	[_DEVICE]='/dev/sdX'
   [root]="ext4"
   [home]="ext4"
 )
@@ -1805,7 +1806,7 @@ sh_mkparted() {
     fi
 
 		Amntpoint=()
-		Amntpoint+=([_DEVICE]="${AConfDisk[_DEVICE]}")
+		AsFs+=([_DEVICE]="${AConfDisk[_DEVICE]}")
 		CSCRIPT+="mklabel $label_type "
 
 		if [[ "$label_type" = "gpt" ]]; then
@@ -4097,7 +4098,7 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 #	    if [[ "$old_device" != "${AConfDisk[_DEVICE]}" || ! $LFSREVISED ]]; then
 #	    if ! $LFSREVISED; then
 #     if [[ "${#Amntpoint[@]}" -eq 0 ]]; then
-      if [[ "${AConfDisk[_DEVICE]}" != "${Amntpoint[_DEVICE]}" ]]; then
+      if [[ "${AConfDisk[_DEVICE]}" != "${AsFs[_DEVICE]}" ]]; then
         sh_rebuild_amntpoint_for_new_disk
       fi
     }
@@ -5812,13 +5813,14 @@ ${BOLD}${WHITE}Partition : ${RED}$_PART\n" 8 75
 
 	if $LEFI; then
 		if [[ "$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 7)" != "gpt" ]]; then
-			if ! infoconf "${cmsg_Disco}" "$(fdisk -l "${AConfDisk[_BOOTLOADER]}")" \
-				"${YELLOW}=== UEFI ===" "\n${BOLD}${RED}NOTICE: ${RESET}\
-The system is enabled for UEFI booting, but the chosen bootloader disk has no gpt table.\n\
-Redo the partition table in gpt or choose another disk.\n\n\
-${BOLD}${WHITE}Continue with installation without UEFI ?"; then
-				return 1
-			fi
+      if ! infoconf "${cmsg_Disco}" "$(fdisk -l "${AConfDisk[_BOOTLOADER]}")" \
+        "$(gettext "${YELLOW}=== UEFI ===")" "${BOLD}${RED}$(gettext "AVISO:") ${RESET}\
+$(gettext "O sistema foi iniciado em modo UEFI, mas o disco selecionado para instalar o bootloader não possui tabela GPT.")\n\
+$(gettext "Para instalação em modo UEFI, o disco precisa usar GPT.")\n\
+$(gettext "Refaça a tabela de partição como GPT ou escolha outro disco.")\n\n\
+${BOLD}${RED}$(gettext "Deseja continuar sem suporte a UEFI?")\n\n"; then
+        return 1
+      fi
 			LEFI=false
 		fi
 	fi
