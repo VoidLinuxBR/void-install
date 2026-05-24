@@ -4886,7 +4886,7 @@ sh_choose_wm() {
 	aWm[bspwm]="Bspwm"
 	aWm[dwm]="Dwm"
 	aWm[fluxbox]="Fluxbox"
-	aWm[hyprland]="Hyperland"
+	aWm[hyprland]="Hyprland"
 	aWm[i3wm]="I3wm"
 	aWm[lxde]="Lxde"
 	aWm[lxqt]="Lxqt"
@@ -4907,12 +4907,10 @@ sh_choose_wm() {
 	#		dwm "${aWm[dwm]}" "${aFlag[dwm]}" \
 	#		blackbox "${aWm[blackbox]}" "${aFlag[blackbox]}" \
 	#		fluxbox "${aWm[fluxbox]}" "${aFlag[fluxbox]}" \
-	#		hyprland "${aWm[hyprland]}" "${aFlag[hyprland]}" \
-	#		i3wm "${aWm[i3wm]}" "${aFlag[i3wm]}" \
+	#	  hyprland "${aWm[hyprland]}" "${aFlag[hyprland]}" \
 	#		lxde "${aWm[lxde]}" "${aFlag[lxde]}" \
 	#		lxqt "${aWm[lxqt]}" "${aFlag[lxqt]}" \
 	#		openbox "${aWm[openbox]}" "${aFlag[openbox]}" \
-	#		sway "${aWm[sway]}" "${aFlag[sway]}" \
 	#		twm "${aWm[twm]}" "${aFlag[twm]}" \
 
 	wm=$(${DIALOG} \
@@ -4930,8 +4928,10 @@ sh_choose_wm() {
 		cinnamon "${aWm[cinnamon]}" "${aFlag[cinnamon]}" \
 		enlightenment "${aWm[enlightenment]}" "${aFlag[enlightenment]}" \
 		gnome "${aWm[gnome]}" "${aFlag[gnome]}" \
+	  i3wm "${aWm[i3wm]}" "${aFlag[i3wm]}" \
 		mate "${aWm[mate]}" "${aFlag[mate]}" \
 		plasma "${aWm[plasma]}" "${aFlag[plasma]}" \
+		sway "${aWm[sway]}" "${aFlag[sway]}" \
 		xfce4 "${aWm[xfce4]}" "${aFlag[xfce4]}" \
 		2>&1 >/dev/tty)
 
@@ -4973,7 +4973,7 @@ sh_choose_wm() {
 		if grep -qi gnome <<<"${_WINDOWMANAGER[@]}"; then
 			_DISPLAYMANAGER="gdm"
 		else
-			_DISPLAYMANAGER="sddm"
+			_DISPLAYMANAGER="lightdm"
 		fi
 	fi
 	LAUDIO=true
