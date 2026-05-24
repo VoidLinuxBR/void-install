@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: sáb 23 mai 2026 08:21:27 -04
+#  Updated: sáb 23 mai 2026 20:42:34 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -4101,6 +4101,7 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
       if [[ "${AConfDisk[_DEVICE]}" != "${AsFs[_DEVICE]}" ]]; then
         sh_rebuild_amntpoint_for_new_disk
       fi
+			AsFs[_DEVICE]="$sd"
     }
 
 		case $exit_status in
@@ -4378,7 +4379,7 @@ sh_confadduser() {
 	done
 }
 
-sh_choosewifi() {
+sh_choosewifiOLD() {
 	while true; do
 		local array=()
 		local i
@@ -4387,8 +4388,56 @@ sh_choosewifi() {
 		local result
 		local sep="\xe2\x94\x82"
 
+		# Seleciona interface wifi
+		# Primeiro tenta interfaces controladas pelo wpa_supplicant
+		for iface in /run/wpa_supplicant/*; do
+			[[ -e "$iface" ]] || continue
+			iface="${iface##*/}"
+			# Ignora interfaces P2P
+			[[ "$iface" == p2p-* ]] && continue
+			iface_array+=("$iface" "")
+		done
+
+		# Fallback usando iw
+		if [[ "${#iface_array[@]}" -eq 0 ]]; then
+			while read -r iface; do
+				[[ -n "$iface" ]] || continue
+				iface_array+=("$iface" "")
+			done < <(
+				iw dev | awk '$1=="Interface"{print $2}'
+			)
+		fi
+
+		# Nenhuma interface encontrada
+		if [[ "${#iface_array[@]}" -eq 0 ]]; then
+			info "WIFI" \
+				"${RED}$(gettext "Nenhuma interface Wi-Fi encontrada.")"
+			return 1
+		fi
+
+		iface=$(${DIALOG} \
+			--backtitle "$ccabec" \
+			--title "WIFI" \
+			--ok-label "${cmsg_Aceitar}" \
+			--cancel-label "${cmsg_ButtonBack}" \
+			--menu "$(gettext "Selecione a interface Wi-Fi")" \
+			0 0 10 \
+			"${iface_array[@]}" \
+			2>&1 >/dev/tty)
+
+		exit_status=$?
+
+		case $exit_status in
+		"$D_ESC" | "$D_CANCEL")
+			return
+			;;
+		esac
+
+		AConfWifi[_INTERFACE]="$iface"
 		sh_info_msg "$(gettext 'Escaneando redes wifi...')"
-		wpa_cli scan_results 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
+#		wpa_cli scan_results 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
+    wpa_cli -i "$iface" scan 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
+
 		if [[ "${PIPESTATUS[0]}" -gt 0 ]]; then
 			evaluate_retval $one "$err_not_fatal"
 			info "WIFI" "${RED}$(gettext "A verificação não retornou nenhum resultado.")" \
@@ -4440,21 +4489,199 @@ sh_choosewifi() {
 	done
 }
 
+sh_get_iface() {
+  local array=()
+	local iface_array=()
+	local iface
+	local wifi
+	local line
+	local n=0
+	local nc=0
+	local exit_status
+	local sep="\xe2\x94\x82"
+
+	# Detecta interfaces wifi
+	if pgrep -x NetworkManager >/dev/null 2>&1; then
+		while IFS=: read -r device type state connection; do
+			[[ "$type" == wifi ]] || continue
+			[[ -n "$device" ]] || continue
+			iface_array+=("$device" "")
+		done < <(
+			nmcli --terse \
+				-f DEVICE,TYPE,STATE,CONNECTION \
+				device status
+		)
+	else
+		for iface in /run/wpa_supplicant/*; do
+			[[ -S "$iface" ]] || continue
+			iface="${iface##*/}"
+			[[ "$iface" == p2p-* ]] && continue
+			iface_array+=("$iface" "")
+		done
+	fi
+
+	# Nenhuma interface encontrada
+	if [[ "${#iface_array[@]}" -eq 0 ]]; then
+		info "WIFI" \
+			"${RED}$(gettext "Nenhuma interface Wi-Fi encontrada.")"
+			return 1
+	fi
+
+	# Seleciona interface
+	iface=$(${DIALOG} \
+		--backtitle "$ccabec" \
+		--title "WIFI" \
+		--ok-label "${cmsg_Aceitar}" \
+		--cancel-label "${cmsg_ButtonBack}" \
+		--menu "$(gettext "Selecione a interface Wi-Fi")" \
+		0 0 10 \
+		"${iface_array[@]}" \
+		2>&1 >/dev/tty)
+
+	exit_status=$?
+	case $exit_status in
+	"$D_ESC" | "$D_CANCEL")
+		return 1
+		;;
+	esac
+  AConfWifi[_INTERFACE]="$iface"
+  echo "$iface"
+}
+
+sh_choosewifi() {
+	while true; do
+		local array=()
+		local iface_array=()
+		local iface
+		local wifi
+		local line
+		local n=0
+		local nc=0
+		local exit_status
+		local sep="\xe2\x94\x82"
+		unset ARRAY_{SSID,BSID,SIGNAL,FREQUENCY,FLAGS}
+
+		iface="$(sh_get_iface)"
+		exit_status=$?
+
+		case $exit_status in
+		"$D_ESC" | "$D_CANCEL")
+			return
+			;;
+		esac
+
+		AConfWifi[_INTERFACE]="$iface"
+		sh_info_msg "$(gettext 'Escaneando redes wifi...')"
+
+		# NetworkManager
+		if pgrep -x NetworkManager >/dev/null 2>&1; then
+      while IFS=: read -r \
+        inuse \
+        b1 b2 b3 b4 b5 b6 \
+        ssid mode chan rate signal bars security; do
+        [[ -n "$ssid" ]] || continue
+        bssid="${b1}:${b2}:${b3}:${b4}:${b5}:${b6}"
+        ARRAY_SSID+=("$ssid")
+        ARRAY_BSID+=("$bssid")
+        ARRAY_SIGNAL+=("$signal")
+        ARRAY_FREQUENCY+=("$chan")
+        ARRAY_FLAGS+=("$security")
+      done < <(
+        nmcli --terse \
+          --escape no \
+          -f IN-USE,BSSID,SSID,MODE,CHAN,RATE,SIGNAL,BARS,SECURITY \
+          device wifi list ifname "$iface"
+      )
+  	# wpa_supplicant fallback
+		else
+			wpa_cli -p /run/wpa_supplicant -i "$iface" scan \
+				2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
+			sleep 3
+			while read -r line; do
+				[[ -n "$line" ]] || continue
+				ARRAY_BSID+=("$(cut -f1 <<<"$line")")
+				ARRAY_FREQUENCY+=("$(cut -f2 <<<"$line")")
+				ARRAY_SIGNAL+=("$(cut -f3 <<<"$line")")
+				ARRAY_FLAGS+=("$(cut -f4 <<<"$line")")
+				ARRAY_SSID+=("$(cut -f5- <<<"$line")")
+			done < <(
+				wpa_cli -p /run/wpa_supplicant -i "$iface" scan_results |
+					tail -n +3
+			)
+		fi
+
+		# Nenhuma rede encontrada
+		if [[ "${#ARRAY_SSID[@]}" -eq 0 ]]; then
+			info "WIFI" \
+				"${RED}$(gettext "Nenhuma rede wifi encontrada.")"
+			return 1
+		fi
+
+    # Monta menu
+		nc=0
+		for wifi in "${ARRAY_SSID[@]}"; do
+			array[n++]="$nc"
+			array[n++]=$(
+				printf "%-30s $sep %-17s $sep %3s%% $sep %-20s" \
+					"${ARRAY_SSID[$nc]}" \
+					"${ARRAY_BSID[$nc]}" \
+					"${ARRAY_SIGNAL[$nc]}" \
+					"${ARRAY_FLAGS[$nc]}"
+			)
+			((nc++))
+		done
+
+		# Seleciona rede
+		wifi=$(${DIALOG} \
+			--default-item "0" \
+			--backtitle "$ccabec" \
+			--title "WIFI" \
+			--ok-label "${cmsg_Aceitar}" \
+			--cancel-label "${cmsg_ButtonBack}" \
+			--colors \
+			--menu "${cmsg_MENU}" \
+			0 0 15 \
+			"${array[@]}" \
+			2>&1 >/dev/tty)
+
+		exit_status=$?
+		case $exit_status in
+		"$D_ESC" | "$D_CANCEL")
+			return
+			;;
+		esac
+		_WIFI_NETWORK="${ARRAY_SSID[$wifi]}"
+		AConfWifi[_NETWORK]="${ARRAY_SSID[$wifi]}"
+		break
+	done
+}
+
 sh_confWifi() {
+  local iface="${AConfWifi[_INTERFACE]}"
+  local wlanip=$(nmcli -g IP4.ADDRESS device show "$iface")
+	local cextra
+
+	cextra+="➡ ${YELLOW}$(gettext 'Deixe em branco o campo Interface Wi-Fi para listar interfaces')\n"
+	cextra+="➡ ${YELLOW}$(gettext 'Deixe em branco o campo Rede Wi-Fi para escanear redes')"
+
 	while true; do
 		exec 3>&1
 		wifitext=$(${DIALOG} \
 			--title "$(gettext "=== WIFI ===")" \
 			--colors \
-			--ok-label "${cmsg_Aceitar}" \
+			--ok-label "${cmsg_Conectar}" \
 			--cancel-label "${cmsg_ButtonBack}" \
 			--backtitle "$ccabec" \
 			--insecure "$@" \
-			--extra-button --extra-label "Scan wifi" \
-			--mixedform "${cmsg_MENU}" \
+			--extra-button \
+			--extra-label "Scan wifi" \
+			--mixedform "${cmsg_MENU}\n\n${cextra}" \
 			0 0 0 \
-			"${cmsg_redewifi}: " 1 1 "$_WIFI_NETWORK" 1 20 40 0 0 \
-			"${cmsg_senhawifi}: " 2 1 "$_WIFI_PASSWORD" 2 20 40 0 1 \
+			"Rede conectada        : " 1 1 "$_WIFI_NETWORK"  1 20 40 0 2 \
+			"Ip                    : " 2 1 "$wlanip"         2 20 40 0 2 \
+			"${cmsg_interfacewifi} : " 3 1 "${iface}"        3 20 40 0 0 \
+			"${cmsg_redewifi}      : " 4 1 "$_WIFI_NETWORK"  4 20 40 0 0 \
+			"${cmsg_senhawifi}     : " 5 1 "$_WIFI_PASSWORD" 5 20 40 0 1 \
 			2>&1 1>&3)
 
 		exit_status=$?
@@ -4464,11 +4691,66 @@ sh_confWifi() {
 			;;
 		"$D_OK")
 			mapfile -t aWifi <<<"$wifitext"
-			_WIFI_NETWORK="${aWifi[0]}"
-			_WIFI_PASSWORD="${aWifi[1]}"
-			AConfWifi[_NETWORK]="${aWifi[0]}"
-			AConfWifi[_PASSWORD]="${aWifi[1]}"
-			LWIFI=$one
+			iface="${aWifi[2]}"
+			_WIFI_NETWORK="${aWifi[3]}"
+			_WIFI_PASSWORD="${aWifi[4]}"
+			AConfWifi[_NETWORK]="${aWifi[3]}"
+			AConfWifi[_PASSWORD]="${aWifi[4]}"
+			LWIFI=1
+
+			if [[ "${iface}" == "" ]]; then
+  			iface="$(sh_get_iface)"
+	  		continue
+			fi
+
+			if [[ "${AConfWifi[_NETWORK]}" == "" ]]; then
+  			sh_choosewifi
+	  		continue
+			fi
+
+      if output=$(
+        nmcli device wifi connect "${_WIFI_NETWORK}" \
+          password "${_WIFI_PASSWORD}" \
+          ifname "$iface" 2>&1
+      ); then
+
+      sleep 2
+
+      wifi_ip=$(
+        nmcli -g IP4.ADDRESS device show "$iface" |
+        head -n1
+      )
+
+      wifi_gateway=$(
+        nmcli -g IP4.GATEWAY device show "$iface" |
+        head -n1
+      )
+
+      wifi_dns=$(
+        nmcli -g IP4.DNS device show "$iface" |
+        paste -sd ','
+      )
+
+      info "${_WIFI_NETWORK}" "\
+${GREEN}Conectado com sucesso!${RST}\n\n\
+Interface: ${YELLOW}$iface${RST}\n\
+SSID     : ${YELLOW}${_WIFI_NETWORK}${RST}\n\
+BSSID    : $bssid\n\
+IP       : ${YELLOW}${wifi_ip:-N/A}${RST}\n\
+Gateway  : ${wifi_gateway:-N/A}\n\
+DNS      : ${wifi_dns:-N/A}\n\
+Sinal    : ${signal:-N/A}%\n\
+Segurança: ${security:-N/A}\n\
+"
+      else
+        if conf "WIFI" \
+          "${RED}Falha ao conectar.${RST}\n\n" \
+          "result: $output" \
+  	    	"\n\n${BOLD}${RED}$(gettext "Deseja escanear por redes wifi?")\n\n"; then
+          sh_choosewifi
+	    		continue
+        fi
+      fi
 			;;
 		3)
 			sh_choosewifi
@@ -5025,34 +5307,38 @@ sh_checkInstall() {
 	local cmdsearch
 
 	if ! $LMIRROR; then
-		alerta "${cmsg_Mirror^^}" "${cmsg_Mirror} ${cmsg_NotConfDefault}"
+		alerta "${cmsg_Mirror^^}" "${RED}✗ ${cmsg_Mirror} ${cmsg_NotConfDefault}"
 		DEFITEM="${cmsg_Mirror}"
 		return 1
 	elif ! $LSOURCE; then
-		alerta "${cmsg_Source^^}" "${cmsg_Source} ${cmsg_NotConfDefault}"
+		alerta "${cmsg_Source^^}" "${RED}✗ ${cmsg_Source} ${cmsg_NotConfDefault}"
 		DEFITEM="${cmsg_Source}"
 		return 1
 	elif ! $LDISK; then
-		alerta "${cmsg_Disco^^}" "${cmsg_Disco} ${cmsg_NotConfDefault}"
+		alerta "${cmsg_Disco^^}" "${RED}✗ ${cmsg_Disco} ${cmsg_NotConfDefault}"
 		DEFITEM="${cmsg_Disco}"
+		return 1
+	elif ! $LFSREVISED; then
+		alerta "${GREEN}${cmsg_FileSystem^^}" "${RED}✗ ${WHITE}${cmsg_FileSystem} ${cmsg_Revised^^}"
+		DEFITEM="FileSystem"
 		return 1
 	elif ! sh_validate_filesystem; then
 		DEFITEM="FileSystem"
 		return 1
 	elif ! $LGRUB; then
-		alerta "${cmsg_BootLoader^^}" "${cmsg_NotConfBootLoader}"
+		alerta "${cmsg_BootLoader^^}" "${RED}✗ ${cmsg_NotConfBootLoader}"
 		DEFITEM="${cmsg_BootLoader}"
 		return 1
 	elif ! $LKEYMAP; then
-		alerta "${cmsg_Teclado^^}" "${cmsg_NotConfTeclado}"
+		alerta "${cmsg_Teclado^^}" "${RED}✗ ${cmsg_NotConfTeclado}"
 		DEFITEM="${cmsg_Teclado}"
 		return 1
 	elif ! $LTIMEZONE; then
-		alerta "TIMEZONE" "${cmsg_NotConfTimezone}"
+		alerta "TIMEZONE" "${RED}✗ ${cmsg_NotConfTimezone}"
 		DEFITEM="Timezone"
 		return 1
 	elif ! $LWM; then
-		alerta "WM" "${cmsg_NotConfWm}"
+		alerta "WM" "${RED}✗ ${cmsg_NotConfWm}"
 		DEFITEM="Wm"
 		return 1
 		#	elif [ -z "$LWIFI" ]; then
@@ -5060,16 +5346,16 @@ sh_checkInstall() {
 		#		DEFITEM="Wifi"
 		#		return 1
 	elif ! $LEXTRA; then
-		alerta "EXTRA" "${RED}${cmsg_NotConfExtra}${RESET}"
+		alerta "EXTRA" "${RED}✗ ${RED}${cmsg_NotConfExtra}${RESET}"
 		DEFITEM="${cmsg_Usuario}"
 		return 1
 	fi
 
 	display_config
 	if conf "${cmsg_ConfSalva^^}" "$SETUP " \
-		"${RESET}\n${cmsg_AcompanheInstalacao} : ${BLUE}sudo tail -f $BOOTLOG${RESET}" \
-		"\n${cmsg_OuPeloTerminal}                : ${BLUE}(ctrl+alt+f8)${RESET}" \
-		"\n\n${BOLD}${WHITE}${cmsg_descInstalar}?"; then
+		"${RESET}\n${cmsg_AcompanheInstalacao} : ${YELLOW}sudo tail -f $BOOTLOG${RESET}" \
+		"\n${cmsg_OuPeloTerminal}            : ${YELLOW}(ctrl+alt+f8)${RESET}" \
+		"\n\n${BOLD}${RED}${cmsg_descInstalar}?"; then
 		clear
 		return 0
 	fi
@@ -5988,7 +6274,7 @@ sh_choosePartition() {
 		((nlen += 6))
 		part=$(${DIALOG} \
       --defaultno \
-			--default-item "${Amntpoint[_DEVICE]}p1" \
+			--default-item "${AsFs[_DEVICE]}p1" \
 			--backtitle "$ccabec" \
 			--title "${cmsg_TitleFileSystem}" \
 			--ok-label "${cmsg_Mudar}" \
@@ -6238,11 +6524,12 @@ sh_getparamfile() {
 }
 
 sh_main_menu() {
-  local cOK="${RST}${BOLD}${GREEN}"
+  local cOK="${RST}${BOLD}${BLUE}"
   local cWARN="${RST}${YELLOW}"
-  local cERRO="${RST}${UNDERLINE}${RED}"
+  local cERRO="${RST}${UNDERLINE}${BOLD}${RED}"
 
   sh_disk_part_info
+
   while true; do
 		sh_touchConf
 		if [ -z "$DEFITEM" ]; then
@@ -6294,8 +6581,8 @@ sh_main_menu() {
 			"${cmsg_Mirror}" "${MENU_MIRROR}${cmsg_descMirror}" \
 			"${cmsg_Source}" "${MENU_SOURCE}${cmsg_DefinirInstalacaoDeOrigem}" \
 			"${cmsg_Disco}" "${MENU_DEVICE}${cmsg_descDisco}" \
-			"${cmsg_BootLoader}" "${MENU_BOOTLOADER}${cmsg_descBootLoader}" \
 			"FileSystem" "${MENU_FS}${cmsg_descFileSystem}" \
+			"${cmsg_BootLoader}" "${MENU_BOOTLOADER}${cmsg_descBootLoader}" \
 			"${cmsg_Teclado}" "${MENU_KEYMAP}${cmsg_descTeclado}" \
 			"Timezone" "${MENU_TIMEZONE}${cmsg_descTimezone}" \
 			"Locale" "${MENU_LOCALE}${cmsg_descLocale}" \
@@ -6324,9 +6611,9 @@ sh_main_menu() {
 		case "$menu" in
 		"${cmsg_Mirror}") sh_choose_mirror "$@" && [ -n "$LMIRROR" ] && DEFITEM="${cmsg_Source}" ;;
 		"${cmsg_Source}") sh_chooseSource && [ -n "$LSOURCE" ] && DEFITEM="${cmsg_Disco}" ;;
-		"${cmsg_Disco}") sh_choose_disk && [ -n "$LDISK" ] && DEFITEM="${cmsg_BootLoader}" ;;
-		"${cmsg_BootLoader}") sh_setBootLoader && [ -n "$LGRUB" ] && DEFITEM="FileSystem" ;;
-		"FileSystem") sh_choosePartition && [ -n "$LPARTITION" ] && DEFITEM="${cmsg_Teclado}" ;;
+		"${cmsg_Disco}") sh_choose_disk && [ -n "$LDISK" ] && DEFITEM="FileSystem" ;;
+		"FileSystem") sh_choosePartition && [ -n "$LPARTITION" ] && DEFITEM="${cmsg_BootLoader}" ;;
+		"${cmsg_BootLoader}") sh_setBootLoader && [ -n "$LGRUB" ] && DEFITEM="${cmd_Teclado}" ;;
 		"${cmsg_Teclado}") sh_chooseKeymap && [ -n "$LKEYMAP" ] && DEFITEM="Timezone" ;;
 		"Timezone") sh_chooseTimezone && [ -n "$LTIMEZONE" ] && DEFITEM="Locale" ;;
 		"Locale") sh_chooseLocale && [ -n "$LLOCALE" ] && DEFITEM="Kernel" ;;
@@ -6890,7 +7177,7 @@ sh_setLanguage() {
   cmsg_BaixadoDoRepositorioOficial=$(gettext "Usar tarball base e atualizar via internet (funciona em qualquer host Linux)")
   cmsg_BaixadoDoRepositorioOficialFull=$(gettext "Baixar todos os pacotes diretamente da internet (requer host Void Linux)")
 
-	cmsg_DefinirInstalacaoDeOrigem=$(gettext "Definir fonte da instalação")
+	cmsg_DefinirInstalacaoDeOrigem=$(gettext "Selecionar fonte da instalação")
 	cmsg_Definicoes=$(gettext "Definições")
 	cmsg_naodefinido=$(gettext "não definido")
 	cmsg_AjustandoSenhaUsuario=$(gettext "Ajustando senha usuário")
@@ -6911,6 +7198,7 @@ sh_setLanguage() {
 	cmsg_Em="${cyan}=>${reset}"
 	cmsg_ERRO=$(gettext "ERRO")
 	cmsg_Aceitar=$(gettext "Aceitar")
+	cmsg_Conectar=$(gettext "Conectar")
 	cmsg_Configurar=$(gettext "Configurar")
 	cmsg_Nao_definido=$(gettext "Não definido")
 	cmsg_Mudar=$(gettext "Mudar")
@@ -6919,25 +7207,26 @@ sh_setLanguage() {
 	cmsg_Mirror=$(gettext "Espelho")
 	cmsg_BootLoader="Bootloader (GRUB)"
 	cmsg_FileSystem=$(gettext "Sistema de Arquivos")
+	cmsg_Revised=$(gettext "não foi revisado!")
 	cmsg_Disco=$(gettext "Armazenamento")
 	cmsg_Teclado=$(gettext "Teclado")
 	cmsg_SairSemInstalar=$(gettext "Sair sem instalar")
 	cmsg_tty=$(gettext "Somente terminal, sem interface gráfica")
 	cmsg_server=$(gettext "Servidor Void")
-	cmsg_descDisco=$(gettext "Definir disco e partições")
-	cmsg_descFileSystem=$(gettext "Definir sistema de arquivos e pontos de montagem")
-	cmsg_descBootLoader=$(gettext "Definir bootloader")
-	cmsg_descTeclado=$(gettext "Definir teclado do sistema")
-	cmsg_descTimezone=$(gettext "Definir fuso horário")
-	cmsg_descKernel=$(gettext "Definir kernel")
-	cmsg_descLocale=$(gettext "Definir localidade do sistema")
-	cmsg_descWm=$(gettext "Definir gerenciador de janelas")
-	cmsg_descDm=$(gettext "Definir gerenciador de login")
+	cmsg_descMirror=$(gettext "Selecionar espelho dos pacotes")
+	cmsg_descDisco=$(gettext "Selecionar disco e partições")
+	cmsg_descFileSystem=$(gettext "Configurar sistema de arquivos e pontos de montagem")
+	cmsg_descBootLoader=$(gettext "Escolhar disco para o bootloader")
+	cmsg_descTeclado=$(gettext "Selecionar layout do teclado")
+	cmsg_descTimezone=$(gettext "Selecionar fuso horário")
+	cmsg_descKernel=$(gettext "Selecionar versão do kernel")
+	cmsg_descLocale=$(gettext "Selecionar localidade do sistema")
+	cmsg_descWm=$(gettext "Selecionar interface gráfico/gerenciador de janelas")
+	cmsg_descDm=$(gettext "Selecionar gerenciador de login")
 	cmsg_descWifi=$(gettext "Definir rede e senha wifi (opcional)")
 	cmsg_opcional=$(gettext "opcional")
 	cmsg_Usuario=$(gettext "Usuário")
 	cmsg_descExtra=$(gettext "Definir usuário,senha,hostname")
-	cmsg_descMirror=$(gettext "Escolher espelho")
 	cmsg_descInstalar=$(gettext "Iniciar instalação")
 	cmsg_descSair=$(gettext "Encerrar instalação")
 	cmsg_InstalacaoAbortada=$(gettext "Instalação abortada")
@@ -7027,12 +7316,13 @@ sh_setLanguage() {
 	cmsg_adduser5=$(gettext "Usuário não pode iniciar com números! Novamente?")
 	cmsg_adduser6=$(gettext "Usuário não pode iniciar com letras maiúsculas! Novamente?")
 	cmsg_adduserCancel=$(gettext "Cadastro de usuário cancelado")
-	cmsg_redewifi=$(gettext "Rede wifi")
-	cmsg_senhawifi=$(gettext "Senha wifi")
+	cmsg_redewifi=$(gettext "Rede Wi-Fi")
+	cmsg_senhawifi=$(gettext "Senha Wi-Fi")
+	cmsg_interfacewifi=$(gettext "Interface Wi-Fi")
 	cmsg_mkfs=$(gettext "↓ é recomendável ext4 ↓")
 	cmsg_utilvoidservices=$(gettext "Utilitário void-services (opcional)")
 	cmsg_Servicos=$(gettext "Serviços")
-	cmsg_Tema=$(gettext "Tema")
+	cmsg_Tema="$(gettext 'Estilo')"
 	cmsg_Usage1=$(gettext "Instalar")
 	cmsg_Usage2=$(gettext "Rodar chroot na partição instalada")
 	cmsg_Usage3=$(gettext "Ativar modo gráfico")
@@ -7063,7 +7353,7 @@ sh_setLanguage() {
 	cmsg_NotConfWm=$(gettext "Gerenciador de Janelas não foi configurado!")
 	cmsg_NotConfWifi=$(gettext "Rede wifi não foi configurado!")
 	cmsg_NotConfExtra=$(gettext "Usuário não foi configurado!")
-	cmsg_DefinirAudioServer=$(gettext "Definir servidor de audio")
+	cmsg_DefinirAudioServer=$(gettext "Selecionar sistema de áudio")
 }
 
 sh_tar_rootfs() {
