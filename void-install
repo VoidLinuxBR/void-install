@@ -1442,6 +1442,24 @@ conf() {
 	return "$nchoice"
 }
 
+confRevisar() {
+	xtitle="$1"
+	shift
+	${DIALOG} \
+		--colors \
+		--title "$xtitle" \
+		--backtitle "$ccabec" \
+		--no-collapse \
+		--no-cr-wrap \
+		--clear \
+		--yes-label "$(gettext 'Revisar')" \
+		--no-label "$(gettext 'Prosseguir')" \
+		--yesno "$*" \
+		0 0
+	nchoice=$?
+	return "$nchoice"
+}
+
 infoconf() {
 	infotitle=$1
 	inforesult=$2
@@ -1787,12 +1805,12 @@ $(gettext "➡ Informe SWAP como 0 para não criar partição SWAP")" \
 #      break
 #    fi
 
-    if conf "${YELLOW}${cwarning}" \
+    if confRevisar "${YELLOW}${cwarning}" \
       "DEVICE  : ${RED}${AConfDisk[_DEVICE]}${RESET}\n" \
       "MODEL  : ${RED}$MODEL_ORIGEM${RESET}\n" \
       "\n${RED}${cmsg_todos_os_dados_serao_perdidos}${RESET}" \
-      "\n${BOLD}${RED}${cmsg_yeslabel} => $(gettext 'Deseja revisar o particionamento ?')" \
-      "\n${cmsg_nolabel} => ${cmsg_ContinuarParticionamento} ${AConfDisk[_DEVICE]}\n"; then
+      "\n\n${BOLD}${RED}$(gettext 'Deseja revisar ou prosseguir com o particionamento ?')"
+    then
       sh_recalculate
     else
       break
