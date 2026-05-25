@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: dom 24 mai 2026 11:18:28 -04
+#  Updated: dom 24 mai 2026 21:06:18 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -227,14 +227,16 @@ declare -gA AsDhcp=(
 	AsDhcp[DNS2]="${AsDhcp[DNS2]:-8.8.8.8}"
 )
 declare -gA AsDiskPercent=(
-  [boot]="EFI"
+  [_DISKTABLE]="EFI"
   [root]="100"
+  [boot]="0"
   [home]="0"
   [swap]="0"
 )
 declare -gA AsFs=(
 	[_DEVICE]='/dev/sdX'
   [root]="ext4"
+  [boot]="ext4"
   [home]="ext4"
 )
 
@@ -1538,6 +1540,25 @@ is_valid_fs() {
       ;;
     esac
     ;;
+
+  "/boot")
+    case "$cFs" in
+    xfs|f2fs|ext2|ext3|ext4|vfat|reiserfs|btrfs|jfs)
+      return 0
+      ;;
+    *)
+      xtitle="${RED}FILESYSTEM ERROR${RST} \
+\n$(gettext 'Filesystem inválido para') ${CYAN}'${cPath}' ${RST}=> ${cFs} \
+\n${YELLOW}$(gettext 'Válidos:') ${CYAN}xfs|f2fs|ext2|ext3|ext4|vfat|reiserfs|btrfs|jfs"
+
+      if sh_choosefstype "${AsFs[boot]}" "$xtitle"; then
+        AsFs[boot]="${AConfDisk[_FILESYSTEM]}"
+        return 1
+      fi
+      return 1
+      ;;
+    esac
+    ;;
   esac
 
   return 1
@@ -1546,7 +1567,7 @@ is_valid_fs() {
 sh_getPartitionsPercent() {
   local -a aPercent=()
   local percent_text
-  AsDiskPercent[boot]="${AConfDisk[_DISKTABLE]}"
+  AsDiskPercent[_DISKTABLE]="${AConfDisk[_DISKTABLE]}"
 
   # loop principal
   while :; do
@@ -1564,20 +1585,23 @@ ${YELLOW}$(gettext "Configure os percentuais desejados.")${RST}
 ➡ $(gettext "Você também pode utilizar menos de 100% do disco")
 
 ${GREEN}$(gettext "Exemplos válidos:")${RST}
-root(/)=${RED}100 ${RST} /home=${RED}0  ${RST}swap=${RED}0 ${RST}
-root(/)=${RED}35  ${RST} /home=${RED}60 ${RST}swap=${RED}5 ${RST}
-root(/)=${RED}50  ${RST} /home=${RED}0  ${RST}swap=${RED}0 ${RST}
+root(/)=${RED}100 ${RST} /boot=${RED}0 /home=${RED}0  ${RST}swap=${RED}0 ${RST}
+root(/)=${RED}35  ${RST} /boot=${RED}5 /home=${RED}55 ${RST}swap=${RED}5 ${RST}
+root(/)=${RED}50  ${RST} /boot=${RED}0 /home=${RED}0  ${RST}swap=${RED}0 ${RST}
 
+$(gettext "➡ Informe BOOT como 0 para não criar partição BOOT separada.")
 $(gettext "➡ Informe HOME como 0 para não criar partição HOME separada.")
 $(gettext "➡ Informe SWAP como 0 para não criar partição SWAP")" \
         0 0 0 \
 \
-  "Boot"          1 01 "${AsDiskPercent[boot]}" 1 24 15 15 2 \
-  "root (/) (%)"  2 01 "${AsDiskPercent[root]}" 2 24 05 05 0 \
-  "FS"            2 32 "${AsFs[root]}"          2 37 10 10 0 \
-  "/home    (%)"  3 01 "${AsDiskPercent[home]}" 3 24 05 05 0 \
-  "FS"            3 32 "${AsFs[home]}"          3 37 10 10 0 \
-  "swap     (%)"  4 01 "${AsDiskPercent[swap]}" 4 24 10 10 0
+  "Table"         1 01 "${AsDiskPercent[_DISKTABLE]}" 1 24 15 15 2 \
+  "root (/) (%)"  2 01 "${AsDiskPercent[root]}"       2 24 05 05 0 \
+  "FS"            2 32 "${AsFs[root]}"                2 37 10 10 0 \
+  "boot (/) (%)"  3 01 "${AsDiskPercent[boot]}"       3 24 05 05 0 \
+  "FS"            3 32 "${AsFs[boot]}"                3 37 10 10 0 \
+  "/home    (%)"  4 01 "${AsDiskPercent[home]}"       4 24 05 05 0 \
+  "FS"            4 32 "${AsFs[home]}"                4 37 10 10 0 \
+  "swap     (%)"  5 01 "${AsDiskPercent[swap]}"       5 24 10 10 0
 
     )
 
@@ -1595,15 +1619,22 @@ $(gettext "➡ Informe SWAP como 0 para não criar partição SWAP")" \
     # captura retorno
     mapfile -t aPercent <<<"$percent_text"
 
-    AsDiskPercent[boot]="${aPercent[0]}"
     AsDiskPercent[root]="${aPercent[1]}"
-    AsDiskPercent[home]="${aPercent[3]}"
-    AsDiskPercent[swap]="${aPercent[5]}"
+    AsDiskPercent[boot]="${aPercent[3]}"
+    AsDiskPercent[home]="${aPercent[5]}"
+    AsDiskPercent[swap]="${aPercent[7]}"
     AsFs[root]="${aPercent[2]}"
-    AsFs[home]="${aPercent[4]}"
+    AsFs[boot]="${aPercent[4]}"
+    AsFs[home]="${aPercent[6]}"
 
     if [ "${AsDiskPercent[root]}" -gt 0 ]; then
       if ! is_valid_fs "${AsFs[root]}" "/"; then
+        continue
+      fi
+    fi
+
+    if [ "${AsDiskPercent[boot]}" -gt 0 ]; then
+      if ! is_valid_fs "${AsFs[boot]}" "/boot"; then
         continue
       fi
     fi
@@ -1621,6 +1652,17 @@ $(gettext "➡ Informe SWAP como 0 para não criar partição SWAP")" \
           "${AConfDisk[_DEVICE]} - ${RED}${cmsg_ERRO}${RST}" \
           "\n$(gettext "Valor inválido para ROOT.")" \
           "\n$(gettext "ROOT deve estar entre 1 e 100.")"
+        continue
+        ;;
+    esac
+
+    # valida BOOT
+    case "${AsDiskPercent[boot]}" in
+      ''|*[!0-9]*)
+        info \
+          "${AConfDisk[_DEVICE]} - ${RED}${cmsg_ERRO}${RST}" \
+          "\n$(gettext "Valor inválido para BOOT.")" \
+          "\n$(gettext "BOOT deve estar entre 0 e 99.")"
         continue
         ;;
     esac
@@ -1654,6 +1696,14 @@ $(gettext "➡ Informe SWAP como 0 para não criar partição SWAP")" \
       continue
     fi
 
+    # faixa BOOT
+    if [ "${AsDiskPercent[boot]}" -lt 0 ] || [ "${AsDiskPercent[boot]}" -gt 99 ]; then
+      info \
+        "${AConfDisk[_DEVICE]} - ${RED}${cmsg_ERRO}${RST}" \
+        "\n$(gettext "BOOT deve estar entre 0 e 99.")"
+      continue
+    fi
+
     # faixa HOME
     if [ "${AsDiskPercent[home]}" -lt 0 ] || [ "${AsDiskPercent[home]}" -gt 99 ]; then
       info \
@@ -1671,12 +1721,12 @@ $(gettext "➡ Informe SWAP como 0 para não criar partição SWAP")" \
     fi
 
     # soma
-    total=$(( AsDiskPercent[root] + AsDiskPercent[home] + AsDiskPercent[swap] ))
+    total=$(( AsDiskPercent[root] + AsDiskPercent[boot] + AsDiskPercent[home] + AsDiskPercent[swap] ))
 
     if [ "$total" -gt 100 ]; then
       info \
         "${AConfDisk[_DEVICE]} - ${RED}${cmsg_ERRO}${RST}" \
-        "\nROOT + HOME + SWAP $(gettext "não pode ultrapassar") ${RED}100% ${RST}" \
+        "\nROOT + BOOT + HOME + SWAP $(gettext "não pode ultrapassar") ${RED}100% ${RST}" \
         "$(gettext "Valor atual:") ${total}%"
       continue
     fi
@@ -1686,7 +1736,9 @@ $(gettext "➡ Informe SWAP como 0 para não criar partição SWAP")" \
   done
 
   withhome=true
+  withboot=true
   withswap=true
+  [[ "${AsDiskPercent[boot]}" -eq 0 ]] && withboot=false
   [[ "${AsDiskPercent[home]}" -eq 0 ]] && withhome=false
   [[ "${AsDiskPercent[swap]}" -eq 0 ]] && withswap=false
 # info "${cmsg_Disco}" "HOME separado: ${withhome}" "SWAP separado: ${withswap}"
@@ -1716,8 +1768,9 @@ sh_checkSpaceToSwap() {
 
 sh_mkparted() {
 	local nchoice=false
-	local withswap=true
+	local withboot=true
 	local withhome=true
+	local withswap=true
 	local label_type='gpt'
 	local ext=$(sh_getNvme)
 	local cini=''
@@ -1825,10 +1878,19 @@ sh_mkparted() {
 			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}2"]="/boot/efi|vfat|1")
   		cini="${cnextini}"
 
+      #boot
+			if $withboot; then
+			  ((++cnextpart))
+  			cnextpercent=$(( AsDiskPercent[boot] ))
+				CSCRIPT+="mkpart primary ${AsFs[boot]:-ext4} ${cini} ${cnextpercent}% name ${cnextpart} BOOT "
+  			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="/boot|${AsFs[boot]:-ext4}|1")
+				cini="${cnextpercent}%"
+			fi
+
       #swap
 			if $withswap; then
   		  ((++cnextpart))
-  			cnextpercent=$(( AsDiskPercent[swap] ))
+  			cnextpercent=$(( AsDiskPercent[boot] + AsDiskPercent[swap] ))
 				CSCRIPT+="mkpart primary linux-swap ${cini} ${cnextpercent}% name ${cnextpart} SWAP "
 				Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="none|swap|1")
 				cini="${cnextpercent}%"
@@ -1836,7 +1898,7 @@ sh_mkparted() {
 
       #root
 		  ((++cnextpart))
-			cnextpercent=$(( AsDiskPercent[swap] + AsDiskPercent[root] ))
+			cnextpercent=$(( AsDiskPercent[boot] + AsDiskPercent[swap] + AsDiskPercent[root] ))
 			CSCRIPT+="mkpart primary ${AsFs[root]:-ext4} ${cini} ${cnextpercent}% name ${cnextpart} ROOT "
 			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="/|${AsFs[root]:-ext4}|1")
 			cini="${cnextpercent}%"
@@ -1853,10 +1915,19 @@ sh_mkparted() {
 			cnextpart=0
 			cini="2MiB"
 
+      #boot
+			if $withboot; then
+			  ((++cnextpart))
+  			cnextpercent=$(( AsDiskPercent[boot] ))
+				CSCRIPT+="mkpart primary ${AsFs[boot]:-ext4} ${cini} ${cnextpercent}% "
+  			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="/boot|${AsFs[boot]:-ext4}|1")
+				cini="${cnextpercent}%"
+			fi
+
       #swap
 			if $withswap; then
   		  ((++cnextpart))
-  			cnextpercent=$(( AsDiskPercent[swap] ))
+  			cnextpercent=$(( AsDiskPercent[boot] + AsDiskPercent[swap] ))
 				CSCRIPT+="mkpart primary linux-swap ${cini} ${cnextpercent}% "
 				Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="none|swap|1")
 				cini="${cnextpercent}%"
@@ -1864,7 +1935,7 @@ sh_mkparted() {
 
       #root
 		  ((++cnextpart))
-			cnextpercent=$(( AsDiskPercent[swap] + AsDiskPercent[root] ))
+			cnextpercent=$(( AsDiskPercent[boot] + AsDiskPercent[swap] + AsDiskPercent[root] ))
 			CSCRIPT+="mkpart primary ${AsFs[root]:-ext4} ${cini} ${cnextpercent}% set ${cnextpart} boot on "
 			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}$cnextpart"]="/|ext4|1")
  			cini="${cnextpercent}%"
@@ -2072,7 +2143,7 @@ sh_make_fs() {
 		[ext4]="-F -L VOID"
 		[btrfs]="-f -L VOID"
 		[f2fs]="-f -l VOID"
-		[xfs]="-f -L VOID"
+		[xfs]="-m crc=0 -f -L VOID"
 		[jfs]="-f -L VOID"
 		[vfat]="-F32 -n EFI"
 		[reiserfs]="-f -l VOID"
@@ -4906,7 +4977,6 @@ sh_choose_wm() {
 	#		bspwm "${aWm[bspwm]}" "${aFlag[bspwm]}" \
 	#		dwm "${aWm[dwm]}" "${aFlag[dwm]}" \
 	#		blackbox "${aWm[blackbox]}" "${aFlag[blackbox]}" \
-	#		fluxbox "${aWm[fluxbox]}" "${aFlag[fluxbox]}" \
 	#	  hyprland "${aWm[hyprland]}" "${aFlag[hyprland]}" \
 	#		lxde "${aWm[lxde]}" "${aFlag[lxde]}" \
 	#		lxqt "${aWm[lxqt]}" "${aFlag[lxqt]}" \
@@ -4927,6 +4997,7 @@ sh_choose_wm() {
 		xorg "${aWm[xorg]}" "${aFlag[xorg]}" \
 		cinnamon "${aWm[cinnamon]}" "${aFlag[cinnamon]}" \
 		enlightenment "${aWm[enlightenment]}" "${aFlag[enlightenment]}" \
+  	fluxbox "${aWm[fluxbox]}" "${aFlag[fluxbox]}" \
 		gnome "${aWm[gnome]}" "${aFlag[gnome]}" \
 	  i3wm "${aWm[i3wm]}" "${aFlag[i3wm]}" \
 		mate "${aWm[mate]}" "${aFlag[mate]}" \
@@ -5773,7 +5844,7 @@ sh_install() {
 	local user="${AsUser[cuser]}"
 	local start_datetime
 	local end_datetime
-	local akernel=("${AConfKernel[_KERNEL]:-linux}" dracut)
+	local akernel=("${AConfKernel[_KERNEL]:-linux}" dracut xfsprogs)
 	local afirmware=(wifi-firmware)
 	local abase=(bash-completion voidbr-base-config fzf voidbr-vinstall voidbr-utils chili-utils exa gettext chrony wireless_tools wpa_supplicant pigz zstd xz sed grep socklog socklog-void) #voidbr-plymouth-theme
 	local agrub=(grub-i386-efi grub-utils grub-terminus grub-btrfs-runit voidbr-grub-theme)
