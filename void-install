@@ -7681,7 +7681,7 @@ sh_check_lock() {
 		local pid
 		pid=$(cat "$LOCKFILE")
 		if kill -0 "$pid" 2>/dev/null; then
-			sh_error_msg "O script já está em execução (PID: $pid)."
+			die "O script já está em execução (PID: $pid)."
 			exit 1
 		fi
 	fi
