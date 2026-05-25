@@ -1581,20 +1581,20 @@ sh_getPartitionsPercent() {
         --mixedform "\
 ${YELLOW}$(gettext "Configure os percentuais desejados.")${RST}
 
-➡ ROOT + HOME + SWAP $(gettext "não pode ultrapassar") ${RED}100% ${RST}
+➡ ROOT + BOOT + SWAP + HOME $(gettext "não pode ultrapassar") ${RED}100% ${RST}
 ➡ $(gettext "Você também pode utilizar menos de 100% do disco")
 
 ${GREEN}$(gettext "Exemplos válidos:")${RST}
-root(/)=${RED}100 ${RST} /boot=${RED}0 /home=${RED}0  ${RST}swap=${RED}0 ${RST}
-root(/)=${RED}35  ${RST} /boot=${RED}5 /home=${RED}55 ${RST}swap=${RED}5 ${RST}
-root(/)=${RED}50  ${RST} /boot=${RED}0 /home=${RED}0  ${RST}swap=${RED}0 ${RST}
+root(/)=${RED}100 ${RST} /boot=${RED}0 ${RST}/home=${RED}0  ${RST}swap=${RED}0 ${RST}
+root(/)=${RED}35  ${RST} /boot=${RED}5 ${RST}/home=${RED}55 ${RST}swap=${RED}5 ${RST}
+root(/)=${RED}50  ${RST} /boot=${RED}0 ${RST}/home=${RED}0  ${RST}swap=${RED}0 ${RST}
 
 $(gettext "➡ Informe BOOT como 0 para não criar partição BOOT separada.")
 $(gettext "➡ Informe HOME como 0 para não criar partição HOME separada.")
 $(gettext "➡ Informe SWAP como 0 para não criar partição SWAP")" \
         0 0 0 \
 \
-  "Table"         1 01 "${AsDiskPercent[_DISKTABLE]}" 1 24 15 15 2 \
+  "Mode"          1 01 "${AsDiskPercent[_DISKTABLE]}" 1 24 15 15 2 \
   "root (/) (%)"  2 01 "${AsDiskPercent[root]}"       2 24 05 05 0 \
   "FS"            2 32 "${AsFs[root]}"                2 37 10 10 0 \
   "boot (/) (%)"  3 01 "${AsDiskPercent[boot]}"       3 24 05 05 0 \
@@ -1607,9 +1607,7 @@ $(gettext "➡ Informe SWAP como 0 para não criar partição SWAP")" \
 
     exit_status=$?
 
-    #
     # cancelar / esc
-    #
     case "$exit_status" in
       "$D_ESC" | "$D_CANCEL")
         return 1
@@ -1741,7 +1739,10 @@ $(gettext "➡ Informe SWAP como 0 para não criar partição SWAP")" \
   [[ "${AsDiskPercent[boot]}" -eq 0 ]] && withboot=false
   [[ "${AsDiskPercent[home]}" -eq 0 ]] && withhome=false
   [[ "${AsDiskPercent[swap]}" -eq 0 ]] && withswap=false
-# info "${cmsg_Disco}" "HOME separado: ${withhome}" "SWAP separado: ${withswap}"
+  #info "${cmsg_Disco}" \
+  #  "BOOT separado: ${withboot}" \
+  #  "HOME separado: ${withhome}" \
+  #  "SWAP separado: ${withswap}"
 
   return 0
 
