@@ -233,11 +233,18 @@ declare -gA AsDiskPercent=(
   [home]="0"
   [swap]="0"
 )
+declare -gA AsDiskSize=(
+  [root]="0"
+  [boot]="0"
+  [home]="0"
+  [swap]="0"
+)
 declare -gA AsFs=(
 	[_DEVICE]='/dev/sdX'
   [root]="ext4"
   [boot]="ext4"
   [home]="ext4"
+  [swap]="swap"
 )
 
 declare dialogRcFile="$HOME/.dialogrc"
@@ -1498,6 +1505,16 @@ sh_testDisk() {
 }
 
 
+sh_get_part_size() {
+  local tam="$1"
+  local percentual="$2"
+
+# part_size_MB=$(awk "BEGIN { printf \"%.0f\n\", (${tam%G} * 1024 * ${percentual/,/.} / 100) }")
+  part_size_GB=$(awk "BEGIN { printf \"%.2f\n\", (${tam%G} * $percentual / 100) }")
+
+  echo "${part_size_GB}"
+}
+
 is_valid_fs() {
   local cFs="$1"
   local cPath="$2"
@@ -1567,7 +1584,16 @@ is_valid_fs() {
 sh_getPartitionsPercent() {
   local -a aPercent=()
   local percent_text
+  local disk_size="${SIZE_ORIGEM}"
   AsDiskPercent[_DISKTABLE]="${AConfDisk[_DISKTABLE]}"
+  xtitle="${AConfDisk[_DEVICE]} - $(gettext "Configuração de Partições")"
+
+  AsDiskSize[root]="$(sh_get_part_size ${SIZE_ORIGEM} ${AsDiskPercent[root]})G"
+  AsDiskSize[boot]="$(sh_get_part_size ${SIZE_ORIGEM} ${AsDiskPercent[boot]})G"
+  AsDiskSize[home]="$(sh_get_part_size ${SIZE_ORIGEM} ${AsDiskPercent[home]})G"
+  AsDiskSize[swap]="$(sh_get_part_size ${SIZE_ORIGEM} ${AsDiskPercent[swap]})G"
+
+  total=$(( AsDiskPercent[root] + AsDiskPercent[boot] + AsDiskPercent[home] + AsDiskPercent[swap] ))
 
   # loop principal
   while :; do
@@ -1575,9 +1601,11 @@ sh_getPartitionsPercent() {
       "${DIALOG}" \
         --stdout \
         --colors \
-        --title "${AConfDisk[_DEVICE]} - $(gettext "Configuração de Partições")" \
+        --title "${xtitle}" \
         --ok-label "${cmsg_Aceitar}" \
         --cancel-label "${cmsg_ButtonBack}" \
+  			--extra-button \
+	  		--extra-label "Recalcular" \
         --mixedform "\
 ${YELLOW}$(gettext "Configure os percentuais desejados.")${RST}
 
@@ -1596,13 +1624,18 @@ $(gettext "➡ Informe SWAP como 0 para não criar partição SWAP")" \
 \
   "Mode"          1 01 "${AsDiskPercent[_DISKTABLE]}" 1 24 15 15 2 \
   "root (/) (%)"  2 01 "${AsDiskPercent[root]}"       2 24 05 05 0 \
+  ""              2 14 "${AsDiskSize[root]}"          2 14 10 10 2 \
   "FS"            2 32 "${AsFs[root]}"                2 37 10 10 0 \
-  "boot (/) (%)"  3 01 "${AsDiskPercent[boot]}"       3 24 05 05 0 \
+  "/boot    (%)"  3 01 "${AsDiskPercent[boot]}"       3 24 05 05 0 \
+  ""              3 14 "${AsDiskSize[boot]}"          3 14 10 10 2 \
   "FS"            3 32 "${AsFs[boot]}"                3 37 10 10 0 \
   "/home    (%)"  4 01 "${AsDiskPercent[home]}"       4 24 05 05 0 \
+  ""              4 14 "${AsDiskSize[home]}"          4 14 10 10 2 \
   "FS"            4 32 "${AsFs[home]}"                4 37 10 10 0 \
-  "swap     (%)"  5 01 "${AsDiskPercent[swap]}"       5 24 10 10 0
-
+  "swap     (%)"  5 01 "${AsDiskPercent[swap]}"       5 24 05 10 0 \
+  ""              5 14 "${AsDiskSize[swap]}"          5 14 10 10 2 \
+  "FS"            5 32 "${AsFs[swap]:-swap}"          5 37 10 10 2 \
+  "TOTAL    (%)"  6 01 "${total}"                     6 24 05 10 2
     )
 
     exit_status=$?
@@ -1612,18 +1645,33 @@ $(gettext "➡ Informe SWAP como 0 para não criar partição SWAP")" \
       "$D_ESC" | "$D_CANCEL")
         return 1
         ;;
+      "$D_EXTRA")
+        sh_recalculate
+        continue
+        ;;
     esac
 
-    # captura retorno
-    mapfile -t aPercent <<<"$percent_text"
+    sh_recalculate() {
+      # captura retorno
+      mapfile -t aPercent <<<"$percent_text"
+      AsDiskPercent[root]="${aPercent[1]}"
+      AsDiskPercent[boot]="${aPercent[4]}"
+      AsDiskPercent[home]="${aPercent[7]}"
+      AsDiskPercent[swap]="${aPercent[10]}"
 
-    AsDiskPercent[root]="${aPercent[1]}"
-    AsDiskPercent[boot]="${aPercent[3]}"
-    AsDiskPercent[home]="${aPercent[5]}"
-    AsDiskPercent[swap]="${aPercent[7]}"
-    AsFs[root]="${aPercent[2]}"
-    AsFs[boot]="${aPercent[4]}"
-    AsFs[home]="${aPercent[6]}"
+      AsFs[root]="${aPercent[3]}"
+      AsFs[boot]="${aPercent[6]}"
+      AsFs[home]="${aPercent[9]}"
+
+      AsDiskSize[root]="$(sh_get_part_size ${SIZE_ORIGEM} ${AsDiskPercent[root]})G"
+      AsDiskSize[boot]="$(sh_get_part_size ${SIZE_ORIGEM} ${AsDiskPercent[boot]})G"
+      AsDiskSize[home]="$(sh_get_part_size ${SIZE_ORIGEM} ${AsDiskPercent[home]})G"
+      AsDiskSize[swap]="$(sh_get_part_size ${SIZE_ORIGEM} ${AsDiskPercent[swap]})G"
+
+      total=$(( AsDiskPercent[root] + AsDiskPercent[boot] + AsDiskPercent[home] + AsDiskPercent[swap] ))
+    }
+
+    sh_recalculate
 
     if [ "${AsDiskPercent[root]}" -gt 0 ]; then
       if ! is_valid_fs "${AsFs[root]}" "/"; then
@@ -1725,12 +1773,29 @@ $(gettext "➡ Informe SWAP como 0 para não criar partição SWAP")" \
       info \
         "${AConfDisk[_DEVICE]} - ${RED}${cmsg_ERRO}${RST}" \
         "\nROOT + BOOT + HOME + SWAP $(gettext "não pode ultrapassar") ${RED}100% ${RST}" \
-        "$(gettext "Valor atual:") ${total}%"
+        "$(gettext "Valor atual:") ${RED}${total}%${RST}"
       continue
     fi
 
     # tudo OK
-    break
+#    if conf "${xtitle}" \
+#             "\n${BOLD}${RED}$(gettext 'Deseja revisar o particionamento ?')" \
+#             "\n$(gettext 'Não para aceitar!')"; then
+#      sh_recalculate
+#    else
+#      break
+#    fi
+
+    if conf "${YELLOW}${cwarning}" \
+      "DEVICE  : ${RED}${AConfDisk[_DEVICE]}${RESET}\n" \
+      "MODEL  : ${RED}$MODEL_ORIGEM${RESET}\n" \
+      "\n${RED}${cmsg_todos_os_dados_serao_perdidos}${RESET}" \
+      "\n${BOLD}${RED}${cmsg_yeslabel} => $(gettext 'Deseja revisar o particionamento ?')" \
+      "\n${cmsg_nolabel} => ${cmsg_ContinuarParticionamento} ${AConfDisk[_DEVICE]}\n"; then
+      sh_recalculate
+    else
+      break
+    fi
   done
 
   withhome=true
@@ -1837,18 +1902,19 @@ sh_mkparted() {
 #		fi
 #		nchoice=true
 
-		if ! infoconf "${AConfDisk[_DEVICE]} - ${cmsg_Disco}" \
-		  "$(fdisk -l "${AConfDisk[_DEVICE]}")" \
-			"${YELLOW}${cwarning}" \
-  		"DEVICE  : ${RED}${AConfDisk[_DEVICE]}${RESET}\n" \
-	 		"MODEL  : ${RED}$MODEL_ORIGEM${RESET}\n" \
-	  	"\n${RED}${cmsg_todos_os_dados_serao_perdidos}${RESET}" \
-  		"\n${cmsg_ContinuarParticionamento} ${AConfDisk[_DEVICE]} ?\n"; then
-      info "${AConfDisk[_DEVICE]} - ${cmsg_Disco^^} - AUTOMATIC" \
-           "\n$(gettext '✗ Particionamento e formatação automatica cancelado pelo usuário')"
-	 		return 1
-  	fi
-		nchoice=true
+#		if ! infoconf "${AConfDisk[_DEVICE]} - ${cmsg_Disco}" \
+#		  "$(fdisk -l "${AConfDisk[_DEVICE]}")" \
+#			"${YELLOW}${cwarning}" \
+#  		"DEVICE  : ${RED}${AConfDisk[_DEVICE]}${RESET}\n" \
+#	 		"MODEL  : ${RED}$MODEL_ORIGEM${RESET}\n" \
+#	  	"\n${RED}${cmsg_todos_os_dados_serao_perdidos}${RESET}" \
+#  		"\n${cmsg_ContinuarParticionamento} ${AConfDisk[_DEVICE]} ?\n"; then
+#      info "${AConfDisk[_DEVICE]} - ${cmsg_Disco^^} - AUTOMATIC" \
+#           "\n$(gettext '✗ Particionamento e formatação automatica cancelado pelo usuário')"
+#	 		return 1
+#  	fi
+#		nchoice=true
+    nchoice=true
 	fi
 
 	if $nchoice; then
