@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: dom 24 mai 2026 21:06:18 -04
+#  Updated: seg 25 mai 2026 07:51:09 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.5.24-20260524'
+readonly _VERSION_='3.5.25-20260525'
 readonly DEPENDENCIES=(
   dialog
   rsync
@@ -1601,6 +1601,7 @@ sh_getPartitionsPercent() {
       "${DIALOG}" \
         --stdout \
         --colors \
+  			--backtitle "$ccabec" \
         --title "${xtitle}" \
         --ok-label "${cmsg_Aceitar}" \
         --cancel-label "${cmsg_ButtonBack}" \
@@ -6762,7 +6763,7 @@ sh_main_menu() {
 		"${cmsg_Usuario}") sh_confadduser "$@" && [ -n "$LEXTRA" ] && DEFITEM="${cmsg_Instalar}" ;;
 		"${cmsg_Instalar}") sh_install ;;
 		'↑↓') : ;;
-		"${cmsg_Tema}") sh_run_binary 'void-dialog-theme-selector' ;;
+		"${cmsg_Tema}") sh_run_binary 'voidbr-dialog-theme-selector' ;;
 		"${cmsg_Servicos}") sh_run_binary 'void-services' "$LC_DEFAULT" "-g" ;;
 		"Clonedisk") sh_run_binary 'void-clonedisk' ;;
 		"Fde") sh_confLvm && [ -n "$LFDE" ] && DEFITEM="${cmsg_Instalar}" ;;
