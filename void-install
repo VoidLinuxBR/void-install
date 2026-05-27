@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: seg 25 mai 2026 07:51:09 -04
+#  Updated: ter 26 mai 2026 20:11:18 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.5.25-20260525'
+readonly _VERSION_='3.5.26-20260526'
 readonly DEPENDENCIES=(
   dialog
   rsync
@@ -1393,7 +1393,22 @@ info() {
 		--title "$1" \
 		--backtitle "$ccabec" \
 		--ok-label "${cmsg_ok}" \
-		--msgbox "$2\n$3\n$4\n$5\n$6\n$7" \
+		--msgbox "$2\n$3\n$4\n$5\n$6\n$7\n$8\n$9\n${10}" \
+		0 0
+}
+
+infoextended() {
+  xtitle="$1"
+  shift
+	msg "${fmt} $@"
+	evaluate_retval 0
+
+	${DIALOG} \
+		--colors \
+		--title "${xtitle}" \
+		--backtitle "$ccabec" \
+		--ok-label "${cmsg_ok}" \
+		--msgbox "$*" \
 		0 0
 }
 
@@ -1452,8 +1467,8 @@ confRevisar() {
 		--no-collapse \
 		--no-cr-wrap \
 		--clear \
-		--yes-label "$(gettext 'Revisar')" \
-		--no-label "$(gettext 'Prosseguir')" \
+		--yes-label "${cmsg_ButtonProsseguir}" \
+		--no-label "${cmsg_ButtonRevisar}" \
 		--yesno "$*" \
 		0 0
 	nchoice=$?
@@ -1622,25 +1637,16 @@ sh_getPartitionsPercent() {
   			--backtitle "$ccabec" \
         --title "${xtitle}" \
         --ok-label "${cmsg_Aceitar}" \
-        --cancel-label "${cmsg_ButtonBack}" \
+        --cancel-label "${cmsg_ButtonCancelar}" \
   			--extra-button \
 	  		--extra-label "Recalcular" \
+        --help-button \
+        --help-label "Ajuda" \
         --mixedform "\
-${YELLOW}$(gettext "Configure os percentuais desejados.")${RST}
-
-➡ ROOT + BOOT + SWAP + HOME $(gettext "não pode ultrapassar") ${RED}100% ${RST}
-➡ $(gettext "Você também pode utilizar menos de 100% do disco")
-
-${GREEN}$(gettext "Exemplos válidos:")${RST}
-root(/)=${RED}100 ${RST} /boot=${RED}0 ${RST}/home=${RED}0  ${RST}swap=${RED}0 ${RST}
-root(/)=${RED}35  ${RST} /boot=${RED}5 ${RST}/home=${RED}55 ${RST}swap=${RED}5 ${RST}
-root(/)=${RED}50  ${RST} /boot=${RED}0 ${RST}/home=${RED}0  ${RST}swap=${RED}0 ${RST}
-
-$(gettext "➡ Informe BOOT como 0 para não criar partição BOOT separada.")
-$(gettext "➡ Informe HOME como 0 para não criar partição HOME separada.")
-$(gettext "➡ Informe SWAP como 0 para não criar partição SWAP")" \
-        0 0 0 \
-\
+\n➡   ${YELLOW}$(gettext "Configure os percentuais desejados.")${RST} \
+\n➡   ${CYAN}$(gettext "Use o botao ajuda para informações.")${RST}" \
+        15 100 0 \
+        \
   "Mode"          1 01 "${AsDiskPercent[_DISKTABLE]}" 1 24 15 15 2 \
   "root (/) (%)"  2 01 "${AsDiskPercent[root]}"       2 24 05 05 0 \
   ""              2 14 "${AsDiskSize[root]}"          2 14 10 10 2 \
@@ -1666,6 +1672,19 @@ $(gettext "➡ Informe SWAP como 0 para não criar partição SWAP")" \
         ;;
       "$D_EXTRA")
         sh_recalculate
+        continue
+        ;;
+      "$D_AJUDA")
+        infoextended "${YELLOW}$(gettext "Configure os percentuais desejados.")${RST}"  \
+"⚠   ROOT + BOOT + SWAP + HOME $(gettext "não pode ultrapassar") ${RED}100% ${RST}
+\n➡   $(gettext "Você também pode utilizar menos de 100% do disco")" \
+"\n\n${GREEN}$(gettext "Exemplos válidos:")${RST} \
+\nroot(/)=${RED}100 ${RST} /boot=${RED}0 ${RST}/home=${RED}0  ${RST}swap=${RED}0 ${RST} \
+\nroot(/)=${RED}35  ${RST} /boot=${RED}5 ${RST}/home=${RED}55 ${RST}swap=${RED}5 ${RST} \
+\nroot(/)=${RED}50  ${RST} /boot=${RED}0 ${RST}/home=${RED}0  ${RST}swap=${RED}0 ${RST}" \
+"\n\n➡   $(gettext 'Informe') BOOT $(gettext 'como') ${YELLOW}0${RST} $(gettext 'para não criar partição') BOOT $(gettext 'separada.') \
+\n➡   $(gettext 'Informe') HOME $(gettext 'como') ${YELLOW}0${RST} $(gettext 'para não criar partição') HOME $(gettext 'separada.') \
+\n➡   $(gettext 'Informe') SWAP $(gettext 'como') ${YELLOW}0${RST} $(gettext 'para não criar partição') SWAP"
         continue
         ;;
     esac
@@ -1798,18 +1817,22 @@ $(gettext "➡ Informe SWAP como 0 para não criar partição SWAP")" \
 
     # tudo OK
 #    if conf "${xtitle}" \
-#             "\n${BOLD}${RED}$(gettext 'Deseja revisar o particionamento ?')" \
+#             "\n${BOLD}${RED}$(gettext 'Deseja reviser o particionamento ?')" \
 #             "\n$(gettext 'Não para aceitar!')"; then
 #      sh_recalculate
 #    else
 #      break
 #    fi
 
-    if confRevisar "${YELLOW}${cwarning}" \
+    if ! confRevisar "${YELLOW}${cwarning}" \
       "DEVICE  : ${RED}${AConfDisk[_DEVICE]}${RESET}\n" \
-      "MODEL  : ${RED}$MODEL_ORIGEM${RESET}\n" \
+      "MODEL   : ${RED}${MODEL_ORIGEM}${RST}\n\n" \
+      "/       : ${CYAN}${AsDiskSize[root]}${RST}\n" \
+      "/boot   : $([ "${AsDiskPercent[boot]}" -eq 0 ] && echo "${YELLOW}sem /boot separado${RST}" || echo "${CYAN}${AsDiskSize[boot]}${RST}")\n" \
+      "swap    : $([ "${AsDiskPercent[swap]}" -eq 0 ] && echo "${YELLOW}sem partição swap${RST}" || echo "${CYAN}${AsDiskSize[swap]}${RST}")\n" \
+      "/home   : $([ "${AsDiskPercent[home]}" -eq 0 ] && echo "${YELLOW}sem /home separado${RST}" || echo "${CYAN}${AsDiskSize[home]}${RST}")\n" \
       "\n${RED}${cmsg_todos_os_dados_serao_perdidos}${RESET}" \
-      "\n\n${BOLD}${RED}$(gettext 'Deseja revisar ou prosseguir com o particionamento ?')"
+      "\n\n${BOLD}${CYAN}$(gettext 'Deseja prosseguir ou revisar com o particionamento ?')"
     then
       sh_recalculate
     else
@@ -1823,11 +1846,7 @@ $(gettext "➡ Informe SWAP como 0 para não criar partição SWAP")" \
   [[ "${AsDiskPercent[boot]}" -eq 0 ]] && withboot=false
   [[ "${AsDiskPercent[home]}" -eq 0 ]] && withhome=false
   [[ "${AsDiskPercent[swap]}" -eq 0 ]] && withswap=false
-  #info "${cmsg_Disco}" \
-  #  "BOOT separado: ${withboot}" \
-  #  "HOME separado: ${withhome}" \
-  #  "SWAP separado: ${withswap}"
-
+  #info "${cmsg_Disco}" "BOOT separado: ${withboot}" "HOME separado: ${withhome}" "SWAP separado: ${withswap}"
   return 0
 
 }
@@ -7394,6 +7413,9 @@ sh_setLanguage() {
 	cmsg_ButtonBack=$(gettext "Voltar")
 	cmsg_ButtonFeito=$(gettext "Feito")
 	cmsg_ButtonEscolher=$(gettext "Escolher")
+	cmsg_ButtonCancelar=$(gettext "Cancelar")
+	cmsg_ButtonRevisar=$(gettext "Revisar")
+	cmsg_ButtonProsseguir=$(gettext "Prosseguir")
 	cmsg_info_disco=$(gettext "Info disco")
 	cmsg_info_particao=$(gettext "Info partição")
 	cmsg_ok=$(gettext "Ok")
@@ -7405,7 +7427,7 @@ sh_setLanguage() {
 	cmsg_dest=$(gettext "Escolha o disco de DESTINO:")
 	cmsg_yeslabel=$(gettext "Sim")
 	cmsg_nolabel=$(gettext "Não")
-	cmsg_todos_os_dados_serao_perdidos=$(gettext "Todos os dados disco DESTINO serão perdidos!")
+	cmsg_todos_os_dados_serao_perdidos=$(gettext "Ao prosseguir, todos os dados disco DESTINO serão perdidos!")
 	cwarning=$(gettext "=== AVISO ===")
 	cmsg_DismountFileSystem=$(gettext "Desmontando sistema de arquivos")
 	cmsg_FinalizadaComSucesso=$(gettext "Instalação finalizada com sucesso")
