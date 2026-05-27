@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: ter 26 mai 2026 20:11:18 -04
+#  Updated: qua 27 mai 2026 19:55:02 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.5.26-20260526'
+readonly _VERSION_='3.5.27-20260527'
 readonly DEPENDENCIES=(
   dialog
   rsync
@@ -2243,15 +2243,15 @@ sh_make_fs() {
 	local fstype
 
 	declare -A fsparms=(
-		[ext2]="-F -L VOID"
-		[ext3]="-F -L VOID"
-		[ext4]="-F -L VOID"
-		[btrfs]="-f -L VOID"
-		[f2fs]="-f -l VOID"
-		[xfs]="-m crc=0 -f -L VOID"
-		[jfs]="-f -L VOID"
+		[ext2]="-F -L VOIDBR"
+		[ext3]="-F -L VOIDBR"
+		[ext4]="-F -L VOIDBR"
+		[btrfs]="-f -L VOIDBR"
+		[f2fs]="-f -l VOIDR"
+		[xfs]="-m crc=0 -f -L VOIDBR"
+		[jfs]="-f -L VOIDBR"
 		[vfat]="-F32 -n EFI"
-		[reiserfs]="-f -l VOID"
+		[reiserfs]="-f -l VOIDBR"
 		[ntfs]="-F -L NTFS"
 	)
 
@@ -7797,6 +7797,45 @@ sh_check_lock() {
 	trap 'rm -f "$LOCKFILE"; exit' INT TERM EXIT
 }
 
+sh_checkUpdatePackages() {
+  local TMP_FILE="/tmp/$(basename "$0").restarted"
+  local PackagesToUpdate=(void-install)
+
+  # adiciona repositorios inexistentes no /etc/xbps.d/00-repository-main.conf
+  #sh_add_repo
+
+  if [[ ! -f "$TMP_FILE" ]]; then
+    if conf "** UPDATE **" "É recomendado sincronizar e atualizar os utilitários antes da instalação. \n\n${AMARELO}Deseja proceder ?"; then
+      sh_cmd_job_infobox "Aguarde alguns instantes, sincronizando e atualizando..." \
+        "xbps-install -Syuf --ignore-files-conflicts "${PackagesToUpdate[@]}" &>/dev/null"
+      sh_msg_job "Reiniciando o script pela primeira vez..."
+      touch "$TMP_FILE"
+      exec "$0" "$@"
+    fi
+  fi
+  # verifica dependencias
+  #sh_checkDependencies
+}
+
+sh_check_internet() {
+  local url="8.8.8.8" # Servidor DNS do Google, sempre online
+  local timeout=2     # Tempo limite reduzido para resposta rápida
+  local pipe_test="1"
+
+  if sh_cmd_job "$(gettext 'Testando conexão com a internet...')" \
+    "ping -c 1 -W $timeout $url >/dev/null 2>&1" \
+    "$err_not_fatal" "$pipe_test"; then
+    return 0
+  else
+    if conf "** INTERNET **" \
+      "$(gettext 'Parece que não há uma rota disponível para a internet.') \n\n${AMARELO}$(gettext 'Deseja configurar um Wi-Fi?')"; then
+      sh_confWifi
+      return 0
+    fi
+    return 1
+  fi
+}
+
 sh_setEnvironment
 sh_getLocale
 sh_setLanguage
@@ -7804,6 +7843,8 @@ sh_setVarColors
 sh_setAsciiLines
 sh_setLogPrefix
 sh_check_lock
+sh_check_internet
+sh_checkUpdatePackages
 
 [[ "${1-}" = @(-V|--version) ]] && {
 	sh_version
