@@ -1,0 +1,8 @@
+- msg no filesytem disco virgem
+- ntfs no particionamento
+- pacote reiserfs
+- escolha de pacotes
+- poweroff/reboot
+
+
+

@@ -4,8 +4,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: chili-tradutor-go 2.1.20-20260201\n"
-"POT-Creation-Date: 2026-05-26 20:12-0400\n"
-"PO-Revision-Date: 2026-05-26 20:12-0400\n"
+"POT-Creation-Date: 2026-05-27 19:58-0400\n"
+"PO-Revision-Date: 2026-05-27 19:58-0400\n"
 "Last-Translator: Vilmar Catafesta <vcatafesta@gmail.com>\n"
 "Language-Team: Portuguese <https://github.com/chililinux/chili-tradutor-go>\n"
 "MIME-Version: 1.0\n"
@@ -1801,4 +1801,16 @@ msgstr ""
 
 #: void-install:7621
 msgid "Arquivo"
+msgstr ""
+
+#: void-install:7825
+msgid "Testando conexão com a internet..."
+msgstr ""
+
+#: void-install:7831
+msgid "Parece que não há uma rota disponível para a internet."
+msgstr ""
+
+#: void-install:7831
+msgid "Deseja configurar um Wi-Fi?"
 msgstr ""
