@@ -1,7 +1,6 @@
-- mkfs.reiserfs - dependencia
-- mkfs.ntfs     - dependencia
+# - mkfs.ntfs     - dependencia
+# - msg no filesytem disco virgem
 - ntfs no particionamento
-- msg no filesytem disco virgem
 - escolha de pacotes
 - poweroff/reboot
 
