@@ -6539,12 +6539,12 @@ sh_choosePartition() {
 		local dsk
 
 		if ! $LDISK; then
-		  info "${cmsg_TitleFileSystem}" "$(gettext 'Disco de armazenamento não foi escolhido')"
+		  info "${cmsg_TitleFileSystem}" "\n\n${RED}$(gettext 'Disco de armazenamento não foi escolhido')${RST}"
 		  return 1
 		fi
 
 		if [[ "${#ARRAY_PART_DEVICES[@]}" -eq 0 ]]; then
-		  info "${cmsg_TitleFileSystem}" "$(gettext 'Disco de armazenamento não foi particionado')"
+		  info "${cmsg_TitleFileSystem}" "\n\n${RED}$(gettext 'Disco de armazenamento não foi particionado')${RST}"
 		  return 1
 		fi
 
