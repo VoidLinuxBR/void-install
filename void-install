@@ -7893,7 +7893,7 @@ sh_setLanguage
 sh_setVarColors
 sh_setAsciiLines
 sh_setLogPrefix
-sh_check_lock
+#sh_check_lock
 sh_check_internet
 sh_checkUpdatePackages
 
