@@ -71,7 +71,6 @@ readonly DEPENDENCIES=(
   curl
   xz
   mkfs.vfat
-  mkfs.reiserfs
   mkfs.xfs
   mkfs.ntfs
   tee
@@ -95,14 +94,14 @@ readonly LOCKFILE="/tmp/void-install.lock"
 
 # Mapa: [distro]="lista de pacotes"
 declare -gA DISTRO_PKGS=(
-	["void"]="gettext rsync parted curl xz lvm2 reiserfsprogs xfsprogs ntfs-3g"
-	["void-live"]="gettext rsync parted curl xz lvm2 reiserfsprogs xfsprogs ntfs-3g"
-	["voidlinux"]="gettext rsync parted curl xz lvm2 reiserfsprogs xfsprogs ntfs-3g"
-	["chili"]="gettext rsync parted curl xz reiserfsprogs xfsprogs ntfs-3g"
-	["chililinux"]="gettext rsync parted curl xz reiserfsprogs xfsprogs ntfs-3g"
-	["arch"]="gettext rsync parted curl xz reiserfsprogs xfsprogs ntfs-3g"
-	["manjaro"]="gettext rsync parted curl xz reiserfsprogs xfsprogs ntfs-3g"
-	["debian"]="gettext-base rsync parted curl xz-utils reiserfsprogs xfsprogs ntfs-3g"
+	["void"]="gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g"
+	["void-live"]="gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g"
+	["voidlinux"]="gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g"
+	["chili"]="gettext rsync parted curl xz xfsprogs ntfs-3g"
+	["chililinux"]="gettext rsync parted curl xz xfsprogs ntfs-3g"
+	["arch"]="gettext rsync parted curl xz xfsprogs ntfs-3g"
+	["manjaro"]="gettext rsync parted curl xz xfsprogs ntfs-3g"
+	["debian"]="gettext-base rsync parted curl xz-utils xfsprogs ntfs-3g"
 )
 
 # Mapa: [distro]="comando de instalação"
@@ -1665,13 +1664,13 @@ is_valid_fs() {
   case "$cPath" in
   "/")
     case "$cFs" in
-    xfs|f2fs|ext2|ext3|ext4|reiserfs|btrfs|jfs)
+    xfs|f2fs|ext2|ext3|ext4|btrfs|jfs)
       return 0
       ;;
     *)
       xtitle="${RED}FILESYSTEM ERROR${RST}\
 \n$(gettext 'Filesystem inválido para') ${CYAN}'${cPath}' ${RST}=> ${cFs} \
-\n${YELLOW}$(gettext 'Válidos:') ${CYAN}xfs|f2fs|ext2|ext3|ext4|reiserfs|btrfs|jfs"
+\n${YELLOW}$(gettext 'Válidos:') ${CYAN}xfs|f2fs|ext2|ext3|ext4|btrfs|jfs"
 
       if sh_choosefstype "${AsFs[root]}" "$xtitle"; then
         AsFs[root]="${AConfDisk[_FILESYSTEM]}"
@@ -1683,13 +1682,13 @@ is_valid_fs() {
     ;;
   "/home")
     case "$cFs" in
-    xfs|f2fs|ext2|ext3|ext4|vfat|reiserfs|ntfs|btrfs|jfs)
+    xfs|f2fs|ext2|ext3|ext4|vfat|ntfs|btrfs|jfs)
       return 0
       ;;
     *)
       xtitle="${RED}FILESYSTEM ERROR${RST} \
 \n$(gettext 'Filesystem inválido para') ${CYAN}'${cPath}' ${RST}=> ${cFs} \
-\n${YELLOW}$(gettext 'Válidos:') ${CYAN}xfs|f2fs|ext2|ext3|ext4|vfat|reiserfs|ntfs|btrfs|jfs"
+\n${YELLOW}$(gettext 'Válidos:') ${CYAN}xfs|f2fs|ext2|ext3|ext4|vfat|ntfs|btrfs|jfs"
 
       if sh_choosefstype "${AsFs[home]}" "$xtitle"; then
         AsFs[home]="${AConfDisk[_FILESYSTEM]}"
@@ -1702,13 +1701,13 @@ is_valid_fs() {
 
   "/boot")
     case "$cFs" in
-    xfs|f2fs|ext2|ext3|ext4|vfat|reiserfs|btrfs|jfs)
+    xfs|f2fs|ext2|ext3|ext4|vfat|btrfs|jfs)
       return 0
       ;;
     *)
       xtitle="${RED}FILESYSTEM ERROR${RST} \
 \n$(gettext 'Filesystem inválido para') ${CYAN}'${cPath}' ${RST}=> ${cFs} \
-\n${YELLOW}$(gettext 'Válidos:') ${CYAN}xfs|f2fs|ext2|ext3|ext4|vfat|reiserfs|btrfs|jfs"
+\n${YELLOW}$(gettext 'Válidos:') ${CYAN}xfs|f2fs|ext2|ext3|ext4|vfat|btrfs|jfs"
 
       if sh_choosefstype "${AsFs[boot]}" "$xtitle"; then
         AsFs[boot]="${AConfDisk[_FILESYSTEM]}"
@@ -2360,8 +2359,8 @@ sh_make_fs() {
 		[xfs]="-m crc=0 -f -L VOIDBR"
 		[jfs]="-f -L VOIDBR"
 		[vfat]="-F32 -n EFI"
-		[reiserfs]="-f -l VOIDBR"
 		[ntfs]="-F -L NTFS"
+#		[reiserfs]="-f -l VOIDBR"
 	)
 
 	sh_check_util_fs
@@ -3630,7 +3629,7 @@ sh_choosefstype() {
 	local x
 
 	Afs[xfs]="SGI's XFS"
-	Afs[reiserfs]="Linux Reiserfs"
+#	Afs[reiserfs]="Linux Reiserfs"
 	Afs[jfs]="Linux Jfs"
 	Afs[f2fs]="Flash-Friendly Filesystem"
 	Afs[ext3]="Linux ext3 (journal)"
@@ -6058,7 +6057,7 @@ sh_install() {
 	local user="${AsUser[cuser]}"
 	local start_datetime
 	local end_datetime
-	local akernel=("${AConfKernel[_KERNEL]:-linux}" dracut xfsprogs reiserfsprogs)
+	local akernel=("${AConfKernel[_KERNEL]:-linux}" dracut xfsprogs)
 	local afirmware=(wifi-firmware)
 	local abase=(bash-completion voidbr-base-config fzf voidbr-vinstall voidbr-utils chili-utils exa gettext chrony wireless_tools wpa_supplicant pigz zstd xz sed grep socklog socklog-void) #voidbr-plymouth-theme
 	local agrub=(grub-i386-efi grub-utils grub-terminus grub-btrfs-runit voidbr-grub-theme)
