@@ -6538,16 +6538,6 @@ sh_choosePartition() {
 		local -A Aoldfstype=()
 		local dsk
 
-		if ! $LDISK; then
-		  info "${cmsg_TitleFileSystem}" "$(gettext 'Disco de armazenamento não foi escolhido')"
-		  return 1
-		fi
-
-		if [[ "${#ARRAY_PART_DEVICES[@]}" -eq 0 ]]; then
-		  info "${cmsg_TitleFileSystem}" "$(gettext 'Disco de armazenamento não foi particionado')"
-		  return 1
-		fi
-
 		for i in "${ARRAY_PART_DEVICES[@]}"; do
 			array[n++]="$i"
 			if ((nlen < ${#i})); then

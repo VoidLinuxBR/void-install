@@ -1,5 +1,4 @@
-- mkfs.reiserfs - dependencia
-- mkfs.ntfs     - dependencia
+# - mkfs.ntfs     - dependencia
 - ntfs no particionamento
 - msg no filesytem disco virgem
 - escolha de pacotes
