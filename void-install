@@ -79,6 +79,7 @@ readonly DEPENDENCIES=(
   cryptsetup
   gettext
   tput
+  gdisk
 )
 readonly -A PACKAGEDEP=(
   ['tput']='ncurses'
@@ -95,14 +96,14 @@ readonly LOCKFILE="/tmp/void-install.lock"
 
 # Mapa: [distro]="lista de pacotes"
 declare -gA DISTRO_PKGS=(
-	["void"]="gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils"
-	["void-live"]="gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils"
-	["voidlinux"]="gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils"
-	["chili"]="gettext rsync parted curl xz xfsprogs ntfs-3g jfsutils"
-	["chililinux"]="gettext rsync parted curl xz xfsprogs ntfs-3g jfsutils"
-	["arch"]="gettext rsync parted curl xz xfsprogs ntfs-3g jfsutils"
-	["manjaro"]="gettext rsync parted curl xz xfsprogs ntfs-3g jfsutils"
-	["debian"]="gettext-base rsync parted curl xz-utils xfsprogs ntfs-3g jfsutils"
+	["void"]="gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils gptfdisk"
+	["void-live"]="gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils gptfdisk"
+	["voidlinux"]="gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils gptfdisk"
+	["chili"]="gettext rsync parted curl xz xfsprogs ntfs-3g jfsutils gptfdisk"
+	["chililinux"]="gettext rsync parted curl xz xfsprogs ntfs-3g jfsutils gptfdisk"
+	["arch"]="gettext rsync parted curl xz xfsprogs ntfs-3g jfsutils gptfdisk"
+	["manjaro"]="gettext rsync parted curl xz xfsprogs ntfs-3g jfsutils gptfdisk"
+	["debian"]="gettext-base rsync parted curl xz-utils xfsprogs ntfs-3g jfsutils gptfdisk"
 )
 
 # Mapa: [distro]="comando de instalação"
