@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: qua 27 mai 2026 19:55:02 -04
+#  Updated: qui 28 mai 2026 01:46:41 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.5.27-20260527'
+readonly _VERSION_='3.5.28-20260528'
 readonly DEPENDENCIES=(
   dialog
   rsync
@@ -71,23 +71,38 @@ readonly DEPENDENCIES=(
   curl
   xz
   mkfs.vfat
+  mkfs.reiserfs
+  mkfs.xfs
+  mkfs.ntfs
   tee
   lvm
   cryptsetup
   gettext
+  tput
+)
+readonly -A PACKAGEDEP=(
+  ['tput']='ncurses'
+  ['qemu-system-x86_64']='qemu-full'
+  ['spice-vdagent']='spice-vdagent'
+  ['remote-viewer']='virt-viewer'
+  ['python3']='python'
+  ['virsh']='libvirt'
+  ['find']='findutils'
+  ['awk']='gawk'
+  ['brctl']='bridge-utils'
 )
 readonly LOCKFILE="/tmp/void-install.lock"
 
 # Mapa: [distro]="lista de pacotes"
 declare -gA DISTRO_PKGS=(
-	["void"]="gettext rsync parted curl xz lvm2"
-	["void-live"]="gettext rsync parted curl xz lvm2"
-	["voidlinux"]="gettext rsync parted curl xz lvm2"
-	["chili"]="gettext rsync parted curl xz"
-	["chililinux"]="gettext rsync parted curl xz"
-	["arch"]="gettext rsync parted curl xz"
-	["manjaro"]="gettext rsync parted curl xz"
-	["debian"]="gettext-base rsync parted curl xz-utils"
+	["void"]="gettext rsync parted curl xz lvm2 reiserfsprogs xfsprogs ntfs-3g"
+	["void-live"]="gettext rsync parted curl xz lvm2 reiserfsprogs xfsprogs ntfs-3g"
+	["voidlinux"]="gettext rsync parted curl xz lvm2 reiserfsprogs xfsprogs ntfs-3g"
+	["chili"]="gettext rsync parted curl xz reiserfsprogs xfsprogs ntfs-3g"
+	["chililinux"]="gettext rsync parted curl xz reiserfsprogs xfsprogs ntfs-3g"
+	["arch"]="gettext rsync parted curl xz reiserfsprogs xfsprogs ntfs-3g"
+	["manjaro"]="gettext rsync parted curl xz reiserfsprogs xfsprogs ntfs-3g"
+	["debian"]="gettext-base rsync parted curl xz-utils reiserfsprogs xfsprogs ntfs-3g"
 )
 
 # Mapa: [distro]="comando de instalação"
@@ -318,6 +333,49 @@ check_gettext() {
 	else
 		# Se o usuário negar a instalação de ferramentas básicas, o instalador não tem como seguir
 		echo -e "${yellow}Aviso:${reset} O gettext é indispensável para as traduções. Saindo..."
+		exit 1
+	fi
+}
+
+check_dependencies() {
+  local d
+  local errorFound=false
+
+  for d in "${DEPENDENCIES[@]}"; do
+    if [[ -z $(command -v "$d") ]]; then
+      printf '%s\n' "${red} ✗ ${rst} ${cmsg_CommandNotFound} ${cyan}'$d'${reset}"
+      errorFound=true
+    fi
+  done
+
+  if ! $errorFound; then
+    return 0
+  fi
+
+	echo -e "Distro detectada: ${green}${DISTRO}${reset}"
+
+	# 3. Extração dos dados dos mapas que você definiu
+	local pkgs="${DISTRO_PKGS[$DISTRO]}"
+	local cmd="${DISTRO_MGR[$DISTRO]}"
+
+	# Se a distro atual não existir no mapa, precisamos avisar e parar
+	if [[ -z "$cmd" ]]; then
+		echo -e "${red}Erro: Nenhuma configuração de pacotes encontrada para a distro: '$DISTRO'${reset}"
+		exit 1
+	fi
+
+  echo
+	if readconf "${cyan}Instalar dependências base agora?${rst}"; then
+		echo -e "${blue}::${reset} Preparando ambiente para ${green}${DISTRO}${reset}..."
+		# Execução dinâmica: $cmd (gerenciador) + $pkgs (lista de pacotes)
+		if ! $cmd $pkgs; then
+			echo -e "${red}Erro Crítico:${reset} A instalação dos pacotes básicos falhou."
+			exit 1
+		fi
+		echo -e "${green}Sucesso:${reset} Dependências instaladas."
+	else
+		# Se o usuário negar a instalação de ferramentas básicas, o instalador não tem como seguir
+		die "${yellow}Aviso:${rst} Os comandos são indispensáveis. Saindo..."
 		exit 1
 	fi
 }
@@ -6000,7 +6058,7 @@ sh_install() {
 	local user="${AsUser[cuser]}"
 	local start_datetime
 	local end_datetime
-	local akernel=("${AConfKernel[_KERNEL]:-linux}" dracut xfsprogs)
+	local akernel=("${AConfKernel[_KERNEL]:-linux}" dracut xfsprogs reiserfsprogs)
 	local afirmware=(wifi-firmware)
 	local abase=(bash-completion voidbr-base-config fzf voidbr-vinstall voidbr-utils chili-utils exa gettext chrony wireless_tools wpa_supplicant pigz zstd xz sed grep socklog socklog-void) #voidbr-plymouth-theme
 	local agrub=(grub-i386-efi grub-utils grub-terminus grub-btrfs-runit voidbr-grub-theme)
@@ -7908,8 +7966,7 @@ sh_checkUpdatePackages
 }
 
 reset
-sh_checkDependencies
-sh_checkRoot
+check_dependencies
 sh_checkDisplay
 #sh_update_self "$@"
 sh_loadSavedConfig
