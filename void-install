@@ -73,6 +73,7 @@ readonly DEPENDENCIES=(
   mkfs.vfat
   mkfs.xfs
   mkfs.ntfs
+  mkfs.jfs
   tee
   lvm
   cryptsetup
@@ -94,14 +95,14 @@ readonly LOCKFILE="/tmp/void-install.lock"
 
 # Mapa: [distro]="lista de pacotes"
 declare -gA DISTRO_PKGS=(
-	["void"]="gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g"
-	["void-live"]="gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g"
-	["voidlinux"]="gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g"
-	["chili"]="gettext rsync parted curl xz xfsprogs ntfs-3g"
-	["chililinux"]="gettext rsync parted curl xz xfsprogs ntfs-3g"
-	["arch"]="gettext rsync parted curl xz xfsprogs ntfs-3g"
-	["manjaro"]="gettext rsync parted curl xz xfsprogs ntfs-3g"
-	["debian"]="gettext-base rsync parted curl xz-utils xfsprogs ntfs-3g"
+	["void"]="gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils"
+	["void-live"]="gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils"
+	["voidlinux"]="gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils"
+	["chili"]="gettext rsync parted curl xz xfsprogs ntfs-3g jfsutils"
+	["chililinux"]="gettext rsync parted curl xz xfsprogs ntfs-3g jfsutils"
+	["arch"]="gettext rsync parted curl xz xfsprogs ntfs-3g jfsutils"
+	["manjaro"]="gettext rsync parted curl xz xfsprogs ntfs-3g jfsutils"
+	["debian"]="gettext-base rsync parted curl xz-utils xfsprogs ntfs-3g jfsutils"
 )
 
 # Mapa: [distro]="comando de instalação"
@@ -6057,7 +6058,7 @@ sh_install() {
 	local user="${AsUser[cuser]}"
 	local start_datetime
 	local end_datetime
-	local akernel=("${AConfKernel[_KERNEL]:-linux}" dracut xfsprogs)
+	local akernel=("${AConfKernel[_KERNEL]:-linux}" dracut xfsprogs jfsutils)
 	local afirmware=(wifi-firmware)
 	local abase=(bash-completion voidbr-base-config fzf voidbr-vinstall voidbr-utils chili-utils exa gettext chrony wireless_tools wpa_supplicant pigz zstd xz sed grep socklog socklog-void) #voidbr-plymouth-theme
 	local agrub=(grub-i386-efi grub-utils grub-terminus grub-btrfs-runit voidbr-grub-theme)
