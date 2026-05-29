@@ -3187,8 +3187,8 @@ sh_i3_minimal() {
     i3
     i3status              # Status bar generator for i3bar, dzen2, xmobar or similar programs
     dmenu                 # Generic menu for X
-    i3lock-color
-#   i3lock                # Improved screenlocker based upon XCB and PAM
+#   i3lock-color
+    i3lock                # Improved screenlocker based upon XCB and PAM
     volumeicon            # Lightweight volume control that sits in your systray
     mc                    # User-friendly file manager and visual shell
     scrot                 # Simple command-line screenshot utility for X
@@ -3213,6 +3213,18 @@ sh_i3_minimal() {
     xfce4-screenshooter
     font-awesome
     dejavu-fonts-ttf
+    Thunar
+    rofi
+    feh
+    picom
+    flameshot
+    pavucontrol
+    network-manager-applet
+    polybar
+#   jetbrains-mono-font
+    font-firacode
+    font-hack-ttf
+    neofetch
   )
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
