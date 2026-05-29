@@ -3185,10 +3185,10 @@ sh_i3_minimal() {
 	local DE='I3'
   local apkgs=(
     i3
-    dmenu                 # Generic menu for X
     i3status              # Status bar generator for i3bar, dzen2, xmobar or similar programs
-#   i3lock                # Improved screenlocker based upon XCB and PAM
+    dmenu                 # Generic menu for X
     i3lock-color
+#   i3lock                # Improved screenlocker based upon XCB and PAM
     volumeicon            # Lightweight volume control that sits in your systray
     mc                    # User-friendly file manager and visual shell
     scrot                 # Simple command-line screenshot utility for X
@@ -3204,6 +3204,15 @@ sh_i3_minimal() {
     bumblebee-status
     i3-gaps
     i3blocks
+    xss-lock
+    j4-dmenu-desktop
+    nitrogen
+    volumeicon
+    network-manager-applet
+    dex
+    xfce4-screenshooter
+    font-awesome
+    dejavu-fonts-ttf
   )
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
