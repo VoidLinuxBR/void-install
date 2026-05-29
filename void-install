@@ -3224,7 +3224,6 @@ sh_i3_minimal() {
 #   jetbrains-mono-font
     font-firacode
     font-hack-ttf
-    neofetch
   )
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
