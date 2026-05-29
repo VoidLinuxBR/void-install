@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: sex 29 mai 2026 14:32:36 -04
+#  Updated: sex 29 mai 2026 19:38:42 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -38,13 +38,12 @@ export TEXTDOMAIN=void-install
 #usermod -a -G bluetooth $USER
 
 #debug
-red=$(tput bold)$(tput setaf 196)
-green=$(tput bold)$(tput setaf 2)
-pink=$(tput setaf 5)
-cyan=$(tput setaf 6)
-reset=$(tput sgr0)
-rst=$(tput sgr0)
-#export PS4='${red}${0##*/}${green}[$FUNCNAME]${pink}[$LINENO]${reset} '
+red="$(tput bold)$(tput setaf 196)"
+green="$(tput bold)$(tput setaf 2)"
+pink="$(tput setaf 5)"
+cyan="$(tput setaf 6)"
+reset="$(tput sgr0)"
+rst="$(tput sgr0)"
 export PS4='${red}${0##*/}${green}[${FUNCNAME[0]:-MAIN}]${pink}[$LINENO]${reset} '
 #set -x
 #set -eo pipefail
@@ -55,7 +54,7 @@ readonly APP="${0##*/}"
 readonly _VERSION_='3.5.29-20260529'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
                          chroot blkid fdisk parted lsblk curl xz tee
-                         mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs
+                         mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
                          lvm cryptsetup gettext tput gdisk
                         )
 declare -gA PACKAGEDEP=(
@@ -71,14 +70,14 @@ declare -gA PACKAGEDEP=(
 )
 readonly LOCKFILE="/tmp/void-install.lock"
 declare -gA DISTRO_PKGS=(
-	["void"]="dialog gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools"
-	["void-live"]="dialog gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools"
-	["voidlinux"]="dialog gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools"
-	["chili"]="dialog gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools"
-	["chililinux"]="dialog gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools"
-	["arch"]="dialog gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools"
-	["manjaro"]="dialog gettext rsync parted curl lvm2 xz xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools"
-	["debian"]="dialog gettext-base rsync parted curl xz-utils lvm2 xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools"
+	["void"]="dialog gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools nilfs-utils"
+	["void-live"]="dialog gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools nilfs-utils"
+	["voidlinux"]="dialog gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools nilfs-utils"
+	["chili"]="dialog gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools nilfs-utils"
+	["chililinux"]="dialog gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools nilfs-utils"
+	["arch"]="dialog gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools nilfs-utils"
+	["manjaro"]="dialog gettext rsync parted curl lvm2 xz xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools nilfs-utils"
+	["debian"]="dialog gettext-base rsync parted curl xz-utils lvm2 xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools nilfs-utils"
 )
 declare -gA DISTRO_MGR=(
 	["void"]="xbps-install -Syu --ignore-file-conflicts"
@@ -91,7 +90,7 @@ declare -gA DISTRO_MGR=(
 	["debian"]="apt-get install -y"
 )
 
-declare distro=$(uname -n)
+declare distro="$(uname -n)"
 declare LCUSTOM=false
 declare LAUTOLOGIN=false
 declare LEFI=false
@@ -615,8 +614,6 @@ sh_choose_common_packages() {
 
   # debug $LONLY_TTY
 
-	## begin packages
-
 	if ! $LONLY_TTY; then
 		declare -ga aXorg=(xorg xinit xterm xorg-fonts dbus-x11 elogind dbus-elogind polkit-elogind xdg-user-dirs xrdb xorg-server-xwayland)
 		declare -ga aVideo=(mesa-dri linux-firmware-intel xf86-video-amdgpu xf86-video-ati mesa-nouveau-dri libavif libheif gdk-pixbuf libheif-pixbuf-loader)
@@ -680,10 +677,10 @@ sh_choose_common_packages() {
 				declare -ga aUtilityX=(xkill menulibre mugshot ocs-url gparted vlc celluloid lm_sensors)
 				declare -ga aDaemons+=(avahi-discover)
 			fi
-			## tty
 			declare -ga aArchiverTty=(unrar zip p7zip unzip bzip2)
 			declare -ga aDownloader=()
-			declare -ga aUtility=(binutils dfc btop parallel bubblewrap cmatrix pfetch bc bat xtools geoip geoipupdate)
+#			declare -ga aUtility=(binutils dfc btop parallel bubblewrap cmatrix pfetch bc bat xtools geoip geoipupdate)
+			declare -ga aUtility=(binutils dfc pfetch bc xtools)
 		else
 			declare -ga aIconsAndThemes=()
 			declare -ga aTerminal=()
@@ -696,7 +693,7 @@ sh_choose_common_packages() {
 		aIconsAndThemes+=(Adapta adwaita-icon-theme)
 		aTerminal+=(xfce4-terminal)
 		aBrowser+=(firefox firefox-i18n-$(sh_get_language_without_utf8))
-		aFilemanager+=(octoxbps)
+#		aFilemanager+=(octoxbps)
 		aUtilityX+=(chili-iso2usb)
 		aDaemons+=(avahi acpi acpid irqbalance)
 		aNetworkX=(network-manager-applet)
@@ -849,7 +846,7 @@ sh_touchConf() {
 		WIFI_PASSWORD=$_WIFI_PASSWORD
 	EOF
 	{
-		declare -p LDNLY_TTY
+		declare -p LONLY_TTY
 		declare -p LDHCP
 		declare -p LCUSTOM
 		declare -p LDISK
@@ -1649,7 +1646,7 @@ is_valid_fs() {
   case "$cPath" in
   "/")
     case "$cFs" in
-    xfs|f2fs|ext2|ext3|ext4|btrfs|jfs)
+    xfs|f2fs|ext2|ext3|ext4|btrfs|jfs|nilfs2)
       return 0
       ;;
     *)
@@ -1657,7 +1654,7 @@ is_valid_fs() {
 \n$(gettext 'Filesystem inválido para') ${CYAN}'${cPath}' ${RST}=> ${cFs} \
 \n${YELLOW}$(gettext 'Válidos:') ${CYAN}xfs|f2fs|ext2|ext3|ext4|btrfs|jfs"
 
-      if sh_choosefstype "${AsFs[root]}" "$xtitle"; then
+      if sh_choose_fstype "${AsFs[root]}" "$xtitle"; then
         AsFs[root]="${AConfDisk[_FILESYSTEM]}"
         return 1
       fi
@@ -1665,9 +1662,10 @@ is_valid_fs() {
       ;;
     esac
     ;;
+
   "/home")
     case "$cFs" in
-    xfs|f2fs|ext2|ext3|ext4|vfat|ntfs|btrfs|jfs)
+    xfs|f2fs|ext2|ext3|ext4|vfat|ntfs|btrfs|jfs|nilfs2)
       return 0
       ;;
     *)
@@ -1675,7 +1673,7 @@ is_valid_fs() {
 \n$(gettext 'Filesystem inválido para') ${CYAN}'${cPath}' ${RST}=> ${cFs} \
 \n${YELLOW}$(gettext 'Válidos:') ${CYAN}xfs|f2fs|ext2|ext3|ext4|vfat|ntfs|btrfs|jfs"
 
-      if sh_choosefstype "${AsFs[home]}" "$xtitle"; then
+      if sh_choose_fstype "${AsFs[home]}" "$xtitle"; then
         AsFs[home]="${AConfDisk[_FILESYSTEM]}"
         return 1
       fi
@@ -1694,7 +1692,7 @@ is_valid_fs() {
 \n$(gettext 'Filesystem inválido para') ${CYAN}'${cPath}' ${RST}=> ${cFs} \
 \n${YELLOW}$(gettext 'Válidos:') ${CYAN}xfs|f2fs|ext2|ext3|ext4|vfat|btrfs|jfs"
 
-      if sh_choosefstype "${AsFs[boot]}" "$xtitle"; then
+      if sh_choose_fstype "${AsFs[boot]}" "$xtitle"; then
         AsFs[boot]="${AConfDisk[_FILESYSTEM]}"
         return 1
       fi
@@ -1743,13 +1741,13 @@ sh_getPartitionsPercent() {
   "Mode"          1 01 "${AsDiskPercent[_DISKTABLE]}" 1 24 15 15 2 \
   "root (/) (%)"  2 01 "${AsDiskPercent[root]}"       2 24 05 05 0 \
   ""              2 14 "${AsDiskSize[root]}"          2 14 10 10 2 \
-  "FS"            2 32 "${AsFs[root]}"                2 37 10 10 0 \
+  "FS"            2 32 "${AsFs[root]:-ext4}"          2 37 10 10 0 \
   "/boot    (%)"  3 01 "${AsDiskPercent[boot]}"       3 24 05 05 0 \
   ""              3 14 "${AsDiskSize[boot]}"          3 14 10 10 2 \
-  "FS"            3 32 "${AsFs[boot]}"                3 37 10 10 0 \
+  "FS"            3 32 "${AsFs[boot]:-ext4}"          3 37 10 10 0 \
   "/home    (%)"  4 01 "${AsDiskPercent[home]}"       4 24 05 05 0 \
   ""              4 14 "${AsDiskSize[home]}"          4 14 10 10 2 \
-  "FS"            4 32 "${AsFs[home]}"                4 37 10 10 0 \
+  "FS"            4 32 "${AsFs[home]:-ext4}"          4 37 10 10 0 \
   "swap     (%)"  5 01 "${AsDiskPercent[swap]}"       5 24 05 10 0 \
   ""              5 14 "${AsDiskSize[swap]}"          5 14 10 10 2 \
   "FS"            5 32 "${AsFs[swap]:-swap}"          5 37 10 10 2 \
@@ -1920,10 +1918,10 @@ sh_getPartitionsPercent() {
     if ! confRevisar "${YELLOW}${cwarning}" \
       "DEVICE  : ${RED}${AConfDisk[_DEVICE]}${RESET}\n" \
       "MODEL   : ${RED}${MODEL_ORIGEM}${RST}\n\n" \
-      "/       : ${CYAN}${AsDiskSize[root]}${RST}\n" \
-      "/boot   : $([ "${AsDiskPercent[boot]}" -eq 0 ] && echo "${YELLOW}sem /boot separado${RST}" || echo "${CYAN}${AsDiskSize[boot]}${RST}")\n" \
-      "swap    : $([ "${AsDiskPercent[swap]}" -eq 0 ] && echo "${YELLOW}sem partição swap${RST}" || echo "${CYAN}${AsDiskSize[swap]}${RST}")\n" \
-      "/home   : $([ "${AsDiskPercent[home]}" -eq 0 ] && echo "${YELLOW}sem /home separado${RST}" || echo "${CYAN}${AsDiskSize[home]}${RST}")\n" \
+      "/       : ${CYAN}${AsDiskSize[root]} ${YELLOW}${AsFs[root]} ${RST}\n" \
+      "/boot   : $([ "${AsDiskPercent[boot]}" -eq 0 ] && echo "${YELLOW}sem /boot separado${RST}" || echo "${CYAN}${AsDiskSize[boot]} ${YELLOW}${AsFs[boot]}${RST}")\n" \
+      "swap    : $([ "${AsDiskPercent[swap]}" -eq 0 ] && echo "${YELLOW}sem partição swap${RST}"  || echo "${CYAN}${AsDiskSize[swap]} ${YELLOW}${AsFs[swap]}${RST}")\n" \
+      "/home   : $([ "${AsDiskPercent[home]}" -eq 0 ] && echo "${YELLOW}sem /home separado${RST}" || echo "${CYAN}${AsDiskSize[home]} ${YELLOW}${AsFs[home]}${RST}")\n" \
       "\n${RED}${cmsg_todos_os_dados_serao_perdidos}${RESET}" \
       "\n\n${BOLD}${CYAN}$(gettext 'Deseja prosseguir ou revisar com o particionamento ?')"
     then
@@ -2346,6 +2344,7 @@ sh_make_fs() {
 		[jfs]="-f -L VOIDBR"
 		[vfat]="-F32 -n EFI"
 		[ntfs]="-F -L NTFS"
+		[nilfs2]="-f -L NILFS2"
 #		[reiserfs]="-f -l VOIDBR"
 	)
 
@@ -2755,23 +2754,23 @@ sh_activating_pipewire() {
 
    # DESATIVAR AUTOSPAWN DO PULSEAUDIO (usuário)
    # impede PulseAudio iniciar automaticamente
-   mkdir -p /home/$cuser/.config/pulse
+   mkdir -p /home/${cuser}/.config/pulse
 
-   cat > /home/$cuser/.config/pulse/client.conf <<EOF
+   cat > /home/${cuser}/.config/pulse/client.conf <<EOF
 autospawn = no
 daemon-binary = /bin/true
 EOF
 
     #AUTOSTART CORRETO (SÓ USUÁRIO)
-    mkdir -p /home/$cuser/.config/autostart
-    ln -sf /usr/share/applications/pipewire.desktop /home/$cuser/.config/autostart/pipewire.desktop
-    ln -sf /usr/share/applications/pipewire-pulse.desktop /home/$cuser/.config/autostart/pipewire-pulse.desktop
+    mkdir -p /home/${cuser}/.config/autostart
+    ln -sf /usr/share/applications/pipewire.desktop /home/${cuser}/.config/autostart/pipewire.desktop
+    ln -sf /usr/share/applications/pipewire-pulse.desktop /home/${cuser}/.config/autostart/pipewire-pulse.desktop
     ln -sf /usr/share/applications/wireplumber.desktop /home/$cuser/.config/autostart/wireplumber.desktop
 
     # ---- integração ALSA → PipeWire ----
     mkdir -p ~/.config/alsa/conf.d
-    ln -sf /usr/share/alsa/alsa.conf.d/50-pipewire.conf /home/$cuser/.config/alsa/conf.d/50-pipewire.conf
-    ln -sf /usr/share/alsa/alsa.conf.d/99-pipewire-default.conf /home/$cuser/.config/alsa/conf.d/99-pipewire-default.conf
+    ln -sf /usr/share/alsa/alsa.conf.d/50-pipewire.conf /home/${cuser}/.config/alsa/conf.d/50-pipewire.conf
+    ln -sf /usr/share/alsa/alsa.conf.d/99-pipewire-default.conf /home/${cuser}/.config/alsa/conf.d/99-pipewire-default.conf
 
   " $err_not_fatal
 }
@@ -3212,7 +3211,6 @@ sh_i3_minimal() {
     dex
     xfce4-screenshooter
     font-awesome
-    dejavu-fonts-ttf
     Thunar
     rofi
     feh
@@ -3222,6 +3220,7 @@ sh_i3_minimal() {
     network-manager-applet
     polybar
 #   jetbrains-mono-font
+    dejavu-fonts-ttf
     font-firacode
     font-hack-ttf
   )
@@ -3644,7 +3643,7 @@ sh_chooseSource() {
 	done
 }
 
-sh_choosefstype() {
+sh_choose_fstype() {
 	local oldfstype="$1"
   local xtitle="$2"
 	declare -A Afs
@@ -3666,6 +3665,7 @@ sh_choosefstype() {
 	Afs[vfat]="FAT32 (EFI)"
 	Afs[swap]="Linux swap"
 	Afs[ntfs]="Microsoft NTFS (ntfs-3g) (not for root '/')"
+	Afs[nilfs2]="A log-structured file system supporting continuous snapshotting"
 
 	if [[ -z "$oldfstype" ]]; then
 		oldfstype=${AConfDisk[_FILESYSTEM]}
@@ -5287,8 +5287,6 @@ sh_choose_wm() {
 	LSERVER=false
   LONLY_TTY=true
 
-	debug "${_WINDOWMANAGER[@]}"
-
 	for wm in "${_WINDOWMANAGER[@]}"; do
 		case "$wm" in
 		tty)
@@ -5336,7 +5334,10 @@ sh_choose_wm() {
 			sh_configure_dhcpcd_static_ip_dialog
 		fi
 	fi
-  #debug "LONLY_TTY=$LONLY_TTY"
+
+  debug "${_WINDOWMANAGER[@]}" \
+        "\nLONLY_TTY=$LONLY_TTY" \
+        "\nLXORG=$LXORG"
 }
 
 get_default_iface() {
@@ -6581,7 +6582,7 @@ sh_getyes() {
 	esac
 }
 
-sh_choosePartition() {
+sh_choose_Partition() {
 	sh_umount_fs
 	while true; do
 		sh_disk_part_info
@@ -6673,7 +6674,7 @@ $(printf "%${nlen}s$sep%-11s$sep%6s$sep%-20s$sep%-20s$sep%-20s$sep%-8s$sep%s" \
 		oldfstype="${Aoldfstype[$part]}"
 		oldmntpoint="$(sh_splitarray "${Amntpoint[$part]}" 1)"
 
-		if sh_choosefstype "$oldfstype"; then
+		if sh_choose_fstype "$oldfstype"; then
 			newfstype=${AConfDisk[_FILESYSTEM]}
 		else
 			continue
@@ -6971,7 +6972,7 @@ sh_main_menu() {
 		"${cmsg_Mirror}") sh_choose_mirror "$@" && [ -n "$LMIRROR" ] && DEFITEM="${cmsg_Source}" ;;
 		"${cmsg_Source}") sh_chooseSource && [ -n "$LSOURCE" ] && DEFITEM="${cmsg_Disco}" ;;
 		"${cmsg_Disco}") sh_choose_disk && [ -n "$LDISK" ] && DEFITEM="FileSystem" ;;
-		"FileSystem") sh_choosePartition && [ -n "$LPARTITION" ] && DEFITEM="${cmsg_BootLoader}" ;;
+		"FileSystem") sh_choose_Partition && [ -n "$LPARTITION" ] && DEFITEM="${cmsg_BootLoader}" ;;
 		"${cmsg_BootLoader}") sh_setBootLoader && [ -n "$LGRUB" ] && DEFITEM="${cmd_Teclado}" ;;
 		"${cmsg_Teclado}") sh_chooseKeymap && [ -n "$LKEYMAP" ] && DEFITEM="Timezone" ;;
 		"Timezone") sh_chooseTimezone && [ -n "$LTIMEZONE" ] && DEFITEM="Locale" ;;
