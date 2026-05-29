@@ -5284,41 +5284,45 @@ sh_choose_wm() {
 
 	LWM=true
 	_WINDOWMANAGER=($(strtoarray "$wm"))
-	ALLOWED=(tty server xorg)
 	LSERVER=false
   LONLY_TTY=true
-	lonly_tty=true
+
+	debug "${_WINDOWMANAGER[@]}"
 
 	for wm in "${_WINDOWMANAGER[@]}"; do
 		case "$wm" in
-		tty | xorg) ;;
-		server) LSERVER=true ;;
+		tty)
+		  LONLY_TTY=true
+	  	AConfAudio[_AUDIOSERVER]="None"
+  		_DISPLAYMANAGER="None"
+      ;;
+		xorg)
+      LONLY_TTY=true
+  		LXORG=true
+  		AConfAudio[_AUDIOSERVER]="None"
+	  	_DISPLAYMANAGER="None"
+		  ;;
+		server)
+      LONLY_TTY=true
+		  LSERVER=true
+  		AConfAudio[_AUDIOSERVER]="None"
+	  	_DISPLAYMANAGER="None"
+		  ;;
 		*)
-			lonly_tty=false
-			break
-			;;
-		esac
+  	  LONLY_TTY=false
+  	  AConfAudio[_AUDIOSERVER]="Pipewire"
+	    if grep -qi gnome <<<"${_WINDOWMANAGER[@]}"; then
+		  	_DISPLAYMANAGER="gdm"
+  		else
+	  		_DISPLAYMANAGER="lightdm"
+  		fi
+	 		break
+	  	;;
+  	esac
 	done
 
-	if $lonly_tty; then
-		LONLY_TTY=true
-		AConfAudio[_AUDIOSERVER]="None"
-		_DISPLAYMANAGER="None"
-	else
-		LONLY_TTY=false
-		AConfAudio[_AUDIOSERVER]="Pipewire"
-		if grep -qi gnome <<<"${_WINDOWMANAGER[@]}"; then
-			_DISPLAYMANAGER="gdm"
-		else
-			_DISPLAYMANAGER="lightdm"
-		fi
-	fi
 	LAUDIO=true
 	LDM=true
-
-	if grep -qi xorg <<<"${_WINDOWMANAGER[@]}"; then
-		LXORG=true
-	fi
 
 	if grep -qi hyprland <<<"${_WINDOWMANAGER[@]}"; then
 		HYPRLAND=true
