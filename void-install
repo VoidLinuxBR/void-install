@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: sex 29 mai 2026 19:38:42 -04
+#  Updated: sáb 30 mai 2026 14:00:34 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -51,7 +51,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.5.29-20260529'
+readonly _VERSION_='3.5.30-20260530'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
                          chroot blkid fdisk parted lsblk curl xz tee
                          mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -634,7 +634,7 @@ sh_choose_common_packages() {
 				declare -ga aPrinter=()
 				declare -ga aTerminal=(rxvt-unicode cool-retro-term)
 				declare -ga aEditorX=(mousepad libreoffice libreoffice-i18n-$(sh_get_language_without_utf8))
-				declare -ga aNetworkX=(gvfs gvfs-smb gvfs-mtp gvfs-afc gvfs-cdda udisks2)
+				declare -ga aNetworkX=(gvfs gvfs-smb gvfs-mtp gvfs-afc gvfs-cdda udisks2 gvfs-gphoto2)
 				declare -ga aUtilityX=(xkill menulibre mugshot ocs-url gparted vlc celluloid lm_sensors)
 				declare -ga aDaemons+=(avahi-discover)
 			fi
@@ -651,13 +651,13 @@ sh_choose_common_packages() {
 			declare -ga aDaemons=()
 		fi
 
-		aIconsAndThemes+=(Adapta adwaita-icon-theme)
+		aIconsAndThemes+=(Adapta adwaita-icon-theme arc-theme)
 		aTerminal+=(xfce4-terminal)
 		aBrowser+=(firefox firefox-i18n-$(sh_get_language_without_utf8))
 #		aFilemanager+=(octoxbps)
 		aUtilityX+=(chili-iso2usb)
 		aDaemons+=(avahi acpi acpid irqbalance)
-		aNetworkX=(network-manager-applet)
+		aNetworkX+=(network-manager-applet)
 	fi
 
 	if $LSERVER; then
@@ -698,10 +698,10 @@ sh_setEnvironment() {
 	readonly url_tarball="https://raw.githubusercontent.com/voidlinuxbr/void-install/refs/heads/main/${_TARBALL_ROOTFS}"
 	readonly url_tarball_md5="https://raw.githubusercontent.com/voidlinuxbr/void-install/refs/heads/main/${_TARBALL_ROOTFS}.md5"
   #
-	readonly -gi zero=0
-	readonly -gi one=1
-	readonly -gi err_not_fatal=0
-	readonly -gi err_fatal=1
+	readonly zero=0
+	readonly one=1
+	readonly err_not_fatal=0
+	readonly err_fatal=1
   #
 	readonly BOOTLOG="/tmp/void-install-$(sh_diahora).log"
 	readonly LOGGER='/dev/tty8'
@@ -738,7 +738,7 @@ sh_setEnvironment() {
 	: "${EN_US=1}"
 	: "${DE_DE=2}"
 	: "${FR_FR=3}"
-	: "${LC_DEFAULT=$(sh_getLocale)}"
+	: "${LC_DEFAULT=$(sh_get_Locale)}"
 
 	# flag dialog exit status codes
 	: "${D_OK=0}"
@@ -874,10 +874,8 @@ sh_lang_he() {
 	grep ^he <<<"$LANG"
 	return "$?"
 }
-export -f sh_lang_he
 
-# Substitua a função original por esta:
-sh_get_locale() {
+sh_get_Locale() {
 	# Verifica se o usuário forçou uma variável (LC_ALL, LANG, etc)
 	local current=${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}
 
@@ -889,9 +887,6 @@ sh_get_locale() {
 		echo "${current%%.*}"
 	fi
 }
-export -f sh_get_locale
-# Cria um alias para corrigir o erro de digitação da linha 527 do script original
-sh_getLocale() { sh_get_locale; }
 
 sh_get_code_lang() {
 	local LangFilter="${LANG%%.*}"
@@ -901,12 +896,10 @@ sh_get_code_lang() {
 	local LangFilterLowercaseModified="${LangFilterLowercase//_/-}"
 	echo "$LangFilterLowercaseModified"
 }
-export -f sh_get_code_lang
 
 sh_get_lang() {
 	echo "$LANG"
 }
-export -f sh_get_lang
 
 sh_get_language_without_utf8() {
 	#	local LangFilter="${LANG%%.*}"
@@ -923,17 +916,14 @@ sh_get_code_language() {
 	local LangFilterLowercaseModified="${LangFilterLowercase//_/-}"
 	echo "$LangFilterLowercaseModified"
 }
-export -f sh_get_code_language
 
 sh_get_language() {
 	echo "$LANGUAGE"
 }
-export -f sh_get_language
 
 sh_catecho() {
 	echo "$(<"$1")"
 }
-export -f sh_catecho
 
 sh_disablePrintk() {
 	if [[ -w /proc/sys/kernel/printk ]]; then
@@ -2678,35 +2668,36 @@ sh_activating_services() {
 
 sh_global_audio_cleaning() {
 	local cuser="${AsUser[cuser]}"
+
 	# LIMPEZA GLOBAL — remover qualquer autostart do sistema
 	# (evita conflito com configuração do usuário)
 	sh_chroot_job "${cmsg_Ajustando} sound global" "
-        # remover PipeWire global
-        sudo rm -f /etc/xdg/autostart/pipewire.desktop
-        sudo rm -f /etc/xdg/autostart/pipewire-pulse.desktop
-        sudo rm -f /etc/xdg/autostart/wireplumber.desktop
+    # remover PipeWire global
+    sudo rm -f /etc/xdg/autostart/pipewire.desktop
+    sudo rm -f /etc/xdg/autostart/pipewire-pulse.desktop
+    sudo rm -f /etc/xdg/autostart/wireplumber.desktop
 
-        # remover PulseAudio global
-        sudo rm -f /etc/xdg/autostart/pulseaudio.desktop
-        sudo rm -f /etc/xdg/autostart/pulseaudio-kde.desktop
+    # remover PulseAudio global
+    sudo rm -f /etc/xdg/autostart/pulseaudio.desktop
+    sudo rm -f /etc/xdg/autostart/pulseaudio-kde.desktop
 
-        # remover qualquer config ALSA global que redirecione áudio
-        sudo rm -f /etc/alsa/conf.d/50-pipewire.conf
-        sudo rm -f /etc/alsa/conf.d/99-pipewire-default.conf
-        sudo rm -f /etc/alsa/conf.d/50-pulseaudio.conf
+    # remover qualquer config ALSA global que redirecione áudio
+    sudo rm -f /etc/alsa/conf.d/50-pipewire.conf
+    sudo rm -f /etc/alsa/conf.d/99-pipewire-default.conf
+    sudo rm -f /etc/alsa/conf.d/50-pulseaudio.conf
 
-        # LIMPEZA DO USUÁRIO
-        rm -f /home/$cuser/.config/autostart/pipewire.desktop
-        rm -f /home/$cuser/.config/autostart/pipewire-pulse.desktop
-        rm -f /home/$cuser/.config/autostart/wireplumber.desktop
-        rm -f /home/$cuser/.config/autostart/pulseaudio.desktop
-        rm -f /home/$cuser/.config/autostart/pulseaudio-kde.desktop
+    # LIMPEZA DO USUÁRIO
+    rm -f /home/$cuser/.config/autostart/pipewire.desktop
+    rm -f /home/$cuser/.config/autostart/pipewire-pulse.desktop
+    rm -f /home/$cuser/.config/autostart/wireplumber.desktop
+    rm -f /home/$cuser/.config/autostart/pulseaudio.desktop
+    rm -f /home/$cuser/.config/autostart/pulseaudio-kde.desktop
 
-        rm -rf /home/$cuser/.config/pipewire
-        rm -rf /home/$cuser/.config/wireplumber
-        rm -rf /home/$cuser/.config/pulse
+    rm -rf /home/$cuser/.config/pipewire
+    rm -rf /home/$cuser/.config/wireplumber
+    rm -rf /home/$cuser/.config/pulse
 
-    " $err_not_fatal
+  " $err_not_fatal
 }
 
 sh_activating_pipewire() {
@@ -2922,7 +2913,7 @@ sh_blackbox_minimal() {
 sh_fluxbox_minimal() {
 	local DE='FluxBox'
 	local apkgs=(fluxbox fbmenugen cairo galculator-gtk2 gtk2-engines gtk-engine-murrine)
-	apkgs+=(wicd qt5ct qt5-styleplugins leafpad dconf volumeicon feh viewnior compton arc-theme ffmpegthumbnailer)
+	apkgs+=(wicd qt5ct qt5-styleplugins leafpad dconf volumeicon feh viewnior compton ffmpegthumbnailer)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 	if [[ -f "$dir_install/home/${AsUser[cuser]}/.fluxbox/startup" ]]; then
@@ -2955,7 +2946,6 @@ sh_plasma_minimal() {
 		apkgs+=(
 			kf6-kaccounts-integration
 			kaccounts-providers
-			kf6-kaccounts-integration
 			signon-kwallet-extension
 		)
 
@@ -3027,15 +3017,9 @@ sh_xfce4_minimal() {
 	if $LCUSTOM; then
 		apkgs+=(
 			thunar-archive-plugin
-			gvfs
-			bluez
-			bluez-alsa
-			blueman
-			libspa-bluetooth
 			ristretto
 			engrampa
 			file-roller
-			blueberry
 			mate-calc
 			umc
 			plank
@@ -3079,7 +3063,6 @@ sh_xorg_minimal() {
 sh_gnome_minimal() {
 	local DE='Gnome'
 	local apkgs=(
-		"arc-theme"                # Tema Arc para janelas e interface
 		"bluez"                    # Pilha de protocolos Bluetooth
 		"cantarell-fonts"          # Fonte oficial da interface GNOME
 		"colord"                   # Gerenciador de perfis de cores
@@ -3101,23 +3084,14 @@ sh_gnome_minimal() {
 		"gnome-system-monitor"     # Monitor de processos e recursos do sistema
 		"gnome-terminal"           # Emulador de terminal padrão do GNOME
 		"gnome-themes-extra"       # Temas extras para compatibilidade GTK2 e GTK3
-		"gnome-tweaks"             # Ajustes finos de interface e extensões
-		"gvfs-afp"                 # Suporte ao protocolo de rede Apple (AFP)
-		"gvfs-goa"                 # Integração de contas online (inclui Google Drive)
-		"gvfs-gphoto2"             # Suporte a câmeras digitais e dispositivos PTP
-		"gvfs-mtp"                 # Suporte a transferência de arquivos via MTP (Android/iOS)
-		"gvfs-smb"                 # Suporte a compartilhamentos Windows/Samba
 		"mime-types"               # Fornece o arquivo compartilhado /etc/mime.types
 		"NetworkManager"           # Gerenciador de conexões de rede
 		"papirus-icon-theme"       # Conjunto de ícones Papirus
-		"pipewire"                 # Servidor de áudio e vídeo moderno
 		"polkit"                   # Framework para definição de privilégios
 		"simple-scan"              # Utilitário de digitalização de documentos
 		"system-config-printer"    # Ferramenta gráfica para configuração de impressoras
 		"tracker3"                 # Motor de busca e indexação de arquivos
 		"tracker3-miners"          # Extratores de metadados para busca do Tracker
-		"udisks2"                  # Serviço de manipulação de dispositivos de armazenamento
-		"wireplumber"              # Gerenciador de sessão para Pipewire
 		"xdg-desktop-portal-gnome" # Integração de interface e permissões para Wayland
 		"xdg-user-dirs-gtk"        # Gerenciamento automático das pastas padrão de usuário
 	)
@@ -3169,8 +3143,6 @@ sh_i3_minimal() {
     xss-lock
     j4-dmenu-desktop
     nitrogen
-    volumeicon
-    network-manager-applet
     dex
     xfce4-screenshooter
     font-awesome
@@ -3179,10 +3151,7 @@ sh_i3_minimal() {
     feh
     picom
     flameshot
-    pavucontrol
-    network-manager-applet
     polybar
-#   jetbrains-mono-font
     dejavu-fonts-ttf
     font-firacode
     font-hack-ttf
@@ -3300,22 +3269,18 @@ sh_dwm_minimal() {
 sh_hyprland_minimal() {
 	local DE='Hyprland'
 	local user="${AsUser[cuser]}"
-	local apkgs=(hyprland hyprland-protocols xdg-desktop-portal-hyprland dbus polkit seatd elogind mesa-dri)
+	local apkgs=(hyprland hyprland-protocols xdg-desktop-portal-hyprland dbus polkit seatd)
+
 	apkgs+=(hyprlang)
-	apkgs+=(Waybar dunst kitty libnotify xdg-desktop-portal-gtk)
-	#Wallpaper tool for Wayland compositors
+	apkgs+=(Waybar dunst libnotify xdg-desktop-portal-gtk)
 	apkgs+=(swaybg)    #Wallpaper tool for Wayland compositors
 	apkgs+=(hyprpaper) #Fast wallpaper utility for wlroots compositors with IPC controls
 	apkgs+=(mpvpaper)  #Video wallpaper program for wlroots based wayland compositors
-	#hyprland's default terminal
 	apkgs+=(kitty alacritty)
-	#other great options
-	#		  apkgs+=(alacritty wezterm)
+	#apkgs+=(alacritty wezterm)
 	#most popular option
 	apkgs+=(rofi)
-	#gtk rofi
 	apkgs+=(wofi)
-	#hyprland wiki
 	apkgs+=(bemenu fuzzel tofi)
 
 	shell='/bin/bash'
@@ -5297,10 +5262,8 @@ sh_choose_wm() {
 			sh_configure_dhcpcd_static_ip_dialog
 		fi
 	fi
+  # debug "${_WINDOWMANAGER[@]}" "\nLONLY_TTY=$LONLY_TTY" "\nLXORG=$LXORG"
 
-  debug "${_WINDOWMANAGER[@]}" \
-        "\nLONLY_TTY=$LONLY_TTY" \
-        "\nLXORG=$LXORG"
 }
 
 get_default_iface() {
@@ -6288,21 +6251,6 @@ sh_monitor() {
 		--begin 10 10 --tailboxbg $BOOTLOG 20 120 \
 		--and-widget \
 		--begin 3 10 --progressbox "$last_msg" 5 30
-}
-
-sh_getLocale() {
-	local lc
-
-	LC_DEFAULT="${Alanguage[pt_BR]}"
-	LOCALE="pt_BR"
-
-	if lc="${LC_ALL:-${LANG:-${LC_MESSAGES:-en_US.UTF-8}}}"; then
-		lc="${lc%%.*}" # remove .UTF-8
-		lc="${lc:0:5}" # fica tipo pt_BR
-		LOCALE="$lc"
-		LC_DEFAULT="${Alanguage[$lc]}"
-	fi
-
 }
 
 sh_setMknodTty() {
@@ -7968,7 +7916,7 @@ sh_check_internet() {
 }
 
 sh_setEnvironment
-sh_getLocale
+sh_get_Locale
 sh_setLanguage
 sh_setVarColors
 sh_setAsciiLines
