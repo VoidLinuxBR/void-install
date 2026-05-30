@@ -90,7 +90,6 @@ declare -gA DISTRO_MGR=(
 	["debian"]="apt-get install -y"
 )
 
-declare distro="$(uname -n)"
 declare LCUSTOM=false
 declare LAUTOLOGIN=false
 declare LEFI=false
@@ -101,7 +100,6 @@ declare LSOURCE=true
 declare LKEYMAP=true
 declare LTIMEZONE=true
 declare LKERNEL=true
-declare LAUDIO=true
 declare LWM=true
 declare LDM=true
 declare LAUTO=true
@@ -143,7 +141,7 @@ declare -gA AsUser=(
 	[cpass]='voidlinux'
 	[cpassroot]='voidlinux'
 	[chostname]='voidlinux'
-	[cgroups]='wheel,audio,video,floppy,cdrom,optical,kvm,xbuilder'
+	[cgroups]='wheel,audio,video,tty,floppy,cdrom,optical,kvm,xbuilder'
 )
 #
 declare -gA AConfFde=(
@@ -371,7 +369,7 @@ get_option() {
 
 die() {
 	if test $# -ge 2; then
-		evaluate_retval $one
+		evaluate_retval 1
 	fi
 	local msg=$1
 	shift
@@ -382,43 +380,6 @@ die() {
 
 DOT() {
 	printf "%s" "${blue}:: ${reset}"
-}
-
-sh_checkDependencies() {
-	local d
-	local errorFound=false
-	declare -a missing
-
-	for d in "${DEPENDENCIES[@]}"; do
-		if [[ -z $(command -v "$d") ]]; then
-			pkg="$d"
-			[[ "$pkg" == 'lvm' ]] && pkg='lvm2'
-			missing+=("$pkg")
-			errorFound=true
-			printf '%s\n' "${red}${cmsg_ERRO}${reset}: ${cmsg_CommandNotFound} ${cyan}'$d'${reset}"
-		fi
-	done
-
-	if $errorFound; then
-		echo "${yellow}--------------${cmsg_ImpossivelContinuar}-------------${reset}"
-		echo "${cmsg_ImpossivelContinuar1}" >&2
-		echo "${cmsg_ImpossivelContinuar2} \$PATH" >&2
-		echo "${yellow}-----------------------------------------------${reset}"
-
-		if [[ "$distro" = @(void|void-live|voidlinux) ]]; then
-			echo
-			if readconf "${yellow}${cmsg_InstCommand} '${cyan}${missing[*]}${reset}' ?"; then
-				if LC_ALL=C xbps-install -Sy "${missing[@]}"; then
-					errorFound=0
-					sh_checkDependencies
-				else
-					die "${cmsg_RunNewErro}"
-				fi
-			fi
-		else
-			die "${cmsg_ERRO}: ${cmsg_InstalacaoAbortada}..."
-		fi
-	fi
 }
 
 sh_create_dialogrc() {
@@ -736,10 +697,12 @@ sh_setEnvironment() {
 	readonly _TARBALL_ROOTFS=void-x86_64-base-custom-current.tar.xz
 	readonly url_tarball="https://raw.githubusercontent.com/voidlinuxbr/void-install/refs/heads/main/${_TARBALL_ROOTFS}"
 	readonly url_tarball_md5="https://raw.githubusercontent.com/voidlinuxbr/void-install/refs/heads/main/${_TARBALL_ROOTFS}.md5"
-	readonly zero=0
-	readonly one=1
-	readonly err_not_fatal=0
-	readonly err_fatal=1
+  #
+	readonly -gi zero=0
+	readonly -gi one=1
+	readonly -gi err_not_fatal=0
+	readonly -gi err_fatal=1
+  #
 	readonly BOOTLOG="/tmp/void-install-$(sh_diahora).log"
 	readonly LOGGER='/dev/tty8'
 	shell='/bin/sh'
@@ -1034,10 +997,10 @@ sh_checkRepo() {
 	response=$(curl -o /dev/null -s -w "%{http_code}\n" -L "$url_repo")
 	retval=$?
 	if [[ "$response" -eq 200 ]]; then
-		evaluate_retval $zero "$err_not_fatal" "${green}response: $response ($url_repo)${rst}"
+		evaluate_retval 0 "$err_not_fatal" "${green}response: $response ($url_repo)${rst}"
 		return 0
 	fi
-	evaluate_retval $one "$err_not_fatal" "response: $response: ${cmsg_SemRota} ($url_repo) - ${cmsg_CheckNet}"
+	evaluate_retval 1 "$err_not_fatal" "response: $response: ${cmsg_SemRota} ($url_repo) - ${cmsg_CheckNet}"
 	return 1
 }
 
@@ -1062,9 +1025,9 @@ sh_downloadTarball() {
 	sh_info_msg "${cmsg_IniciandoDownload} $url_tarball"
 	curl -L -C - --insecure --silent --remote-name "$url_tarball" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 	if [[ "${PIPESTATUS[0]}" -eq 1 ]]; then
-		evaluate_retval $one "$err_fatal" "${cmsg_SemRota} ($url_mirror) - ${cmsg_CheckNet}"
+		evaluate_retval 1 "$err_fatal" "${cmsg_SemRota} ($url_mirror) - ${cmsg_CheckNet}"
 	fi
-	evaluate_retval $zero
+	evaluate_retval 0
 	return 0
 }
 
@@ -1072,11 +1035,11 @@ sh_checkTarball() {
 	sh_info_msg "${cmsg_ChecandoTarball} rootfs $_TARBALL_ROOTFS"
 
 	if ! [[ -e "$_TARBALL_ROOTFS" ]]; then
-		evaluate_retval $one "$err_not_fatal"
+		evaluate_retval 1 "$err_not_fatal"
 		rm -f "$_TARBALL_ROOTFS"
 		sh_downloadTarball
 	else
-		evaluate_retval $zero
+		evaluate_retval 0
 		return 0
 	fi
 	return "$?"
@@ -1088,11 +1051,11 @@ sh_checkIntegrityTarball() {
 	sh_info_msg "${cmsg_VerificandoIntegridadeTarball} rootfs $_TARBALL_ROOTFS"
 	tar -tf "$_TARBALL_ROOTFS" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 	if ! [[ "${PIPESTATUS[0]}" -eq 0 ]]; then
-		evaluate_retval $one "$err_not_fatal"
+		evaluate_retval 1 "$err_not_fatal"
 		rm -f "$_TARBALL_ROOTFS"
 		sh_downloadTarball
 	else
-		evaluate_retval $zero
+		evaluate_retval 0
 		return 0
 	fi
 	return "${PIPESTATUS[0]}"
@@ -1425,7 +1388,7 @@ function debug() {
 
 info() {
 	msg "${fmt} $@"
-	evaluate_retval $zero
+	evaluate_retval 0
 
 	${DIALOG} \
 		--colors \
@@ -1464,7 +1427,7 @@ infobox() {
 
 alerta() {
 	msg "${fmt} $@"
-	evaluate_retval $zero
+	evaluate_retval 0
 
 	${DIALOG} \
 		--colors \
@@ -2386,8 +2349,8 @@ sh_stop_mount() {
       umount -rl "$dir_install"
       nchoice="${PIPESTATUS[0]}"
       evaluate_retval 0
-   	[[ $nchoice -eq 0 || $nchoice -eq 32 ]] && LMOUNT=$zero
-	   [[ $LMOUNT -eq $zero ]] && return 0 || return 1
+   	[[ $nchoice -eq 0 || $nchoice -eq 32 ]] && LMOUNT=0
+	   [[ $LMOUNT -eq 0 ]] && return 0 || return 1
    " $err_not_fatal
 }
 
@@ -3387,7 +3350,7 @@ sh_make_bspwm_conf() {
 		echo 'echo "---" | tee -a /tmp/polybar1.log /tmp/polybar2.log' >> /home/$user/.config/polybar/launch.sh &&
 		echo 'polybar example 2>&1 | tee -a /tmp/polybar1.log & disown' >> /home/$user/.config/polybar/launch.sh &&
    	echo '~/.config/polybar/launch.sh' >> /home/$user/.config/bspwm/bspwmrc &&
-	   chmod +x $user:$user /home/$user/.config/polybar/launch.sh &&
+    chmod +x /home/$user/.config/polybar/launch.sh &&
    	chown $user:$user /home/$user/.config -R
    " "$err_not_fatal"
 }
@@ -4120,7 +4083,7 @@ sh_choose_mirror() {
 			;;
 		3)
 			oldgrafico=$grafico
-			grafico=$one
+			grafico=1
 			if [[ -n $(command -v void-testmirror) || -n $(command -v ./void-testmirror) ]]; then
 				last_msg="Wait... ${cmsg_Gerando} test with void-testmirror ${xurl}"
 				msg "=== ${cmsg_Mirror^^} === void-testmirror" "$last_msg" "$(log_info_msg "$last_msg")"
@@ -4130,7 +4093,7 @@ sh_choose_mirror() {
 				info "=== ${cmsg_Mirror^^} === void-testmirror" "\n$result"
 			else
 				sh_info_msg "Wait... ${cmsg_Gerando} test with void-mirror ${xurl}"
-				evaluate_retval $one "$err_not_fatal"
+				evaluate_retval 1 "$err_not_fatal"
 				info "=== ${cmsg_Mirror^^} === void-testmirror" "\n${RED}void-testmirror não foi localizado no \$PATH${RESET}" \
 					"${RED}void-testmirror não foi localizado em $PWD!${RESET}"
 			fi
@@ -4291,7 +4254,7 @@ ${BOLD}MODEL   : ${RESET}${RED}${MODEL_ORIGEM}${RESET}\n" \
 		if sh_chooseTablePartition; then
 			LMKPARTED=false
 			oldgrafico=$grafico
-			grafico=$one
+			grafico=1
 			sh_mkparted
 			grafico=$oldgrafico
 			sh_disk_part_info
@@ -4354,10 +4317,10 @@ sh_choose_disk() {
 
 		if [ $# -eq 0 ]; then
 			xtitle="${cmsg_TitleDisco}"
-			LCHOOSEBOOTLOADER=$zero
+			LCHOOSEBOOTLOADER=0
 		else
 			xtitle="${cmsg_BootLoader^^}"
-			LCHOOSEBOOTLOADER=$one
+			LCHOOSEBOOTLOADER=1
 		fi
 
 		for i in "${ARRAY_DSK_DEVICES[@]}"; do
@@ -4770,7 +4733,7 @@ sh_choosewifiOLD() {
     wpa_cli -i "$iface" scan 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 
 		if [[ "${PIPESTATUS[0]}" -gt 0 ]]; then
-			evaluate_retval $one "$err_not_fatal"
+			evaluate_retval 1 "$err_not_fatal"
 			info "WIFI" "${RED}$(gettext "A verificação não retornou nenhum resultado.")" \
 				"$(gettext "Aparentemente,") $(gettext "o serviço wpa_supplicant não está em execução.")" \
 				"" \
@@ -4779,7 +4742,7 @@ sh_choosewifiOLD() {
 				"2-$(gettext "Verifique se há um dispositivo wi-fi conectado à máquina.")"
 			return 1
 		fi
-		evaluate_retval $zero
+		evaluate_retval 0
 		scan_results=$(wpa_cli scan_results)
 		lines=$(wc -l <<<"$scan_results")
 		lines=$((lines - 2))
@@ -5149,7 +5112,7 @@ sh_loadconf() {
 		evaluate_retval "$?"
 		sh_parseconf
 	else
-		evaluate_retval "$?" $one "${cmsg_falhaAbertura} $app_conf!"
+		evaluate_retval "$?" 1 "${cmsg_falhaAbertura} $app_conf!"
 	fi
 }
 
@@ -5914,15 +5877,6 @@ sh_copy_keys() {
 
 }
 
-sh_configure_rootfs() {
-	XBPS_REPOSITORY="$XBPS_REPOSITORY ""\
-    --repository=${url_mirror}/current""\
-    --repository=${url_mirror}/current--repository=https://home.chililinux.com/voidlinux/extra""\
-    --repository=--repository=${url_mirror}/current/nonfree""\
-    --repository=${url_mirror}/current/multilib""\
-    --repository=${url_mirror}/current/multilib/nonfree"
-}
-
 sh_install_prereqs() {
 	#	REQUIRED_PKGS="base-files xbps libgcc dash coreutils sed tar gawk grub-i386-efi grub-x86_64-efi binutils device-mapper dhclient dracut-network openresolv"
 	#	REQUIRED_PKGS="base-container-full xbps libgcc dash coreutils sed tar gawk grub-i386-efi grub-x86_64-efi binutils device-mapper dhclient dracut-network openresolv"
@@ -6324,14 +6278,6 @@ sh_time_elapsed() {
 	minutes=$(printf "%02d" $minutes)
 	seconds=$(printf "%02d" $seconds)
 	echo "$hours:$minutes:$seconds"
-}
-
-sh_monitor_old() {
-	${DIALOG} \
-		--clear \
-		--backtitle "$ccabec" \
-		--title "$BOOTLOG" \
-		--tailbox $BOOTLOG 20 120
 }
 
 sh_monitor() {
@@ -6793,7 +6739,7 @@ sh_chooseperfumery() {
 		;;
 	esac
 	_PERFUMERY=($(strtoarray "$perf"))
-	LPERFUMERY=$one
+	LPERFUMERY=1
 }
 
 sh_toBytes() {
@@ -6859,15 +6805,16 @@ sh_menu_language() {
 
 sh_run_binary() {
 	local binary="${1}"
-	local lang=$"{2}"
-	local grafic=$"{3}"
+	local lang="${2}"
+	local grafic="${3}"
+
 	if [[ -n $(command -v "${binary}") || -n $(command -v ./"${binary}") ]]; then
 		bash "${binary}" "$lang" "${grafic}"
 		return 0
 	fi
 
 	msg "INFO" "$(log_info_msg "$(gettext "Aguarde...") ${cmsg_Gerando} test with "${binary}" ${xurl}")"
-	evaluate_retval $one "$err_not_fatal"
+	evaluate_retval 1 "$err_not_fatal"
 	info "=== ${binary} ===" \
 		"\n${RED}$(gettext "binário não foi localizado no") ${YELLOW}\$PATH${RESET}" \
 		"${RED}$(gettext "binário não foi localizado na pasta local:") ${YELLOW}$PWD${RESET}" \
@@ -6973,7 +6920,7 @@ sh_main_menu() {
 		"${cmsg_Source}") sh_chooseSource && [ -n "$LSOURCE" ] && DEFITEM="${cmsg_Disco}" ;;
 		"${cmsg_Disco}") sh_choose_disk && [ -n "$LDISK" ] && DEFITEM="FileSystem" ;;
 		"FileSystem") sh_choose_Partition && [ -n "$LPARTITION" ] && DEFITEM="${cmsg_BootLoader}" ;;
-		"${cmsg_BootLoader}") sh_setBootLoader && [ -n "$LGRUB" ] && DEFITEM="${cmd_Teclado}" ;;
+		"${cmsg_BootLoader}") sh_setBootLoader && [ -n "$LGRUB" ] && DEFITEM="${cmsg_Teclado}" ;;
 		"${cmsg_Teclado}") sh_chooseKeymap && [ -n "$LKEYMAP" ] && DEFITEM="Timezone" ;;
 		"Timezone") sh_chooseTimezone && [ -n "$LTIMEZONE" ] && DEFITEM="Locale" ;;
 		"Locale") sh_chooseLocale && [ -n "$LLOCALE" ] && DEFITEM="Kernel" ;;
@@ -7028,7 +6975,7 @@ sh_init() {
 			exit $(($# ? 0 : 1))
 			;;
 		-f | --file)
-			LFILE=$one
+			LFILE=1
 			if [[ -n "$2" && "${2:0:1}" != '-' ]]; then
 				app_conf="$2"
 				shift
@@ -7042,11 +6989,11 @@ sh_init() {
 			;;
 		-q | --quiet)
 			log_msg "$(gettext "Ativando resumo na saída")"
-			quiet=$one
+			quiet=1
 			;;
 		-g | --grafico)
 			log_msg "$(gettext "Ligando modo gráfico")"
-			grafico=$one
+			grafico=1
 			;;
 		-i | -I | --install)
 			sh_checkRoot
@@ -7111,10 +7058,10 @@ sh_confLvm() {
 
 	if [[ "$menu" = "Fde" ]]; then
 		ctitlemenu='FDE CONFIG'
-		LCONFIGFDE=$one
+		LCONFIGFDE=1
 	else
 		ctitlemenu='LVM CONFIG'
-		LCONFIGFDE=$zero
+		LCONFIGFDE=0
 	fi
 
 	if ! $LDISK; then
@@ -7998,7 +7945,7 @@ sh_checkUpdatePackages() {
     fi
   fi
   # verifica dependencias
-  #sh_checkDependencies
+  #check_dependencies
 }
 
 sh_check_internet() {
