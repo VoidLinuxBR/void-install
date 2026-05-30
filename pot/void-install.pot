@@ -4,8 +4,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: chili-tradutor-go 2.1.20-20260201\n"
-"POT-Creation-Date: 2026-05-28 01:47-0400\n"
-"PO-Revision-Date: 2026-05-28 01:47-0400\n"
+"POT-Creation-Date: 2026-05-30 14:57-0400\n"
+"PO-Revision-Date: 2026-05-30 14:57-0400\n"
 "Last-Translator: Vilmar Catafesta <vcatafesta@gmail.com>\n"
 "Language-Team: Portuguese <https://github.com/chililinux/chili-tradutor-go>\n"
 "MIME-Version: 1.0\n"
@@ -14,1803 +14,1811 @@ msgstr ""
 "Language: none\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: void-install:273
+#: void-install:58
+msgid "tput"
+msgstr ""
+
+#: void-install:244
 msgid "Interrompido! Saindo..."
 msgstr ""
 
-#: void-install:500
+#: void-install:434
 msgid "Atualizando config sshd"
 msgstr ""
 
-#: void-install:564
+#: void-install:498
 msgid "Verificando por atualizações do script"
 msgstr ""
 
-#: void-install:572
+#: void-install:506
 msgid ""
 "Erro: nem curl nem wget estão instalados. Atualização não pode ser realizada."
 msgstr ""
 
-#: void-install:583
+#: void-install:517
 msgid "Nova versão encontrada. Atualizando o script..."
 msgstr ""
 
-#: void-install:586
+#: void-install:520
 msgid "Atualização concluída. Recarregando o script..."
 msgstr ""
 
-#: void-install:589
+#: void-install:523
 msgid "O script já está atualizado."
 msgstr ""
 
-#: void-install:750
+#: void-install:683
 msgid "Removendo arquivos temporários"
 msgstr ""
 
-#: void-install:917
+#: void-install:853
 msgid "Antes de continuar, redimensione o terminal"
 msgstr ""
 
-#: void-install:918
+#: void-install:854
 msgid "para que ele meça pelo menos 80 x 24 caracteres."
 msgstr ""
 
-#: void-install:919
+#: void-install:855
 msgid "Caso contrário, "
 msgstr ""
 
-#: void-install:920
+#: void-install:856
 msgid "você não poderá usar as ferramentas de partição de Disco."
 msgstr ""
 
-#: void-install:924
+#: void-install:861
 msgid "TERMINAL MUITO PEQUENO"
 msgstr ""
 
-#: void-install:1673 void-install:1691 void-install:1710
+#: void-install:1607 void-install:1626 void-install:1645
 msgid "Filesystem inválido para"
 msgstr ""
 
-#: void-install:1674 void-install:1692 void-install:1711
+#: void-install:1608 void-install:1627 void-install:1646
 msgid "Válidos:"
 msgstr ""
 
-#: void-install:1731
+#: void-install:1666
 msgid "Configuração de Partições"
 msgstr ""
 
-#: void-install:1755 void-install:1787
+#: void-install:1690 void-install:1722
 msgid "Configure os percentuais desejados."
 msgstr ""
 
-#: void-install:1756
+#: void-install:1691
 msgid "Use o botao ajuda para informações."
 msgstr ""
 
-#: void-install:1788 void-install:1922
+#: void-install:1723 void-install:1857
 msgid "não pode ultrapassar"
 msgstr ""
 
-#: void-install:1789
+#: void-install:1724
 msgid "Você também pode utilizar menos de 100% do disco"
 msgstr ""
 
-#: void-install:1790
+#: void-install:1725
 msgid "Exemplos válidos:"
 msgstr ""
 
-#: void-install:1794 void-install:1795 void-install:1796
+#: void-install:1729 void-install:1730 void-install:1731
 msgid "Informe"
 msgstr ""
 
-#: void-install:1794 void-install:1795 void-install:1796
+#: void-install:1729 void-install:1730 void-install:1731
 msgid "como"
 msgstr ""
 
-#: void-install:1794 void-install:1795 void-install:1796
+#: void-install:1729 void-install:1730 void-install:1731
 msgid "para não criar partição"
 msgstr ""
 
-#: void-install:1794 void-install:1795
+#: void-install:1729 void-install:1730
 msgid "separada."
 msgstr ""
 
-#: void-install:1846
+#: void-install:1781
 msgid "Valor inválido para ROOT."
 msgstr ""
 
-#: void-install:1847 void-install:1888
+#: void-install:1782 void-install:1823
 msgid "ROOT deve estar entre 1 e 100."
 msgstr ""
 
-#: void-install:1857
+#: void-install:1792
 msgid "Valor inválido para BOOT."
 msgstr ""
 
-#: void-install:1858 void-install:1896
+#: void-install:1793 void-install:1831
 msgid "BOOT deve estar entre 0 e 99."
 msgstr ""
 
-#: void-install:1868
+#: void-install:1803
 msgid "Valor inválido para HOME."
 msgstr ""
 
-#: void-install:1869 void-install:1904
+#: void-install:1804 void-install:1839
 msgid "HOME deve estar entre 0 e 99."
 msgstr ""
 
-#: void-install:1878
+#: void-install:1813
 msgid "Valor inválido para SWAP."
 msgstr ""
 
-#: void-install:1879 void-install:1912
+#: void-install:1814 void-install:1847
 msgid "SWAP deve estar entre 0 e 99."
 msgstr ""
 
-#: void-install:1923
+#: void-install:1858
 msgid "Valor atual:"
 msgstr ""
 
-#: void-install:1944
+#: void-install:1879
 msgid "Deseja prosseguir ou revisar com o particionamento ?"
 msgstr ""
 
-#: void-install:2038
+#: void-install:1973
 msgid "✗ Particionamento e formatação automatica cancelado pelo usuário"
 msgstr ""
 
-#: void-install:2576
+#: void-install:2513
 msgid "Copiando skel para root"
 msgstr ""
 
-#: void-install:2582
+#: void-install:2519
 msgid "Removendo link do instalador"
 msgstr ""
 
-#: void-install:2594
+#: void-install:2531
 msgid "Atualizando sudoers"
 msgstr ""
 
-#: void-install:2947
+#: void-install:2885
 msgid "Instalando Meta Pacote Xorg"
 msgstr ""
 
-#: void-install:2950
+#: void-install:2888
 msgid "Instalando Meta Pacote Microde"
 msgstr ""
 
-#: void-install:2951
+#: void-install:2889
 msgid "Instalando Meta Pacote Video"
 msgstr ""
 
-#: void-install:2952
+#: void-install:2890
 msgid "Instalando Meta Pacote Rede"
 msgstr ""
 
-#: void-install:2953
+#: void-install:2891
 msgid "Instalando Meta Pacote Fontes"
 msgstr ""
 
-#: void-install:2954
+#: void-install:2892
 msgid "Instalando Meta Pacote Icones"
 msgstr ""
 
-#: void-install:2955
+#: void-install:2893
 msgid "Instalando Meta Pacote DM"
 msgstr ""
 
-#: void-install:2956
+#: void-install:2894
 msgid "Instalando Meta Pacote DM Config"
 msgstr ""
 
-#: void-install:2957
+#: void-install:2895
 msgid "Instalando Meta Pacote Terminais"
 msgstr ""
 
-#: void-install:2958
+#: void-install:2896
 msgid "Instalando Meta Pacote FileManager"
 msgstr ""
 
-#: void-install:2959
+#: void-install:2897
 msgid "Instalando Meta Pacote Navegadores"
 msgstr ""
 
-#: void-install:2960
+#: void-install:2898
 msgid "Instalando Meta Pacote Bluetooth"
 msgstr ""
 
-#: void-install:2961
+#: void-install:2899
 msgid "Instalando Meta Pacote Utilitários"
 msgstr ""
 
-#: void-install:2962
+#: void-install:2900
 msgid "Instalando Meta Pacote Media"
 msgstr ""
 
-#: void-install:2963
+#: void-install:2901
 msgid "Instalando Meta Pacote Impressoras"
 msgstr ""
 
-#: void-install:2964
+#: void-install:2902
 msgid "Instalando Meta Pacote Perfumarias"
 msgstr ""
 
-#: void-install:2965
+#: void-install:2903
 msgid "Instalando Meta Pacote Archivadores"
 msgstr ""
 
-#: void-install:3404 void-install:3420 void-install:3453 void-install:3497
+#: void-install:3357 void-install:3373 void-install:3406 void-install:3450
 msgid "Aguarde... coletando informações"
 msgstr ""
 
-#: void-install:3420
+#: void-install:3373
 msgid "=== DISCO ==="
 msgstr ""
 
-#: void-install:3453 void-install:6353
+#: void-install:3406 void-install:6312
 msgid "=== DISCO/PARTIÇÃO ==="
 msgstr ""
 
-#: void-install:3497 void-install:7050
+#: void-install:3450 void-install:7020
 msgid "=== PARTIÇÃO ==="
 msgstr ""
 
-#: void-install:3526
+#: void-install:3479
 msgid "Uma instalação customizada irá instalar pacotes extras e também"
 msgstr ""
 
-#: void-install:3527
+#: void-install:3480
 msgid ""
 "fazer diversas configurações, evitando faze-las manualmente posteriormente."
 msgstr ""
 
-#: void-install:3528
+#: void-install:3481
 msgid "Customizar a instalação?"
 msgstr ""
 
-#: void-install:3595
+#: void-install:3548
 msgid ""
 "Aparentemente, o VOID Linux NÃO está sendo usado como host.\\nEscolha "
 "network ou ISO"
 msgstr ""
 
-#: void-install:3919
+#: void-install:3873
 msgid "Selecionar locale"
 msgstr ""
 
-#: void-install:3921
+#: void-install:3875
 msgid "Escolha seu locale"
 msgstr ""
 
-#: void-install:3990
+#: void-install:3944
 msgid "=== FUSO HORÁRIO ==="
 msgstr ""
 
-#: void-install:4123
+#: void-install:4077
 msgid "Aparentemente, o VOID Linux está sendo usado como host."
 msgstr ""
 
-#: void-install:4128
+#: void-install:4082
 msgid "Você também deseja definir/alterar o espelho do host para o escolhido?"
 msgstr ""
 
-#: void-install:4148
+#: void-install:4111
+msgid "Deseja escolher outro mirror ?"
+msgstr ""
+
+#: void-install:4122
 msgid "não disponível"
 msgstr ""
 
-#: void-install:4151
+#: void-install:4125
 msgid "mais avançado"
 msgstr ""
 
-#: void-install:4161
+#: void-install:4135
 msgid "será executado no disco"
 msgstr ""
 
-#: void-install:4162
+#: void-install:4136
 msgid "Para sistemas BIOS, "
 msgstr ""
 
-#: void-install:4163
+#: void-install:4137
 msgid "tabelas de partições MBR (dos) ou GPT são suportadas."
 msgstr ""
 
-#: void-install:4164
+#: void-install:4138
 msgid "Para usar o GPT em sistemas de BIOS de PC, "
 msgstr ""
 
-#: void-install:4165
+#: void-install:4139
 msgid "uma partição vazia de 1 MB deve ser adicionada"
 msgstr ""
 
-#: void-install:4166
+#: void-install:4140
 msgid "nos primeiros 2 GB do disco com flag bios_grub ativada."
 msgstr ""
 
-#: void-install:4167
+#: void-install:4141
 msgid "NOTA: você não precisa disso em sistemas UEFI."
 msgstr ""
 
-#: void-install:4168
+#: void-install:4142
 msgid ""
 "Para sistemas UEFI, GPT é obrigatório, e uma partição FAT32 com pelo menos"
 msgstr ""
 
-#: void-install:4169
+#: void-install:4143
 msgid "100MB deve ser criado com a flag boot,"
 msgstr ""
 
-#: void-install:4170
+#: void-install:4144
 msgid "este será usado como"
 msgstr ""
 
-#: void-install:4171
+#: void-install:4145
 msgid "Partição do sistema UEFI."
 msgstr ""
 
-#: void-install:4172
+#: void-install:4146
 msgid "Esta partição deve ter um ponto de montagem como"
 msgstr ""
 
-#: void-install:4173
+#: void-install:4147
 msgid "Pelo menos 1 partição é necessária para rootfs"
 msgstr ""
 
-#: void-install:4174
+#: void-install:4148
 msgid "Para o swap,"
 msgstr ""
 
-#: void-install:4174
+#: void-install:4148
 msgid "Uma RAM*2 deve ser realmente suficiente."
 msgstr ""
 
-#: void-install:4175
+#: void-install:4149
 msgid "Para o / minímo de 600 MB são necessários."
 msgstr ""
 
-#: void-install:4176
+#: void-install:4150
 msgid "AVISO: /usr não é suportado como uma partição separada."
 msgstr ""
 
-#: void-install:4201
+#: void-install:4175
 msgid "Recomendado"
 msgstr ""
 
-#: void-install:4202
+#: void-install:4176
 msgid "Particionamento e formatação automatica"
 msgstr ""
 
-#: void-install:4203
+#: void-install:4177
 msgid "Não disponível"
 msgstr ""
 
-#: void-install:4204
+#: void-install:4178
 msgid "Simples de usar"
 msgstr ""
 
-#: void-install:4205
+#: void-install:4179
 msgid "Programa baseado em curses para particionar dispositivos de bloco"
 msgstr ""
 
-#: void-install:4206
+#: void-install:4180
 msgid "Tradicional e poderoso"
 msgstr ""
 
-#: void-install:4207
+#: void-install:4181
 msgid "Manipulador de tabela de particoes para Linux"
 msgstr ""
 
-#: void-install:4208
+#: void-install:4182
 msgid "Modernoo para GPT"
 msgstr ""
 
-#: void-install:4209
+#: void-install:4183
 msgid "Ferramenta em modo texto para particionamento GPT"
 msgstr ""
 
-#: void-install:4210
+#: void-install:4184
 msgid "Avancado e flexivel"
 msgstr ""
 
-#: void-install:4211
+#: void-install:4185
 msgid "Editor de particoes GNU para criar e gerenciar particoes"
 msgstr ""
 
-#: void-install:4228
+#: void-install:4202
 msgid "Selecione o software para particionamento"
 msgstr ""
 
-#: void-install:4341
+#: void-install:4315
 msgid "Particionamento"
 msgstr ""
 
-#: void-install:4416
+#: void-install:4390
 msgid "Detectar outro OS(s) instalado ?"
 msgstr ""
 
-#: void-install:4428
+#: void-install:4402
 msgid "Resumo de Boot e Particionamento"
 msgstr ""
 
-#: void-install:4430
+#: void-install:4404
 msgid "EFI / UEFI"
 msgstr ""
 
-#: void-install:4431
+#: void-install:4405
 msgid "Sistema moderno de boot que substituiu o BIOS antigo."
 msgstr ""
 
-#: void-install:4432
+#: void-install:4406
 msgid "Suporta discos grandes, Secure Boot e inicialização rápida."
 msgstr ""
 
-#: void-install:4433
+#: void-install:4407
 msgid "Usado normalmente com tabela GPT."
 msgstr ""
 
-#: void-install:4435
+#: void-install:4409
 msgid "GPT_BIOS"
 msgstr ""
 
-#: void-install:4436
+#: void-install:4410
 msgid "Pequena partição especial usada quando o disco é GPT"
 msgstr ""
 
-#: void-install:4437
+#: void-install:4411
 msgid "mas o boot ainda utiliza BIOS legado."
 msgstr ""
 
-#: void-install:4438
+#: void-install:4412
 msgid "Necessária para GRUB em modo BIOS + GPT."
 msgstr ""
 
-#: void-install:4440
+#: void-install:4414
 msgid "MBR"
 msgstr ""
 
-#: void-install:4441
+#: void-install:4415
 msgid "Método antigo de particionamento e boot."
 msgstr ""
 
-#: void-install:4442
+#: void-install:4416
 msgid "Limite de até 2 TB."
 msgstr ""
 
-#: void-install:4443
+#: void-install:4417
 msgid "Suporta até 4 partições primárias"
 msgstr ""
 
-#: void-install:4444
+#: void-install:4418
 msgid "(ou 3 primárias + 1 estendida com várias lógicas)."
 msgstr ""
 
-#: void-install:4446
+#: void-install:4420
 msgid "GPT"
 msgstr ""
 
-#: void-install:4447
+#: void-install:4421
 msgid "Tabela de particionamento moderna usada com UEFI."
 msgstr ""
 
-#: void-install:4448
+#: void-install:4422
 msgid "Suporta discos enormes e normalmente até 128 partições"
 msgstr ""
 
-#: void-install:4449
+#: void-install:4423
 msgid "sem necessidade de partição estendida."
 msgstr ""
 
-#: void-install:4451
+#: void-install:4425
 msgid "Importante"
 msgstr ""
 
-#: void-install:4452
+#: void-install:4426
 msgid "Se a ISO foi iniciada em modo UEFI, o GRUB poderá"
 msgstr ""
 
-#: void-install:4453
+#: void-install:4427
 msgid "ser instalado em modo UEFI utilizando EFI + GPT."
 msgstr ""
 
-#: void-install:4455
+#: void-install:4429
 msgid "Se a ISO foi iniciada em modo BIOS/Legacy, utilize"
 msgstr ""
 
-#: void-install:4456
+#: void-install:4430
 msgid "GPT_BIOS com GPT ou utilize MBR."
 msgstr ""
 
-#: void-install:4487
+#: void-install:4461
 msgid "=== TABELA DE PARTIÇÕES ==="
 msgstr ""
 
-#: void-install:4493
+#: void-install:4467
 msgid "Ajuda"
 msgstr ""
 
-#: void-install:4577
+#: void-install:4551
 msgid "=== EXTRA ==="
 msgstr ""
 
-#: void-install:4611
+#: void-install:4585
 msgid "=== USUÁRIO ==="
 msgstr ""
 
-#: void-install:4612 void-install:4629 void-install:4638
+#: void-install:4586 void-install:4603 void-install:4612
 msgid "=== USUÁRIO === "
 msgstr ""
 
-#: void-install:4699 void-install:4811
+#: void-install:4673 void-install:4785
 msgid "Nenhuma interface Wi-Fi encontrada."
 msgstr ""
 
-#: void-install:4708 void-install:4821
+#: void-install:4682 void-install:4795
 msgid "Selecione a interface Wi-Fi"
 msgstr ""
 
-#: void-install:4722 void-install:4859
+#: void-install:4696 void-install:4833
 msgid "Escaneando redes wifi..."
 msgstr ""
 
-#: void-install:4728
+#: void-install:4702
 msgid "A verificação não retornou nenhum resultado."
 msgstr ""
 
-#: void-install:4729 void-install:7152 void-install:7161
+#: void-install:4703 void-install:7122 void-install:7131
 msgid "Aparentemente,"
 msgstr ""
 
-#: void-install:4729
+#: void-install:4703
 msgid "o serviço wpa_supplicant não está em execução."
 msgstr ""
 
-#: void-install:4731
+#: void-install:4705
 msgid "Tente o seguinte:"
 msgstr ""
 
-#: void-install:4732
+#: void-install:4706
 msgid "Usar a opção no menu de serviços para ativar."
 msgstr ""
 
-#: void-install:4733
+#: void-install:4707
 msgid "Verifique se há um dispositivo wi-fi conectado à máquina."
 msgstr ""
 
-#: void-install:4901
+#: void-install:4875
 msgid "Nenhuma rede wifi encontrada."
 msgstr ""
 
-#: void-install:4949
+#: void-install:4923
 msgid "Deixe em branco o campo Interface Wi-Fi para listar interfaces"
 msgstr ""
 
-#: void-install:4950
+#: void-install:4924
 msgid "Deixe em branco o campo Rede Wi-Fi para escanear redes"
 msgstr ""
 
-#: void-install:4955
+#: void-install:4929
 msgid "=== WIFI ==="
 msgstr ""
 
-#: void-install:5034
+#: void-install:5008
 msgid "Deseja escanear por redes wifi?"
 msgstr ""
 
-#: void-install:5071
+#: void-install:5046
 msgid "usar:"
 msgstr ""
 
-#: void-install:5072
+#: void-install:5047
 msgid "operação"
 msgstr ""
 
-#: void-install:5095
+#: void-install:5071
 msgid "Loading configuration file"
 msgstr ""
 
-#: void-install:5107
+#: void-install:5086
 msgid "Analisando o arquivo de configuração"
 msgstr ""
 
-#: void-install:5153
+#: void-install:5133
 msgid ""
 "Instalação escolhida foi via local/ISO, não é necessário alterar nada aqui."
 msgstr ""
 
-#: void-install:5278
+#: void-install:5260
 msgid "Uma instalação SERVIDOR foi escolhida"
 msgstr ""
 
-#: void-install:5279
+#: void-install:5261
 msgid "Deseja configurar IP fixo?"
 msgstr ""
 
-#: void-install:5304
+#: void-install:5287
 msgid "Configuração de IP fixo (dhcpcd)"
 msgstr ""
 
-#: void-install:5305
+#: void-install:5288
 msgid "Preencha os dados:"
 msgstr ""
 
-#: void-install:5307
+#: void-install:5290
 msgid "Interface:"
 msgstr ""
 
-#: void-install:5308
+#: void-install:5291
 msgid "IP:"
 msgstr ""
 
-#: void-install:5309
+#: void-install:5292
 msgid "Máscara (CIDR):"
 msgstr ""
 
-#: void-install:5310
+#: void-install:5293
 msgid "Gateway:"
 msgstr ""
 
-#: void-install:5311
+#: void-install:5294
 msgid "DNS 1:"
 msgstr ""
 
-#: void-install:5312
+#: void-install:5295
 msgid "DNS 2:"
 msgstr ""
 
-#: void-install:5332
+#: void-install:5315
 msgid "Aplicar essas configurações?"
 msgstr ""
 
-#: void-install:5333
+#: void-install:5316
 msgid "Interface"
 msgstr ""
 
-#: void-install:5334
+#: void-install:5317
 msgid "IP"
 msgstr ""
 
-#: void-install:5335
+#: void-install:5318
 msgid "Gateway"
 msgstr ""
 
-#: void-install:5336
+#: void-install:5319
 msgid "DNS"
 msgstr ""
 
-#: void-install:5427
+#: void-install:5410
 msgid "O login automático permite iniciar o ambiente gráfico"
 msgstr ""
 
-#: void-install:5428
+#: void-install:5411
 msgid "sem solicitar usuário e senha no boot."
 msgstr ""
 
-#: void-install:5429
+#: void-install:5412
 msgid "Deseja ativar o login automático no Display Manager?"
 msgstr ""
 
-#: void-install:5702 void-install:5709
+#: void-install:5690 void-install:5697
 msgid "para a plataforma"
 msgstr ""
 
-#: void-install:6121 void-install:6126 void-install:7481
+#: void-install:6100 void-install:6105 void-install:7451
 msgid "Instalando"
 msgstr ""
 
-#: void-install:6122 void-install:6127
+#: void-install:6101 void-install:6106
 msgid "Atualizando Pacotes Base"
 msgstr ""
 
-#: void-install:6125
+#: void-install:6104
 msgid "Instalando Kernel"
 msgstr ""
 
-#: void-install:6129
+#: void-install:6108
 msgid "Instalando Daemons"
 msgstr ""
 
-#: void-install:6130
+#: void-install:6109
 msgid "Instalando Editores Texto Gráfico "
 msgstr ""
 
-#: void-install:6131
+#: void-install:6110
 msgid "Instalando Editores texto"
 msgstr ""
 
-#: void-install:6132
+#: void-install:6111
 msgid "Instalando Downloaders"
 msgstr ""
 
-#: void-install:6133
+#: void-install:6112
 msgid "Instalando Utilitários"
 msgstr ""
 
-#: void-install:6134
+#: void-install:6113
 msgid "Instalando Archiver tty"
 msgstr ""
 
-#: void-install:6135
+#: void-install:6114
 msgid "Instalando Extras"
 msgstr ""
 
-#: void-install:6136
+#: void-install:6115
 msgid "Instalando Suplementos"
 msgstr ""
 
-#: void-install:6219
+#: void-install:6201
 msgid "Validando configuração para FINALIZAR em:"
 msgstr ""
 
-#: void-install:6353
+#: void-install:6312
 msgid "Aguarde... Verificando disco e partições"
 msgstr ""
 
-#: void-install:6395
+#: void-install:6354
 msgid "AVISO:"
 msgstr ""
 
-#: void-install:6396
+#: void-install:6355
 msgid ""
 "O sistema foi iniciado em modo UEFI, mas o disco selecionado para instalar o "
 "bootloader não possui tabela GPT."
 msgstr ""
 
-#: void-install:6397
+#: void-install:6356
 msgid "Para instalação em modo UEFI, o disco precisa usar GPT."
 msgstr ""
 
-#: void-install:6398
+#: void-install:6357
 msgid "Refaça a tabela de partição como GPT ou escolha outro disco."
 msgstr ""
 
-#: void-install:6399
+#: void-install:6358
 msgid "Deseja continuar sem suporte a UEFI?"
 msgstr ""
 
-#: void-install:6625
+#: void-install:6501
+msgid "Disco de armazenamento não foi escolhido"
+msgstr ""
+
+#: void-install:6506
+msgid "Disco de armazenamento não foi particionado"
+msgstr ""
+
+#: void-install:6594
 msgid "Por favor, especifique o ponto de montagem para"
 msgstr ""
 
-#: void-install:6632
+#: void-install:6601
 msgid "esse ponto de montagem não é suportado. Altere e tente novamente."
 msgstr ""
 
-#: void-install:6639
+#: void-install:6608
 msgid "ponto de montagem raiz nao pode ser NFTS. Altere e tente novamente."
 msgstr ""
 
-#: void-install:6661
+#: void-install:6630
 msgid "Criar um novo sistema de arquivos em"
 msgstr ""
 
-#: void-install:6695
+#: void-install:6664
 msgid "Ativar o bash para o usuario root"
 msgstr ""
 
-#: void-install:6696
+#: void-install:6665
 msgid "Instalar bashrc.sh personalizado"
 msgstr ""
 
-#: void-install:6697
+#: void-install:6666
 msgid "Usar um terminal gráfico para o Carregador de Inicialização (GRUB)"
 msgstr ""
 
-#: void-install:6698
+#: void-install:6667
 msgid "Configurar servidor ssh"
 msgstr ""
 
-#: void-install:6699
+#: void-install:6668
 msgid "Enable sudo for login user"
 msgstr ""
 
-#: void-install:6706
+#: void-install:6675
 msgid "=== PERFUMARIA ==="
 msgstr ""
 
-#: void-install:6765
+#: void-install:6734
 msgid "Português"
 msgstr ""
 
-#: void-install:6766
+#: void-install:6735
 msgid "Inglês"
 msgstr ""
 
-#: void-install:6767
+#: void-install:6736
 msgid "Alemão"
 msgstr ""
 
-#: void-install:6768
+#: void-install:6737
 msgid "Francês"
 msgstr ""
 
-#: void-install:6769
+#: void-install:6738
 msgid "Espanhol"
 msgstr ""
 
-#: void-install:6770
+#: void-install:6739
 msgid "Italiano"
 msgstr ""
 
-#: void-install:6787
-msgid "{2}"
-msgstr ""
-
-#: void-install:6788
-msgid "{3}"
-msgstr ""
-
-#: void-install:6794
+#: void-install:6764
 msgid "Aguarde..."
 msgstr ""
 
-#: void-install:6797
+#: void-install:6767
 msgid "binário não foi localizado no"
 msgstr ""
 
-#: void-install:6798
+#: void-install:6768
 msgid "binário não foi localizado na pasta local:"
 msgstr ""
 
-#: void-install:6799
+#: void-install:6769
 msgid "DICA: instale o pacote voidbr-utils"
 msgstr ""
 
-#: void-install:6881
+#: void-install:6851
 msgid "Criptografia de disco completo + LVM (opcional)"
 msgstr ""
 
-#: void-install:6882
+#: void-install:6852
 msgid "Gerenciamento de Volume Lógico LVM (opcional)"
 msgstr ""
 
-#: void-install:6884
+#: void-install:6854
 msgid "Seletor de temas do dialog (opcional)"
 msgstr ""
 
-#: void-install:6886
+#: void-install:6856
 msgid "Utilitário para clonar discos (opcional)"
 msgstr ""
 
-#: void-install:6938
+#: void-install:6908
 msgid "Licença GPL v3+: GNU GPL versão 3 ou posterior"
 msgstr ""
 
-#: void-install:6939
+#: void-install:6909
 msgid "Este é um software livre: você é livre para alterá-lo e redistribuí-lo."
 msgstr ""
 
-#: void-install:6940
+#: void-install:6910
 msgid "NÃO HÁ QUALQUER GARANTIA, na máxima extensão permitida em lei."
 msgstr ""
 
-#: void-install:6965
+#: void-install:6935
 msgid "Desligando saída de cores"
 msgstr ""
 
-#: void-install:6969
+#: void-install:6939
 msgid "Ativando resumo na saída"
 msgstr ""
 
-#: void-install:6973
+#: void-install:6943
 msgid "Ligando modo gráfico"
 msgstr ""
 
-#: void-install:6986
+#: void-install:6956
 msgid "usar -h para ajuda"
 msgstr ""
 
-#: void-install:7056
+#: void-install:7026
 msgid "Aguarde... coletando informações sobre VGs"
 msgstr ""
 
-#: void-install:7058
+#: void-install:7028
 msgid "Aguarde... coletando informações sobre PVs"
 msgstr ""
 
-#: void-install:7087
+#: void-install:7057
 msgid ""
 "o ponto de montagem para o sistema de arquivos raiz (/) ainda não foi "
 "configurado."
 msgstr ""
 
-#: void-install:7101
+#: void-install:7071
 msgid "O tamanho das partições é uma questão de preferência pessoal."
 msgstr ""
 
-#: void-install:7151 void-install:7152
+#: void-install:7121 void-install:7122
 msgid "Partição"
 msgstr ""
 
-#: void-install:7152
+#: void-install:7122
 msgid "a partição escolhida já está atribuída como PV no sistema."
 msgstr ""
 
-#: void-install:7152
+#: void-install:7122
 msgid "Continuar de qualquer maneira?"
 msgstr ""
 
-#: void-install:7160 void-install:7169
+#: void-install:7130 void-install:7139
 msgid "Grupo de Volume"
 msgstr ""
 
-#: void-install:7161
+#: void-install:7131
 msgid "Group de Volume"
 msgstr ""
 
-#: void-install:7161
+#: void-install:7131
 msgid "o VG existe no sistema."
 msgstr ""
 
-#: void-install:7161
+#: void-install:7131
 msgid "Continuar mesmo assim?"
 msgstr ""
 
-#: void-install:7170
+#: void-install:7140
 msgid "O nome do grupo de volumes não pode estar vazio."
 msgstr ""
 
-#: void-install:7170 void-install:7180 void-install:7190 void-install:7200
-#: void-install:7210 void-install:7220 void-install:7230
+#: void-install:7140 void-install:7150 void-install:7160 void-install:7170
+#: void-install:7180 void-install:7190 void-install:7200
 msgid "Novamente?"
 msgstr ""
 
-#: void-install:7179
+#: void-install:7149
 msgid "Volumes lógicos"
 msgstr ""
 
-#: void-install:7180
+#: void-install:7150
 msgid "A soma das partições excede o tamanho total do disco."
 msgstr ""
 
-#: void-install:7189
+#: void-install:7159
 msgid "Volume lógico raiz"
 msgstr ""
 
-#: void-install:7229
+#: void-install:7199
 msgid "Senha"
 msgstr ""
 
-#: void-install:7362
+#: void-install:7332
 msgid "Removendo LVs (Volumes Lógicos"
 msgstr ""
 
-#: void-install:7366
+#: void-install:7336
 msgid "Removendo VG (Volume Group)"
 msgstr ""
 
-#: void-install:7370
+#: void-install:7340
 msgid "Removendo PVs (Volumes Fisícos)"
 msgstr ""
 
-#: void-install:7389
+#: void-install:7359
 msgid "Info: Nenhum VG localizado no sistema."
 msgstr ""
 
-#: void-install:7420
+#: void-install:7390
 msgid "AVISO"
 msgstr ""
 
-#: void-install:7420
+#: void-install:7390
 msgid "É importante lembrar que remover um VG"
 msgstr ""
 
-#: void-install:7421
+#: void-install:7391
 msgid "é uma operação irreversível e pode resultar em perda de dados."
 msgstr ""
 
-#: void-install:7422
+#: void-install:7392
 msgid "Certifique-se de fazer backup de seus dados."
 msgstr ""
 
-#: void-install:7423
+#: void-install:7393
 msgid "Todos os dados do disco serão apagados!"
 msgstr ""
 
-#: void-install:7424
+#: void-install:7394
 msgid "Deseja continuar?"
 msgstr ""
 
-#: void-install:7442
+#: void-install:7412
 msgid "Usar as setas ↑ e ↓ para navegar."
 msgstr ""
 
-#: void-install:7443
+#: void-install:7413
 msgid "Usar TAB para alternar entre os botões."
 msgstr ""
 
-#: void-install:7444
+#: void-install:7414
 msgid "Usar ENTER ou BARRA DE ESPAÇO para selecionar e aceitar."
 msgstr ""
 
-#: void-install:7447
+#: void-install:7417
 msgid "Aparentemente o tarball rootfs"
 msgstr ""
 
-#: void-install:7448
+#: void-install:7418
 msgid "está corrompido."
 msgstr ""
 
-#: void-install:7449
+#: void-install:7419
 msgid "Testar a integridade e reiniciar a instalação ?"
 msgstr ""
 
-#: void-install:7452
+#: void-install:7422
 msgid "Tamanho disco insuficiente para criar partições com swap"
 msgstr ""
 
-#: void-install:7453
+#: void-install:7423
 msgid "Deseja prosseguir SEM partição de swap?"
 msgstr ""
 
-#: void-install:7454
+#: void-install:7424
 msgid "Deseja criar partição de swap ?"
 msgstr ""
 
-#: void-install:7455
+#: void-install:7425
 msgid "Acompanhe a evolução da instalação            "
 msgstr ""
 
-#: void-install:7456
+#: void-install:7426
 msgid "e/ou pelo terminal tty8        "
 msgstr ""
 
-#: void-install:7457
+#: void-install:7427
 msgid "Utilizar os pacotes da imagem ISO (clonar ISO)"
 msgstr ""
 
-#: void-install:7458
+#: void-install:7428
 msgid "Utilizar tarball base e atualizar pela internet (qualquer host Linux)"
 msgstr ""
 
-#: void-install:7459
+#: void-install:7429
 msgid "Baixar todos os pacotes da internet (requer host Void Linux)"
 msgstr ""
 
-#: void-install:7461
+#: void-install:7431
 msgid "Usar os pacotes já presentes na imagem ISO (clonagem da ISO)"
 msgstr ""
 
-#: void-install:7462
+#: void-install:7432
 msgid ""
 "Usar tarball base e atualizar via internet (funciona em qualquer host Linux)"
 msgstr ""
 
-#: void-install:7463
+#: void-install:7433
 msgid ""
 "Baixar todos os pacotes diretamente da internet (requer host Void Linux)"
 msgstr ""
 
-#: void-install:7465
+#: void-install:7435
 msgid "Selecionar fonte da instalação"
 msgstr ""
 
-#: void-install:7466
+#: void-install:7436
 msgid "Definições"
 msgstr ""
 
-#: void-install:7467
+#: void-install:7437
 msgid "não definido"
 msgstr ""
 
-#: void-install:7468
+#: void-install:7438
 msgid "Ajustando senha usuário"
 msgstr ""
 
-#: void-install:7469
+#: void-install:7439
 msgid "Ativando o bash para o usuário"
 msgstr ""
 
-#: void-install:7470
+#: void-install:7440
 msgid "Criando usuário"
 msgstr ""
 
-#: void-install:7471
+#: void-install:7441
 msgid "MENU DE INSTALAÇÃO"
 msgstr ""
 
-#: void-install:7472
+#: void-install:7442
 msgid "Desmontando ambiente"
 msgstr ""
 
-#: void-install:7473
+#: void-install:7443
 msgid "Montando ambiente"
 msgstr ""
 
-#: void-install:7474
+#: void-install:7444
 msgid "Entrando no ambiente chroot"
 msgstr ""
 
-#: void-install:7475
+#: void-install:7445
 msgid "Montando partição"
 msgstr ""
 
-#: void-install:7476
+#: void-install:7446
 msgid "Gerando"
 msgstr ""
 
-#: void-install:7477
+#: void-install:7447
 msgid "Ajustando"
 msgstr ""
 
-#: void-install:7478
+#: void-install:7448
 msgid "Copiando"
 msgstr ""
 
-#: void-install:7479
+#: void-install:7449
 msgid "Descompactando"
 msgstr ""
 
-#: void-install:7480
+#: void-install:7450
 msgid "Atualizando"
 msgstr ""
 
-#: void-install:7482
+#: void-install:7452
 msgid "Configurando"
 msgstr ""
 
-#: void-install:7484
+#: void-install:7454
 msgid "ERRO"
 msgstr ""
 
-#: void-install:7485
+#: void-install:7455
 msgid "Aceitar"
 msgstr ""
 
-#: void-install:7486
+#: void-install:7456
 msgid "Conectar"
 msgstr ""
 
-#: void-install:7487
+#: void-install:7457
 msgid "Configurar"
 msgstr ""
 
-#: void-install:7488
+#: void-install:7458
 msgid "Não definido"
 msgstr ""
 
-#: void-install:7489
+#: void-install:7459
 msgid "Mudar"
 msgstr ""
 
-#: void-install:7490 void-install:7531
+#: void-install:7460 void-install:7501
 msgid "Sair"
 msgstr ""
 
-#: void-install:7491 void-install:7614
+#: void-install:7461 void-install:7584
 msgid "Instalar"
 msgstr ""
 
-#: void-install:7492
+#: void-install:7462
 msgid "Espelho"
 msgstr ""
 
-#: void-install:7494
+#: void-install:7464
 msgid "Sistema de Arquivos"
 msgstr ""
 
-#: void-install:7495
+#: void-install:7465
 msgid "não foi revisado!"
 msgstr ""
 
-#: void-install:7496
+#: void-install:7466
 msgid "Armazenamento"
 msgstr ""
 
-#: void-install:7497
+#: void-install:7467
 msgid "Teclado"
 msgstr ""
 
-#: void-install:7498
+#: void-install:7468
 msgid "Sair sem instalar"
 msgstr ""
 
-#: void-install:7499
+#: void-install:7469
 msgid "Somente terminal, sem interface gráfica"
 msgstr ""
 
-#: void-install:7500
+#: void-install:7470
 msgid "Servidor Void"
 msgstr ""
 
-#: void-install:7501
+#: void-install:7471
 msgid "Selecionar espelho dos pacotes"
 msgstr ""
 
-#: void-install:7502
+#: void-install:7472
 msgid "Selecionar disco e partições"
 msgstr ""
 
-#: void-install:7503
+#: void-install:7473
 msgid "Configurar sistema de arquivos e pontos de montagem"
 msgstr ""
 
-#: void-install:7504
+#: void-install:7474
 msgid "Escolhar disco para o bootloader"
 msgstr ""
 
-#: void-install:7505
+#: void-install:7475
 msgid "Selecionar layout do teclado"
 msgstr ""
 
-#: void-install:7506
+#: void-install:7476
 msgid "Selecionar fuso horário"
 msgstr ""
 
-#: void-install:7507
+#: void-install:7477
 msgid "Selecionar versão do kernel"
 msgstr ""
 
-#: void-install:7508
+#: void-install:7478
 msgid "Selecionar localidade do sistema"
 msgstr ""
 
-#: void-install:7509
+#: void-install:7479
 msgid "Selecionar interface gráfico/gerenciador de janelas"
 msgstr ""
 
-#: void-install:7510
+#: void-install:7480
 msgid "Selecionar gerenciador de login"
 msgstr ""
 
-#: void-install:7511
+#: void-install:7481
 msgid "Definir rede e senha wifi (opcional)"
 msgstr ""
 
-#: void-install:7512
+#: void-install:7482
 msgid "opcional"
 msgstr ""
 
-#: void-install:7513 void-install:7599
+#: void-install:7483 void-install:7569
 msgid "Usuário"
 msgstr ""
 
-#: void-install:7514
+#: void-install:7484
 msgid "Definir usuário,senha,hostname"
 msgstr ""
 
-#: void-install:7515
+#: void-install:7485
 msgid "Iniciar instalação"
 msgstr ""
 
-#: void-install:7516
+#: void-install:7486
 msgid "Encerrar instalação"
 msgstr ""
 
-#: void-install:7517
+#: void-install:7487
 msgid "Instalação abortada"
 msgstr ""
 
-#: void-install:7518
+#: void-install:7488
 msgid "Checando rota de internet para o servidor"
 msgstr ""
 
-#: void-install:7519
+#: void-install:7489
 msgid "ERRO: falha de abertura de"
 msgstr ""
 
-#: void-install:7520
+#: void-install:7490
 msgid "erro: você não pode realizar esta operação a menos que seja root."
 msgstr ""
 
-#: void-install:7521
+#: void-install:7491
 msgid "erro: operação não suportada"
 msgstr ""
 
-#: void-install:7522
+#: void-install:7492
 msgid "Voltar"
 msgstr ""
 
-#: void-install:7523
+#: void-install:7493
 msgid "Feito"
 msgstr ""
 
-#: void-install:7524
+#: void-install:7494
 msgid "Escolher"
 msgstr ""
 
-#: void-install:7525
+#: void-install:7495
 msgid "Cancelar"
 msgstr ""
 
-#: void-install:7526
+#: void-install:7496
 msgid "Revisar"
 msgstr ""
 
-#: void-install:7527
+#: void-install:7497
 msgid "Prosseguir"
 msgstr ""
 
-#: void-install:7528
+#: void-install:7498
 msgid "Info disco"
 msgstr ""
 
-#: void-install:7529
+#: void-install:7499
 msgid "Info partição"
 msgstr ""
 
-#: void-install:7530
+#: void-install:7500
 msgid "Ok"
 msgstr ""
 
-#: void-install:7532
+#: void-install:7502
 msgid "Selecionar"
 msgstr ""
 
-#: void-install:7533
+#: void-install:7503
 msgid "DISCO DE ORIGEM"
 msgstr ""
 
-#: void-install:7534
+#: void-install:7504
 msgid "Fonte"
 msgstr ""
 
-#: void-install:7535
+#: void-install:7505
 msgid "DISCO DE DESTINO"
 msgstr ""
 
-#: void-install:7536
+#: void-install:7506
 msgid "Escolha o disco de DESTINO:"
 msgstr ""
 
-#: void-install:7537
+#: void-install:7507
 msgid "Sim"
 msgstr ""
 
-#: void-install:7538
+#: void-install:7508
 msgid "Não"
 msgstr ""
 
-#: void-install:7539
+#: void-install:7509
 msgid "Ao prosseguir, todos os dados disco DESTINO serão perdidos!"
 msgstr ""
 
-#: void-install:7540
+#: void-install:7510
 msgid "=== AVISO ==="
 msgstr ""
 
-#: void-install:7541
+#: void-install:7511
 msgid "Desmontando sistema de arquivos"
 msgstr ""
 
-#: void-install:7542
+#: void-install:7512
 msgid "Instalação finalizada com sucesso"
 msgstr ""
 
-#: void-install:7543
+#: void-install:7513
 msgid "Falha ao descompactar o tarball"
 msgstr ""
 
-#: void-install:7544
+#: void-install:7514
 msgid "para"
 msgstr ""
 
-#: void-install:7545
+#: void-install:7515
 msgid "Configurações salvas para instalação"
 msgstr ""
 
-#: void-install:7546
+#: void-install:7516
 msgid "nenhuma operação especificada - usar -h para ajuda"
 msgstr ""
 
-#: void-install:7547
+#: void-install:7517
 msgid "apenas uma operação pode ser usada por vez"
 msgstr ""
 
-#: void-install:7548
+#: void-install:7518
 msgid "Testando disco"
 msgstr ""
 
-#: void-install:7549
+#: void-install:7519
 msgid "Continuar com o particionamento em"
 msgstr ""
 
-#: void-install:7550
+#: void-install:7520
 msgid "Formatando partição"
 msgstr ""
 
-#: void-install:7551
+#: void-install:7521
 msgid "Ativando serviço"
 msgstr ""
 
-#: void-install:7552
+#: void-install:7522
 msgid "Iniciando serviço"
 msgstr ""
 
-#: void-install:7553
+#: void-install:7523
 msgid "permissões"
 msgstr ""
 
-#: void-install:7554
+#: void-install:7524
 msgid "Checando existência do tarball"
 msgstr ""
 
-#: void-install:7555
+#: void-install:7525
 msgid "Verificando a integridade do tarball"
 msgstr ""
 
-#: void-install:7556
+#: void-install:7526
 msgid "Iniciando download de"
 msgstr ""
 
-#: void-install:7557
+#: void-install:7527
 msgid "Criando partições em"
 msgstr ""
 
-#: void-install:7558
+#: void-install:7528
 msgid "Partição Swap"
 msgstr ""
 
-#: void-install:7559
+#: void-install:7529
 msgid "Criando diretório"
 msgstr ""
 
-#: void-install:7560
+#: void-install:7530
 msgid "Atualizando instalação"
 msgstr ""
 
-#: void-install:7561
+#: void-install:7531
 msgid "Removendo pacotes antigos/absoletos"
 msgstr ""
 
-#: void-install:7562
+#: void-install:7532
 msgid "Instalando meta pacote X"
 msgstr ""
 
-#: void-install:7563
+#: void-install:7533
 msgid "Atualizando pacotes base"
 msgstr ""
 
-#: void-install:7564
+#: void-install:7534
 msgid "Atualizando pacotes adicionais em"
 msgstr ""
 
-#: void-install:7565
+#: void-install:7535
 msgid "Visualizar partições do disco"
 msgstr ""
 
-#: void-install:7566
+#: void-install:7536
 msgid "=== ARMAZENAMENTO ==="
 msgstr ""
 
-#: void-install:7567
+#: void-install:7537
 msgid "=== FILE SYSTEM ==="
 msgstr ""
 
-#: void-install:7568
+#: void-install:7538
 msgid "Checando por partições montadas no disco"
 msgstr ""
 
-#: void-install:7569
+#: void-install:7539
 msgid "O disco selecionado contém partições montadas"
 msgstr ""
 
-#: void-install:7570
+#: void-install:7540
 msgid "Escolher outro layout de teclado"
 msgstr ""
 
-#: void-install:7571
+#: void-install:7541
 msgid "Layout atual"
 msgstr ""
 
-#: void-install:7572
+#: void-install:7542
 msgid "Aguarde, Desmontando particao de trabalho"
 msgstr ""
 
-#: void-install:7573
+#: void-install:7543
 msgid "Erro de leitura do disco"
 msgstr ""
 
-#: void-install:7574
+#: void-install:7544
 msgid "Sem rota para o servidor"
 msgstr ""
 
-#: void-install:7575
+#: void-install:7545
 msgid "Check sua conexão com a internet!"
 msgstr ""
 
-#: void-install:7576
+#: void-install:7546
 msgid "não encontrei o comando"
 msgstr ""
 
-#: void-install:7577
+#: void-install:7547
 msgid "IMPOSSÍVEL CONTINUAR"
 msgstr ""
 
-#: void-install:7578
+#: void-install:7548
 msgid "Esse script precisa dos comandos listados acima"
 msgstr ""
 
-#: void-install:7579
+#: void-install:7549
 msgid "Instale-os e/ou verifique se estão no seu"
 msgstr ""
 
-#: void-install:7580
+#: void-install:7550
 msgid "Instalar o(s) comando(s)"
 msgstr ""
 
-#: void-install:7581
+#: void-install:7551
 msgid "INFO: Rode novamente o aplicativo"
 msgstr ""
 
-#: void-install:7582
+#: void-install:7552
 msgid "ERRO na instalação dos comandos. Tente manualmente"
 msgstr ""
 
-#: void-install:7583
+#: void-install:7553
 msgid "Criando inicialização padrão/reserva (roaming) para"
 msgstr ""
 
-#: void-install:7584
+#: void-install:7554
 msgid "Erro não fatal. Para mais detalhes veja o log"
 msgstr ""
 
-#: void-install:7585
+#: void-install:7555
 msgid "gerenciador de janelas (wm)"
 msgstr ""
 
-#: void-install:7586
+#: void-install:7556
 msgid "gerenciador de login (dm)"
 msgstr ""
 
-#: void-install:7587
+#: void-install:7557
 msgid "Tabela MBR (dos)"
 msgstr ""
 
-#: void-install:7589
+#: void-install:7559
 msgid "✓ Detectado: sistema iniciado em modo EFI"
 msgstr ""
 
-#: void-install:7590
+#: void-install:7560
 msgid "✓ Recomendado: EFI"
 msgstr ""
 
-#: void-install:7592
+#: void-install:7562
 msgid "✗ EFI não detectado: sistema iniciado em modo BIOS"
 msgstr ""
 
-#: void-install:7593
+#: void-install:7563
 msgid "✓ Recomendado: GPT_BIOS ou MBR_BIOS"
 msgstr ""
 
-#: void-install:7594
+#: void-install:7564
 msgid "Detectado boot via ISO ↓ é recomendável instalar ↓"
 msgstr ""
 
-#: void-install:7595
+#: void-install:7565
 msgid "ISO não detectado ↓ é recomendável usar NETWORK ↓"
 msgstr ""
 
-#: void-install:7596
+#: void-install:7566
 msgid "Host VOID não detectado ↓ é recomendável usar NETWORK↓"
 msgstr ""
 
-#: void-install:7598
+#: void-install:7568
 msgid "Escolha o idioma"
 msgstr ""
 
-#: void-install:7600
+#: void-install:7570
 msgid "Usuário não pode ser root! Novamente?"
 msgstr ""
 
-#: void-install:7601
+#: void-install:7571
 msgid "Usuário não pode estar vazio! Novamente?"
 msgstr ""
 
-#: void-install:7602
+#: void-install:7572
 msgid "Senha do usuário não pode ser vazia! Novamente?"
 msgstr ""
 
-#: void-install:7603
+#: void-install:7573
 msgid "Senha de root não pode ser vazia! Novamente?"
 msgstr ""
 
-#: void-install:7604
+#: void-install:7574
 msgid "Usuário não pode iniciar com números! Novamente?"
 msgstr ""
 
-#: void-install:7605
+#: void-install:7575
 msgid "Usuário não pode iniciar com letras maiúsculas! Novamente?"
 msgstr ""
 
-#: void-install:7606
+#: void-install:7576
 msgid "Cadastro de usuário cancelado"
 msgstr ""
 
-#: void-install:7607
+#: void-install:7577
 msgid "Rede Wi-Fi"
 msgstr ""
 
-#: void-install:7608
+#: void-install:7578
 msgid "Senha Wi-Fi"
 msgstr ""
 
-#: void-install:7609
+#: void-install:7579
 msgid "Interface Wi-Fi"
 msgstr ""
 
-#: void-install:7610
+#: void-install:7580
 msgid "↓ é recomendável ext4 ↓"
 msgstr ""
 
-#: void-install:7611
+#: void-install:7581
 msgid "Utilitário void-services (opcional)"
 msgstr ""
 
-#: void-install:7612
+#: void-install:7582
 msgid "Serviços"
 msgstr ""
 
-#: void-install:7613
+#: void-install:7583
 msgid "Estilo"
 msgstr ""
 
-#: void-install:7615
+#: void-install:7585
 msgid "Rodar chroot na partição instalada"
 msgstr ""
 
-#: void-install:7616
+#: void-install:7586
 msgid "Ativar modo gráfico"
 msgstr ""
 
-#: void-install:7617
+#: void-install:7587
 msgid "Saída resumida"
 msgstr ""
 
-#: void-install:7618
+#: void-install:7588
 msgid "Mostrar versão do aplicativo"
 msgstr ""
 
-#: void-install:7619
+#: void-install:7589
 msgid "Remove cores da saída"
 msgstr ""
 
-#: void-install:7620
+#: void-install:7590
 msgid "Este help"
 msgstr ""
 
-#: void-install:7621
+#: void-install:7591
 msgid "Carregar arquivo de configuração"
 msgstr ""
 
-#: void-install:7622
+#: void-install:7592
 msgid "Nome Completo"
 msgstr ""
 
-#: void-install:7623
+#: void-install:7593
 msgid "Nome usuario"
 msgstr ""
 
-#: void-install:7624
+#: void-install:7594
 msgid "Senha usuario"
 msgstr ""
 
-#: void-install:7625
+#: void-install:7595
 msgid "Senha root"
 msgstr ""
 
-#: void-install:7626
+#: void-install:7596
 msgid "Disco destino"
 msgstr ""
 
-#: void-install:7627
+#: void-install:7597
 msgid "Gerenciador Janelas"
 msgstr ""
 
-#: void-install:7631
+#: void-install:7601
 msgid "EFI + GPT (recomendado) PCs modernos"
 msgstr ""
 
-#: void-install:7632
+#: void-install:7602
 msgid "BIOS + GPT Compatibilide avançada"
 msgstr ""
 
-#: void-install:7633
+#: void-install:7603
 msgid "BIOS + MBR Computadores antigos"
 msgstr ""
 
-#: void-install:7634
+#: void-install:7604
 msgid "Tabela GPT"
 msgstr ""
 
-#: void-install:7635
+#: void-install:7605
 msgid "não foi configurado!"
 msgstr ""
 
-#: void-install:7636
+#: void-install:7606
 msgid "Disco não foi configurado!"
 msgstr ""
 
-#: void-install:7637
+#: void-install:7607
 msgid "Filesystem não foi configurado!"
 msgstr ""
 
-#: void-install:7638
+#: void-install:7608
 msgid "Bootloader não foi configurado!"
 msgstr ""
 
-#: void-install:7639
+#: void-install:7609
 msgid "Teclado não foi configurado!"
 msgstr ""
 
-#: void-install:7640
+#: void-install:7610
 msgid "Timezone não foi configurado!"
 msgstr ""
 
-#: void-install:7641
+#: void-install:7611
 msgid "Gerenciador de Janelas não foi configurado!"
 msgstr ""
 
-#: void-install:7642
+#: void-install:7612
 msgid "Rede wifi não foi configurado!"
 msgstr ""
 
-#: void-install:7643
+#: void-install:7613
 msgid "Usuário não foi configurado!"
 msgstr ""
 
-#: void-install:7644
+#: void-install:7614
 msgid "Selecionar sistema de áudio"
 msgstr ""
 
-#: void-install:7694
+#: void-install:7664
 msgid "*** AVISO ***"
 msgstr ""
 
-#: void-install:7695
+#: void-install:7665
 msgid "Tamanho da partição destino é menor que o necessário"
 msgstr ""
 
-#: void-install:7696
+#: void-install:7666
 msgid "Partição destino"
 msgstr ""
 
-#: void-install:7697
+#: void-install:7667
 msgid "Tamanho disponível"
 msgstr ""
 
-#: void-install:7698
+#: void-install:7668
 msgid "Tamanho necessário"
 msgstr ""
 
-#: void-install:7699
+#: void-install:7669
 msgid "Sistema destino poderá não funcionar, continuar?"
 msgstr ""
 
-#: void-install:7725
+#: void-install:7695
 msgid "Falta"
 msgstr ""
 
-#: void-install:7725
+#: void-install:7695
 msgid "para completar a tarefa"
 msgstr ""
 
-#: void-install:7726
+#: void-install:7696
 msgid "Destino"
 msgstr ""
 
-#: void-install:7727
+#: void-install:7697
 msgid "Disponivel"
 msgstr ""
 
-#: void-install:7728
+#: void-install:7698
 msgid "Total"
 msgstr ""
 
-#: void-install:7729
+#: void-install:7699
 msgid "Copiado"
 msgstr ""
 
-#: void-install:7730
+#: void-install:7700
 msgid "Arquivo"
 msgstr ""
 
-#: void-install:7934
+#: void-install:7904
 msgid "Testando conexão com a internet..."
 msgstr ""
 
-#: void-install:7940
+#: void-install:7910
 msgid "Parece que não há uma rota disponível para a internet."
 msgstr ""
 
-#: void-install:7940
+#: void-install:7910
 msgid "Deseja configurar um Wi-Fi?"
 msgstr ""
