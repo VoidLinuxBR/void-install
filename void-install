@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: sáb 30 mai 2026 14:00:34 -04
+#  Updated: dom 31 mai 2026 02:06:01 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -51,7 +51,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.5.30-20260530'
+readonly _VERSION_='3.5.31-20260531'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
                          chroot blkid fdisk parted lsblk curl xz tee
                          mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -130,6 +130,7 @@ declare -gi ncounter=0
 declare -gi quiet=0
 declare -gi grafico=1
 #
+declare -ga aCustomPackages=()
 declare -gA Amkfs
 declare -gA Amntpoint
 declare -gA AmntpointFDE
@@ -238,11 +239,18 @@ declare _DISPLAYMANAGER='None'
 declare _WINDOWMANAGER=('tty')
 declare _WIFI_NETWORK="wifi_ssid"
 declare _WIFI_PASSWORD="wifi_password"
-#source /usr/bin/gettext.sh
-#declare Interrupted="$(gettext "Interrompido!") $(pgettext "context" "Saindo...")"
-
 declare Interrupted="$(gettext "Interrompido! Saindo...")"
 trap 'printf "\n${red}$Interrupted\n"; cleanup; exit 0' INT TERM HUP
+
+cleanup() {
+	# Silencia erros no cleanup para evitar loops de erro na saída
+	exec 2>/dev/null
+	info_msg "$(gettext 'Removendo arquivos temporários')..."
+	[[ -f "$BOOTLOG" ]] && rm -f "$BOOTLOG"
+	# Só tenta desmontar se o diretório de instalação existir e estiver montado
+	mountpoint -q "$dir_install" && sh_umount_fs
+	exit 1
+}
 
 detect_distro() {
 	local id=""
@@ -526,6 +534,22 @@ sh_update_self() {
 }
 
 sh_choose_common_packages() {
+  declare -ga aExtra=(
+	  bash-completion
+		fzf
+		dialog
+		pv
+		tree
+		duf
+		parted
+		rsync
+		exa
+		nvme-cli
+		curl
+		wget
+		nano
+  )
+
 	if $LCUSTOM; then
 		declare -ga aMicrocode=(
 			intel-ucode
@@ -539,33 +563,13 @@ sh_choose_common_packages() {
 			voidbr-vinstall
 		)
 
-		declare -ga aExtra=(
-			bash-completion
-			fzf
-			dialog
-			pv
-			tree
-			duf
-			parted
-			rsync
-			tmate
+		aExtra+=(
 			inetutils
 			iputils
 			net-tools
 			cifs-utils
 			ntfs-3g
-			htop
 			parallel
-			exa
-			nvme-cli
-			fastfetch
-			curl
-			wget
-			git
-			nano
-			vim
-			micro
-			inxi
 		)
 	fi
 
@@ -632,16 +636,16 @@ sh_choose_common_packages() {
 				declare -ga aFont=(noto-fonts-emoji)
 				declare -ga aPerfumery=()
 				declare -ga aPrinter=()
-				declare -ga aTerminal=(rxvt-unicode cool-retro-term)
-				declare -ga aEditorX=(mousepad libreoffice libreoffice-i18n-$(sh_get_language_without_utf8))
-				declare -ga aNetworkX=(gvfs gvfs-smb gvfs-mtp gvfs-afc gvfs-cdda udisks2 gvfs-gphoto2)
-				declare -ga aUtilityX=(xkill menulibre mugshot ocs-url gparted vlc celluloid lm_sensors)
+				declare -ga aTerminal=(rxvt-unicode)
+				declare -ga aEditorX=()
+				declare -ga aNetworkX=(gvfs gvfs-smb gvfs-mtp gvfs-afc gvfs-cdda gvfs-gphoto2 udisks2)
+				declare -ga aUtilityX=(xkill lm_sensors)
 				declare -ga aDaemons+=(avahi-discover)
 			fi
-			declare -ga aArchiverTty=(unrar zip p7zip unzip bzip2)
+			declare -ga aArchiverTty=()
 			declare -ga aDownloader=()
 #			declare -ga aUtility=(binutils dfc btop parallel bubblewrap cmatrix pfetch bc bat xtools geoip geoipupdate)
-			declare -ga aUtility=(binutils dfc pfetch bc xtools)
+			declare -ga aUtility=(binutils bc)
 		else
 			declare -ga aIconsAndThemes=()
 			declare -ga aTerminal=()
@@ -675,16 +679,6 @@ errorbeep() {
 info_msg() {
 	#	notify-send "$ccabec" "$@"
 	printf "\033[1m$@\n\033[m"
-}
-
-cleanup() {
-	# Silencia erros no cleanup para evitar loops de erro na saída
-	exec 2>/dev/null
-	info_msg "$(gettext 'Removendo arquivos temporários')..."
-	[[ -f "$BOOTLOG" ]] && rm -f "$BOOTLOG"
-	# Só tenta desmontar se o diretório de instalação existir e estiver montado
-	mountpoint -q "$dir_install" && sh_umount_fs
-	exit 1
 }
 
 sh_setEnvironment() {
@@ -809,6 +803,7 @@ sh_touchConf() {
 		WIFI_PASSWORD=$_WIFI_PASSWORD
 	EOF
 	{
+	  declare -p aCustomPackages
 		declare -p LONLY_TTY
 		declare -p LDHCP
 		declare -p LCUSTOM
@@ -3475,14 +3470,16 @@ sh_part_info() {
 
 set_custom_install() {
   local ctitle="$1"
+
   if conf "${ctitle}" \
-  		"\n${BOLD}${WHITE}$(gettext "Uma instalação customizada irá instalar pacotes extras e também")" \
-  		"\n$(gettext "fazer diversas configurações, evitando faze-las manualmente posteriormente.")\n" \
-  		"\n${BOLD}${RED}$(gettext "Customizar a instalação?")\n\n"; then
-  		LCUSTOM=true
-  	else
-  		LCUSTOM=false
-  	fi
+    "\n${BOLD}${WHITE}$(gettext "Uma instalação customizada irá instalar pacotes extras e também")" \
+  	"\n$(gettext "fazer diversas configurações, evitando faze-las manualmente posteriormente.")\n" \
+  	"\n${BOLD}${RED}$(gettext "Customizar a instalação?")\n\n"; then
+  	LCUSTOM=true
+    sh_choose_custom_packages
+  else
+    LCUSTOM=false
+  fi
 }
 
 sh_getIso() {
@@ -5208,8 +5205,6 @@ sh_choose_wm() {
 	esac
 
 	HYPRLAND=false
-  set_custom_install "=== ${cmsg_Wm^^} ==="
-
 	LWM=true
 	_WINDOWMANAGER=($(strtoarray "$wm"))
 	LSERVER=false
@@ -5247,6 +5242,8 @@ sh_choose_wm() {
   	esac
 	done
 
+  set_custom_install "=== ${cmsg_Wm^^} ==="
+
 	LAUDIO=true
 	LDM=true
 
@@ -5262,7 +5259,98 @@ sh_choose_wm() {
 			sh_configure_dhcpcd_static_ip_dialog
 		fi
 	fi
+
   # debug "${_WINDOWMANAGER[@]}" "\nLONLY_TTY=$LONLY_TTY" "\nLXORG=$LXORG"
+
+}
+
+sh_choose_custom_packages() {
+	declare -A aFlag
+	declare -A aCustom
+	local x
+	local custom
+
+  if ! $LONLY_TTY; then
+  	aCustom[brave-bin]="$(gettext 'Web browser that blocks ads and trackers by default (binary release)')"
+  	aCustom[celluloid]="$(gettext 'Simple GTK+ frontend for mpv')"
+  	aCustom[cool-retro-term]="$(gettext 'Good looking terminal emulator which mimics the old cathode display')"
+  	aCustom[gparted]="$(gettext 'Gnome Partition Editor)')"
+  	aCustom[voidbr-google-chrome]="$(gettext 'The popular web browser by Google (Stable Channel)')"
+  	aCustom[libreoffice]="$(gettext 'Productivity suite')"
+  	aCustom[menulibre]="$(gettext 'Advanced menu editor')"
+  	aCustom[mousepad]="$(gettext 'Simple text editor for Xfce based on Leafpad')"
+  	aCustom[mugshot]="$(gettext 'Program to update personal user details')"
+  	aCustom[ocs-url]="$(gettext 'Install helper program for OpenCollaborationServices (ocs://)')"
+  	aCustom[vlc]="$(gettext 'Cross-platform multimedia player')"
+  fi
+
+  if $LSERVER; then
+    aCustom[voidbr-network-tools]="$(gettext 'Meta‑pacote com utilitários essenciais de rede e monitoramento para Void Linux')"
+  fi
+
+  aCustom[micro]="$(gettext 'Modern and intuitive terminal-based text editor')"
+  aCustom[inxi]="$(gettext 'Full featured system information script')"
+  aCustom[fastfetch]="$(gettext 'System information fetching tool')"
+  aCustom[htop]="$(gettext 'Interactive process viewer')"
+  aCustom[vim]="$(gettext 'Vim editor (vi clone)')"
+  aCustom[neovim]="$(gettext 'Fork of Vim aiming to improve user experience, plugins and GUIs')"
+  aCustom[tmate]="$(gettext 'Instant Terminal Sharing')"
+  aCustom[bzip2]="$(gettext 'Freely available, patent free, high-quality data compressor')"
+ 	aCustom[p7zip]="$(gettext 'Command-line version of the 7zip compressed file archive (transitional dummy package)')"
+ 	aCustom[zip]="$(gettext 'Create/update ZIP files compatible with pkzip')"
+	aCustom[unrar]="$(gettext 'Unarchiver for .rar files (non-free version)')"
+ 	aCustom[avahi-discover]="$(gettext 'Service discovery user interface for avahi')"
+ 	aCustom[dfc]="$(gettext 'Display file system space usage using graphs and colors')"
+ 	aCustom[pfetch]="$(gettext 'System information tool written in POSIX sh')"
+ 	aCustom[xtools]="$(gettext 'Opinionated helpers for working with XBPS')"
+
+	for x in "${!aCustom[@]}"; do
+		aFlag[$x]='off'
+	done
+
+
+  for x in "${aCustomPackages[@]}"; do
+    aFlag[$x]='on'
+  done
+
+  local dialog_items=()
+  for x in $(printf '%s\n' "${!aCustom[@]}" | sort); do
+    dialog_items+=(
+      "$x"
+      "${aCustom[$x]}"
+      "${aFlag[$x]}"
+    )
+  done
+
+  custom=$(
+    ${DIALOG} \
+      --backtitle "$ccabec" \
+      --title "=== Pacotes Extras ===" \
+      --colors \
+      --cancel-label "${cmsg_ButtonBack}" \
+      --ok-label "${cmsg_Aceitar}" \
+      --checklist "${cmsg_MENU}" \
+      0 0 0 \
+      "${dialog_items[@]}" \
+      2>&1 >/dev/tty
+  )
+
+# debug "$custom"
+
+	exit_status=$?
+	case $exit_status in
+	"$D_ESC" | "$D_CANCEL")
+		return
+		;;
+	esac
+
+# mapfile -t aCustomPackages= <<<"$custom"
+# read -r -a aCustomPackages <<< "$custom"
+  aCustomPackages=($(strtoarray "$custom"))
+
+  if grep -qi libreoffice <<<"${aCustomPackages=[@]}"; then
+    aCustomPackages+=(libreoffice-i18n-$(sh_get_language_without_utf8))
+  fi
 
 }
 
@@ -6113,6 +6201,7 @@ sh_install() {
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Archiver tty')" "${aArchiverTty[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Extras')" "${aExtra[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Suplementos')" "${aSuplemento[*]}"
+				sh_install_pkgs_in_chroot "$(gettext 'Instalando Pacotes customizados')" "${aCustomPackages[*]}"
 			fi
 
 			sh_grubInstall
@@ -7402,16 +7491,16 @@ sh_setLanguage() {
 	#	for xmsg in "${langmsg[@]}"; do eval "$xmsg"; done
 	#	#echo "lang       ${#lang[@]} ${lang[@]} ${lang[$PT_BR]} ${lang[$EN_US]}"
 	#	#echo "cmsg_ERRO ${#cmsg_ERRO[@]} ${cmsg_ERRO[@]} ${cmsg_ERRO[$PT_BR]} ${cmsg_ERRO[$EN_US]}"
-
 	#	cmsg_LABEL[pt_BR]=$(gettext "Usar as teclas ${RED}↑ PARA CIMA ${RESET}e ${RED}↓ PARA BAIXO ${RESET}para navegar.\nUsar ${RED}TAB ${RESET}para alternar entre os botões e ${RED}ENTER ${RESET}para selecionar.")
 	#	cmsg_LBL_check[pt_BR]=$(gettext "Usar as teclas ${RED}PARA CIMA ${RESET}e ${RED}PARA BAIXO ${RESET}para navegar.\nUsar ${RED}BARRA DE ESPAÇO ${RESET}para selecionar.\nUsar ${RED}TAB ${RESET}para alternar entre os botões e ${RED}ENTER ${RESET}para aceitar.")
 	#	cmsg_Tarball_Corrompido[pt_BR]=$(gettext "\n${RED}Aparentemente o tarball rootfs ${_TARBALL_ROOTFS} está corrompido.\n\n${BOLD}${WHITE}Testar a integridade e reiniciar a instalação ?")
-	#	cmsg_LABEL1=$(gettext "Usar as setas ${CYAN}↑ ${RST}e ${CYAN}↓ ${RST}para navegar.")
-	#	cmsg_LABEL2=$(gettext "Usar ${CYAN}TAB ${RST}para alternar entre os botões.")
-	#	cmsg_LABEL3=$(gettext "Usar ${CYAN}ENTER ${RST}ou ${CYAN}BARRA DE ESPAÇO ${RST}para selecionar e aceitar.")
-	cmsg_LABEL1=$(gettext "Usar as setas ↑ e ↓ para navegar.")
-	cmsg_LABEL2=$(gettext "Usar TAB para alternar entre os botões.")
-	cmsg_LABEL3=$(gettext "Usar ENTER ou BARRA DE ESPAÇO para selecionar e aceitar.")
+  #
+	cmsg_LABEL1=$(gettext "Usar as setas ${CYAN}↑ ${RST}e ${CYAN}↓ ${RST}para navegar.")
+	cmsg_LABEL2=$(gettext "Usar ${CYAN}TAB ${RST}para alternar entre os botões.")
+	cmsg_LABEL3=$(gettext "Usar ${CYAN}ENTER ${RST}ou ${CYAN}BARRA DE ESPAÇO ${RST}para selecionar e aceitar.")
+	#cmsg_LABEL1=$(gettext "Usar as setas ↑ e ↓ para navegar.")
+	#cmsg_LABEL2=$(gettext "Usar TAB para alternar entre os botões.")
+	#cmsg_LABEL3=$(gettext "Usar ENTER ou BARRA DE ESPAÇO para selecionar e aceitar.")
 	cmsg_MENU="${cmsg_LABEL1}\n${cmsg_LABEL2}\n${cmsg_LABEL3}"
 
 	cmsg_Tarball_Corrompido0=$(gettext "Aparentemente o tarball rootfs")
@@ -7424,14 +7513,9 @@ sh_setLanguage() {
 	cmsg_DesejaCriarParticaoSwap=$(gettext "Deseja criar partição de swap ?")
 	cmsg_AcompanheInstalacao=$(gettext "Acompanhe a evolução da instalação            ")
 	cmsg_OuPeloTerminal=$(gettext "e/ou pelo terminal tty8        ")
-	cmsg_PacotesDaImagemIso=$(gettext "Utilizar os pacotes da imagem ISO (clonar ISO)")
-	cmsg_BaixadoDoRepositorioOficial=$(gettext "Utilizar tarball base e atualizar pela internet (qualquer host Linux)")
-	cmsg_BaixadoDoRepositorioOficialFull=$(gettext "Baixar todos os pacotes da internet (requer host Void Linux)")
-
   cmsg_PacotesDaImagemIso=$(gettext "Usar os pacotes já presentes na imagem ISO (clonagem da ISO)")
   cmsg_BaixadoDoRepositorioOficial=$(gettext "Usar tarball base e atualizar via internet (funciona em qualquer host Linux)")
   cmsg_BaixadoDoRepositorioOficialFull=$(gettext "Baixar todos os pacotes diretamente da internet (requer host Void Linux)")
-
 	cmsg_DefinirInstalacaoDeOrigem=$(gettext "Selecionar fonte da instalação")
 	cmsg_Definicoes=$(gettext "Definições")
 	cmsg_naodefinido=$(gettext "não definido")
@@ -7555,10 +7639,8 @@ sh_setLanguage() {
 	cmsg_Wm=$(gettext "gerenciador de janelas (wm)")
 	cmsg_Dm=$(gettext "gerenciador de login (dm)")
 	cmsg_TabelaMBR=$(gettext "Tabela MBR (dos)")
-#	cmsg_ExtraEfi=$(gettext "Detectado boot via EFI ↓ é recomendável usar EFI ↓")
 	cmsg_ExtraEfi=$(gettext "✓ Detectado: sistema iniciado em modo EFI")
 	cmsg_ExtraEfiRecommended=$(gettext "✓ Recomendado: EFI")
-#	cmsg_ExtraNotEfi=$(gettext "EFI não detectado ↓ é recomendável GPT_BIOS ou MBR_BIOS ↓")
 	cmsg_ExtraNotEfi=$(gettext "✗ EFI não detectado: sistema iniciado em modo BIOS")
 	cmsg_ExtraNotEfiRecommended=$(gettext "✓ Recomendado: GPT_BIOS ou MBR_BIOS")
 	cmsg_ExtraIso=$(gettext "Detectado boot via ISO ↓ é recomendável instalar ↓")
@@ -7595,9 +7677,6 @@ sh_setLanguage() {
 	cmsg_Extra4=$(gettext "Senha root")
 	cmsg_Extra6=$(gettext "Disco destino")
 	cmsg_Extra11=$(gettext "Gerenciador Janelas")
-#	cmsg_Efi=$(gettext "Interface de Firmware Extensível")
-#	cmsg_BiosGpt=$(gettext "Sistema Básico de Entrada e Saída")
-#	cmsg_BiosMbr=$(gettext "Sistema Básico de Entrada e Saída")
 	cmsg_Efi=$(gettext "EFI + GPT (recomendado) PCs modernos")
 	cmsg_BiosGpt=$(gettext "BIOS + GPT Compatibilide avançada")
 	cmsg_BiosMbr=$(gettext "BIOS + MBR Computadores antigos")
@@ -7916,7 +7995,6 @@ sh_check_internet() {
 }
 
 sh_setEnvironment
-sh_get_Locale
 sh_setLanguage
 sh_setVarColors
 sh_setAsciiLines
