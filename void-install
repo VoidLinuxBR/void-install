@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: dom 31 mai 2026 02:06:01 -04
+#  Updated: dom 31 mai 2026 14:49:45 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -237,6 +237,7 @@ declare -gA AsFs=(
 declare dialogRcFile="$HOME/.dialogrc"
 declare _DISPLAYMANAGER='None'
 declare _WINDOWMANAGER=('tty')
+declare _WM='tty'
 declare _WIFI_NETWORK="wifi_ssid"
 declare _WIFI_PASSWORD="wifi_password"
 declare Interrupted="$(gettext "Interrompido! Saindo...")"
@@ -5033,6 +5034,7 @@ sh_dryrun() {
 	#sh_make_fstab
 	#sh_update_sddm_conf
 	# sh_build_and_apply_dhcpcd_config
+  sh_change_grub
 
 	export PS1="[chroot $dir_install] $PS1"
 	LC_ALL=C chroot "$dir_install" "/bin/bash"
@@ -5207,6 +5209,7 @@ sh_choose_wm() {
 	HYPRLAND=false
 	LWM=true
 	_WINDOWMANAGER=($(strtoarray "$wm"))
+  _WM="$wm"
 	LSERVER=false
   LONLY_TTY=true
 
@@ -5222,12 +5225,14 @@ sh_choose_wm() {
   		LXORG=true
   		AConfAudio[_AUDIOSERVER]="None"
 	  	_DISPLAYMANAGER="None"
+      _WM="xorg"
 		  ;;
 		server)
       LONLY_TTY=true
 		  LSERVER=true
   		AConfAudio[_AUDIOSERVER]="None"
 	  	_DISPLAYMANAGER="None"
+      _WM="server"
 		  ;;
 		*)
   	  LONLY_TTY=false
@@ -5237,6 +5242,7 @@ sh_choose_wm() {
   		else
 	  		_DISPLAYMANAGER="lightdm"
   		fi
+      _WM="$wm"
 	 		break
 	  	;;
   	esac
@@ -5779,6 +5785,7 @@ EOF
 		   grub-install ${AConfDisk[_BOOTLOADER]} --target=i386-pc --force
 	   "
 	fi
+
 	if $LEFI; then
 		# --removable   = garante boot universal via Fallback
 		# --no-nvram    = não mexe na BIOS
@@ -5787,6 +5794,9 @@ EOF
 	   "
 		#		sh_mkefiroaming
 	fi
+
+  sh_change_grub
+
 	if ! $LVM; then
 		sh_chroot_job "${cmsg_Gerando} grub.cfg ${cmsg_Em} $dir_install" "
 		   grub-mkconfig -o /boot/grub/grub.cfg
@@ -7992,6 +8002,17 @@ sh_check_internet() {
     fi
     return 1
   fi
+}
+
+sh_change_grub() {
+  local f="${dir_install}/etc/default/grub"
+
+  sh_cmd_job "$(gettext 'Aplicando ajustes no GRUB')" "
+    if ! grep '^GRUB_DISTRIBUTOR=' '$f' | grep -Fqi '${_WM^}'; then
+      sed -i 's/^GRUB_DISTRIBUTOR=\"\\(.*\\)\"/GRUB_DISTRIBUTOR=\"\\1 ${_WM^}\"/' '$f'
+    fi
+    #sed -i 's|^GRUB_CMDLINE_LINUX_DEFAULT=.*|GRUB_CMDLINE_LINUX_DEFAULT="quiet splash plymouth.enable=1 loglevel=4 libata.noacpi=1 acpi=force apm=power-off nowatchdog tsc=nowatchdog cryptomgr.notests no_timer_check rcupdate.rcu_expedited=1 intel_pstate=active amd_pstate=active cpuidle.governor=teo split_lock_detect=off clearcpuid=514 transparent_hugepage=never skew_tick=1 intremap=off nosoftlockup audit=0 nomce systemd.show_status=auto rd.udev.log_level=3 apparmor=1 security=apparmor vconsole.font=Uni2-Fixed16 intel_iommu=on amd_iommu=on tdx=on nvme_load=yes nouveau.modeset=1 i915.modeset=1 amdgpu.modeset=1 radeon.si_support=0 radeon.cik_support=0 amdgpu.si_support=1 amdgpu.cik_support=1 nvidia.modeset=1 nvidia_drm.modeset=1 DEEPIN_GFXMODE="|' /etc/default/grub 1>/dev/null
+  " "$err_not_fatal"
 }
 
 sh_setEnvironment
