@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: dom 31 mai 2026 14:49:45 -04
+#  Updated: seg 01 jun 2026 01:10:26 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -51,7 +51,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.5.31-20260531'
+readonly _VERSION_='3.6.01-20260601'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
                          chroot blkid fdisk parted lsblk curl xz tee
                          mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -6980,6 +6980,7 @@ sh_main_menu() {
 			"${cmsg_Servicos}" "${cmsg_utilvoidservices}" \
 			"Clonedisk" "$(gettext 'Utilitário para clonar discos (opcional)')" \
 			"Wifi" "${cmsg_descWifi}" \
+			"Prompt" "$(gettext 'Prompt de comando - Exit para voltar')" \
 			"${cmsg_Sair}" "${cmsg_descSair}" 2>&1 >/dev/tty)
 
 		if [ $? -eq 3 ]; then
@@ -7011,6 +7012,7 @@ sh_main_menu() {
 		"Lvm") sh_confLvm && [ -n "$LVM" ] && DEFITEM="${cmsg_Instalar}" ;;
 		"Vg") sh_chooseVg ;;
 		"Wifi") sh_confWifi "$@" && [ -n "$LWIFI" ] && DEFITEM="${cmsg_Instalar}" ;;
+		"Prompt") bash "$@" && [ -n "$LWIFI" ] && DEFITEM="Prompt" ;;
 		"${cmsg_Sair}") die "${cmsg_InstalacaoAbortada}..." ;;
 		*)
 			errorbeep
