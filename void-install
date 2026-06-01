@@ -4314,7 +4314,7 @@ sh_choose_disk() {
 			--default-item "${AConfDisk[_DEVICE]}" \
 			--backtitle "$ccabec" \
 			--title "$xtitle" \
-			--ok-label "${cmsg_ButtonEscolher}" \
+			--ok-label "${cmsg_ButtonSelecionar}" \
 			--cancel-label "${cmsg_ButtonBack}" \
 			--colors \
 			--extra-button \
@@ -4373,6 +4373,21 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 		case $exit_status in
 		"$D_OK")
       set_disk_choosed
+
+      if ! $LMKPARTED; then
+        if conf "${xtitle} ${sd}" \
+          "\n$(gettext 'O disco selecionado parece estar vazio ou sem partições configuradas.')" \
+          "\n$(gettext 'Para continuar a instalação, é necessário criar as partições.')" \
+          "\n\n${BOLD}${RED}$(gettext 'Deseja abrir as ferramentas de particionamento agora?')"
+        then
+		    	sh_checkdisk "${AConfDisk[_DEVICE]}"
+    			sh_menuUtilDisk
+    			#continue
+          set_disk_choosed  # qui 07 mai 2026 21:22:11 -04
+          return 0          # qui 07 mai 2026 21:22:11 -04
+        fi
+
+      fi
       return 0
 			;;
 		"$D_CONFIG")
@@ -7622,6 +7637,7 @@ sh_setLanguage() {
 	cmsg_ButtonBack=$(gettext "Voltar")
 	cmsg_ButtonFeito=$(gettext "Feito")
 	cmsg_ButtonEscolher=$(gettext "Escolher")
+	cmsg_ButtonSelecionar=$(gettext "Selecionar")
 	cmsg_ButtonCancelar=$(gettext "Cancelar")
 	cmsg_ButtonRevisar=$(gettext "Revisar")
 	cmsg_ButtonProsseguir=$(gettext "Prosseguir")
