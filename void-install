@@ -321,6 +321,8 @@ check_dependencies() {
   local d
   local errorFound=false
 
+  clear
+  reset
   for d in "${DEPENDENCIES[@]}"; do
     if [[ -z $(command -v "$d") ]]; then
       printf '%s\n' "${red} ✗ ${rst} ${cmsg_CommandNotFound} ${cyan}'$d'${reset}"
@@ -3090,6 +3092,7 @@ sh_gnome_minimal() {
 		"tracker3-miners"          # Extratores de metadados para busca do Tracker
 		"xdg-desktop-portal-gnome" # Integração de interface e permissões para Wayland
 		"xdg-user-dirs-gtk"        # Gerenciamento automático das pastas padrão de usuário
+    "accountsservice"          # D-Bus interfaces for querying and manipulating user account information
 	)
 
 	if $LCUSTOM; then
@@ -6080,6 +6083,27 @@ Session=$session
 EOF
 }
 
+sh_change_accountsservice_user() {
+	local cuser="${AsUser[cuser]}"
+  local f="${dir_install}/var/lib/AccountsService/users/${cuser}"
+
+  sh_cmd_job "$(gettext 'Aplicando ajustes no GRUB')" "
+    mkdir -p "${dir_install}/var/lib/AccountsService/users"
+    cat > ${f} << EOF
+[org.freedesktop.DisplayManager.AccountsService]
+BackgroundFile=''
+
+[User]
+Languages=${AConfLocale[_LOCALE]};
+Session=
+XSession=xfce
+Icon=/home/${cuser}/.face
+SystemAccount=false
+EOF
+  " "$err_not_fatal"
+}
+
+
 sh_update_gdm_conf() {
 	local cfile="$dir_install/etc/gdm/custom.conf"
 	local cuser="${AsUser[cuser]}"
@@ -6105,6 +6129,9 @@ AutomaticLoginEnable=$auto_enable
 AutomaticLogin=$auto_user
 DefaultSession=${session}.desktop
 EOF
+
+  sh_change_accountsservice_user
+
 }
 
 sh_update_lightdm_conf() {
@@ -6301,7 +6328,6 @@ sh_install() {
                 xbps-reconfigure --force glibc-locales
                 xbps-reconfigure --force --all
             "
-
 			sh_chroot_job "${cmsg_RemovendoPacotesAntigosObseletos}" "
 			   rm -fv /var/cache/xbps/*.xbps
                rm -fv /var/cache/xbps/*.sig*
