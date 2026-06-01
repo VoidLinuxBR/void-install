@@ -5280,6 +5280,8 @@ sh_choose_custom_packages() {
 	local custom
 
   if ! $LONLY_TTY; then
+  	aCustom[qutebrowser]="$(gettext 'Keyboard-focused browser with a minimal GUI')"
+  	aCustom[vivaldi]="$(gettext 'Advanced browser made with the power user in mind')"
   	aCustom[brave-bin]="$(gettext 'Web browser that blocks ads and trackers by default (binary release)')"
   	aCustom[celluloid]="$(gettext 'Simple GTK+ frontend for mpv')"
   	aCustom[cool-retro-term]="$(gettext 'Good looking terminal emulator which mimics the old cathode display')"
