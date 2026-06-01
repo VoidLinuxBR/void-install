@@ -5,8 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: seg 01 jun 2026 01:10:26 -04
-#
+#  Updated: seg 01 jun 2026 12:12:00 -04#
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
 #
@@ -318,6 +317,7 @@ check_gettext() {
 }
 
 check_dependencies() {
+  local TMP_FILE="/tmp/$(basename "$0").restarted"
   local d
   local errorFound=false
 
@@ -334,7 +334,7 @@ check_dependencies() {
     return 0
   fi
 
-	echo -e "Distro detectada: ${green}${DISTRO}${reset}"
+	echo -e "Distro detectada: ${green}${DISTRO}${rst}"
 
 	# 3. Extração dos dados dos mapas que você definiu
 	local pkgs="${DISTRO_PKGS[$DISTRO]}"
@@ -342,19 +342,21 @@ check_dependencies() {
 
 	# Se a distro atual não existir no mapa, precisamos avisar e parar
 	if [[ -z "$cmd" ]]; then
-		echo -e "${red}Erro: Nenhuma configuração de pacotes encontrada para a distro: '$DISTRO'${reset}"
+		echo -e "${red}Erro: Nenhuma configuração de pacotes encontrada para a distro: '$DISTRO'${rst}"
 		exit 1
 	fi
 
   echo
 	if readconf "${cyan}Instalar dependências base agora?${rst}"; then
-		echo -e "${blue}::${reset} Preparando ambiente para ${green}${DISTRO}${reset}..."
+		echo -e "${blue}::${reset} Preparando ambiente para ${green}${DISTRO}${rst}..."
 		# Execução dinâmica: $cmd (gerenciador) + $pkgs (lista de pacotes)
 		if ! $cmd $pkgs; then
 			echo -e "${red}Erro Crítico:${reset} A instalação dos pacotes básicos falhou."
 			exit 1
 		fi
 		echo -e "${green}Sucesso:${reset} Dependências instaladas."
+    touch "$TMP_FILE"
+    exec "$0" "$@"
 	else
 		# Se o usuário negar a instalação de ferramentas básicas, o instalador não tem como seguir
 		die "${yellow}Aviso:${rst} Os comandos são indispensáveis. Saindo..."
@@ -2386,11 +2388,13 @@ sh_init_bind() {
 
 sh_run_clean() {
 	local ret
+
 	eval "$1" 2>&1 |
 		strip_ansi |
 		tee -i -a "$BOOTLOG" \
 			>"$LOGGER"
 	ret="${PIPESTATUS[0]}"
+
 	return "$ret"
 }
 
@@ -2452,6 +2456,7 @@ sh_cmd_job() {
 	lretval="${PIPESTATUS[0]}"
 	evaluate_retval "$lretval" "$erro_fatal"
 	shell='/bin/sh'
+
 	return "$lretval"
 }
 
@@ -2488,6 +2493,7 @@ sh_chroot_job() {
 	lretval="${PIPESTATUS[0]}"
 	evaluate_retval "$lretval" "$erro_fatal" "" "$level"
 	shell='/bin/sh'
+
 	return "$lretval"
 }
 
@@ -4073,7 +4079,7 @@ sh_choose_mirror() {
 		AConfMirror[location]="$(sh_splitarray "${Amirror[$mirror]}" "$FLD_LOCATION")"
 		LMIRROR=true
 
-		if [[ "$distro" = @(void|void-live|voidlinux) ]]; then
+		if [[ "$DISTRO" = @(void|void-live|voidlinux) ]]; then
 			if conf "=== ${cmsg_Mirror^^} ===" \
 				"\n${BOLD}$(gettext "Aparentemente, o VOID Linux está sendo usado como host.")\n" \
 				"\n${BOLD}${CYAN}Mirror     : ${AConfMirror[_MIRROR]}" \
@@ -5319,7 +5325,6 @@ sh_choose_custom_packages() {
 		aFlag[$x]='off'
 	done
 
-
   for x in "${aCustomPackages[@]}"; do
     aFlag[$x]='on'
   done
@@ -5335,7 +5340,6 @@ sh_choose_custom_packages() {
 
   custom=$(
     ${DIALOG} \
-      --backtitle "$ccabec" \
       --title "=== Pacotes Extras ===" \
       --colors \
       --cancel-label "${cmsg_ButtonBack}" \
@@ -5517,20 +5521,23 @@ sh_choose_dm() {
 	_DISPLAYMANAGER="$dm"
 }
 
-function pcount() {
-	local -i nargs="$#"
+pcount() {
+  local -i nargs="$#"
+
 	echo $nargs
 	[[ nargs -gt 0 ]] && return 0 || return 1
 }
 
 strtoarray() {
 	local anew
+
 	IFS=' ' read -r -a anew <<<"$1"
 	echo "${anew[@]}"
 }
 
 lenarraystr() {
 	local new=$1
+
 	read -ra ADDR <<<"$new"
 	echo "${#ADDR[@]}"
 }
@@ -5924,7 +5931,6 @@ sh_touch_keys() {
 
 }
 
-#dom 03 mar 2024 09:35:25 -04
 sh_copy_keys() {
 	local destdirkeys="$dir_install/var/db/xbps/keys"
 
@@ -7999,20 +8005,26 @@ sh_checkUpdatePackages() {
   local TMP_FILE="/tmp/$(basename "$0").restarted"
   local PackagesToUpdate=(void-install)
 
-  # adiciona repositorios inexistentes no /etc/xbps.d/00-repository-main.conf
-  #sh_add_repo
+  sh_msg_job "Distro detectada : ${CYAN}${DISTRO}${RST}"
 
-  if [[ ! -f "$TMP_FILE" ]]; then
-    if conf "** UPDATE - ${APP} **" "É fortemente recomendado sincronizar e atualizar este utilitário antes da instalação. \n\n${AMARELO}Deseja proceder ?"; then
-      sh_cmd_job_infobox "Aguarde alguns instantes, sincronizando e atualizando..." \
-        "xbps-install -Syuf --ignore-files-conflicts "${PackagesToUpdate[@]}" &>/dev/null"
-      sh_msg_job "Reiniciando o script pela primeira vez..."
-      touch "$TMP_FILE"
-      exec "$0" "$@"
+  if [[ "$DISTRO" = @(void|void-live|voidlinux) ]]; then
+    # adiciona repositorios inexistentes no /etc/xbps.d/00-repository-main.conf
+    #sh_add_repo
+
+    if [[ ! -f "$TMP_FILE" ]]; then
+      if conf "** UPDATE - ${APP} **" "É fortemente recomendado sincronizar e atualizar este utilitário antes da instalação. \n\n${AMARELO}Deseja proceder ?"; then
+        sh_cmd_job_infobox "Aguarde alguns instantes, sincronizando e atualizando..." \
+          "xbps-install -Syuf --ignore-files-conflicts "${PackagesToUpdate[@]}" &>/dev/null"
+        sh_msg_job "Reiniciando o script pela primeira vez..."
+        touch "$TMP_FILE"
+        exec "$0" "$@"
+      fi
     fi
+    # verifica dependencias
+    #check_dependencies
+  else
+    touch "$TMP_FILE"
   fi
-  # verifica dependencias
-  #check_dependencies
 }
 
 sh_check_internet() {
