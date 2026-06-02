@@ -5,7 +5,8 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: seg 01 jun 2026 12:12:00 -04#
+#  Updated: ter 02 jun 2026 16:43:59 -04
+#
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
 #
@@ -50,7 +51,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.6.01-20260601'
+readonly _VERSION_='3.6.02-20260602'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
                          chroot blkid fdisk parted lsblk curl xz tee
                          mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -569,12 +570,7 @@ sh_choose_common_packages() {
 		)
 
 		aExtra+=(
-			inetutils
-			iputils
-			net-tools
-			cifs-utils
-			ntfs-3g
-			parallel
+      parallel
 		)
 	fi
 
@@ -615,7 +611,6 @@ sh_choose_common_packages() {
 				lightdm-gtk-greeter-settings
 				arc-theme
 				papirus-icon-theme
-				dejavu-fonts-ttf
 			)
 			custom=(voidbr-lightdm-themes)
 			;;
@@ -638,7 +633,7 @@ sh_choose_common_packages() {
 				declare -ga aBrowser=()
 				declare -ga aFilemanager=()
 				declare -ga aBluetooth=(bluez bluez-alsa bluedevil blueman bluez-cups bluez-deprecated gnome-bluetooth1 blueberry)
-				declare -ga aFont=(noto-fonts-emoji)
+				declare -ga aFont=()
 				declare -ga aPerfumery=()
 				declare -ga aPrinter=()
 				declare -ga aTerminal=(rxvt-unicode)
@@ -660,7 +655,18 @@ sh_choose_common_packages() {
 			declare -ga aDaemons=()
 		fi
 
-		aIconsAndThemes+=(Adapta adwaita-icon-theme arc-theme)
+    aFont+=(noto-fonts-emoji)
+		if ! $LONLY_TTY; then
+      aFont+=(noto-fonts-emoji
+              dejavu-fonts-ttf
+              font-firacode
+             font-hack-ttf
+             nerd-fonts
+             nerd-fonts-otf
+             nerd-fonts-symbols-ttf
+      )
+    fi
+    aIconsAndThemes+=(Adapta adwaita-icon-theme arc-theme)
 		aTerminal+=(xfce4-terminal)
 		aBrowser+=(firefox firefox-i18n-$(sh_get_language_without_utf8))
 #		aFilemanager+=(octoxbps)
@@ -3157,9 +3163,6 @@ sh_i3_minimal() {
     picom
     flameshot
     polybar
-    dejavu-fonts-ttf
-    font-firacode
-    font-hack-ttf
   )
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
@@ -5301,6 +5304,8 @@ sh_choose_custom_packages() {
 	local custom
 
   if ! $LONLY_TTY; then
+  	aCustom[opera]="$(gettext 'Fast, secure, easy to use browser')"
+  	aCustom[chromium]="$(gettext 'Google attempt at creating a safer, faster, and more stable browser')"
   	aCustom[qutebrowser]="$(gettext 'Keyboard-focused browser with a minimal GUI')"
   	aCustom[vivaldi]="$(gettext 'Advanced browser made with the power user in mind')"
   	aCustom[brave-bin]="$(gettext 'Web browser that blocks ads and trackers by default (binary release)')"
