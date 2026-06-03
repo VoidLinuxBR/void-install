@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: ter 02 jun 2026 16:43:59 -04
+#  Updated: ter 02 jun 2026 21:41:28 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -8035,7 +8035,7 @@ sh_checkUpdatePackages() {
     if [[ ! -f "$TMP_FILE" ]]; then
       if conf "** UPDATE - ${APP} **" "É fortemente recomendado sincronizar e atualizar este utilitário antes da instalação. \n\n${AMARELO}Deseja proceder ?"; then
         sh_cmd_job_infobox "Aguarde alguns instantes, sincronizando e atualizando..." \
-          "xbps-install -Syuf --ignore-files-conflicts "${PackagesToUpdate[@]}" &>/dev/null"
+          "xbps-install -Syuf --ignore-file-conflicts "${PackagesToUpdate[@]}" &>/dev/null"
         sh_msg_job "Reiniciando o script pela primeira vez..."
         touch "$TMP_FILE"
         exec "$0" "$@"
