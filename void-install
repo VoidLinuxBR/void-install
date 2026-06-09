@@ -5,7 +5,7 @@
 #  void-install
 #  Created: 2022/12/24
 #  Altered: 2024/03/11
-#  Updated: qui 04 jun 2026 13:37:27 -04
+#  Updated: ter 09 jun 2026 01:35:55 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -51,7 +51,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.6.04-20260604'
+readonly _VERSION_='3.6.09-20260609'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
                          chroot blkid fdisk parted lsblk curl xz tee
                          mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -563,11 +563,12 @@ sh_choose_common_packages() {
 		)
 
 		declare -ga aSuplemento=(
-			chili-utils
 			voidbr-utils
 			voidbr-nano-config
 			voidbr-vinstall
 			voidbr-webapps
+			chili-utils
+			chili-clonedisk
 		)
 
 		aExtra+=(
@@ -713,20 +714,6 @@ sh_setEnvironment() {
 	readonly LOGGER='/dev/tty8'
 	shell='/bin/sh'
 
-	ccabec="\Z6${APP} \Z5v${_VERSION_} - \Znhttps://github.com/voidlinuxbr/void-install"
-	baseccabec="\Z6${APP} \Z5v${_VERSION_} - \Znhttps://github.com/voidlinuxbr/void-install"
-	: "${ccabecmin="$APP v${_VERSION_}"}"
-	: "${DIALOG=${DIALOG:-dialog}}"
-	: "${ARCH:=x86_64}"
-	: "${CACHEDIR:="$(pwd -P)"/xbps-cachedir-${ARCH}}"
-	: "${XBPS_INSTALL_CMD:=xbps-install}"
-	: "${XBPS_INSTALL_UNPACK_ONLY:=xbps-install --unpack-only --yes --ignore-file-conflicts}"
-	: "${XBPS_REMOVE_CMD:=xbps-remove}"
-	: "${XBPS_QUERY_CMD:=xbps-query}"
-	: "${XBPS_RINDEX_CMD:=xbps-rindex}"
-	: "${XBPS_UHELPER_CMD:=xbps-uhelper}"
-	: "${XBPS_RECONFIGURE_CMD:=xbps-reconfigure}"
-
 	# flag disk info
 	: "${DSK_NAME=1}"
 	: "${DSK_SIZE=2}"
@@ -802,6 +789,21 @@ sh_setEnvironment() {
 	COL=$((COLUMNS - 8))
 	SET_COL="\\033[${COL}G" # at the $COL char
 	CURS_ZERO="\\033[0G"
+
+  : "${ccabec="${BOLD}${WHITE}${REVERSE}${APP} ${YELLOW}v$_VERSION_ ${BLUE}https://github.com/voidlinuxbr/void-install "}"
+  : "${baseccabec="${BOLD}${WHITE}${REVERSE}${APP} ${YELLOW}v$_VERSION_ ${BLUE}https://github.com/voidlinuxbr/void-install "}"
+	: "${ccabecmin="$APP v${_VERSION_}"}"
+	: "${DIALOG=${DIALOG:-dialog}}"
+	: "${ARCH:=x86_64}"
+	: "${CACHEDIR:="$(pwd -P)"/xbps-cachedir-${ARCH}}"
+	: "${XBPS_INSTALL_CMD:=xbps-install}"
+	: "${XBPS_INSTALL_UNPACK_ONLY:=xbps-install --unpack-only --yes --ignore-file-conflicts}"
+	: "${XBPS_REMOVE_CMD:=xbps-remove}"
+	: "${XBPS_QUERY_CMD:=xbps-query}"
+	: "${XBPS_RINDEX_CMD:=xbps-rindex}"
+	: "${XBPS_UHELPER_CMD:=xbps-uhelper}"
+	: "${XBPS_RECONFIGURE_CMD:=xbps-reconfigure}"
+
 }
 
 sh_touchConf() {
@@ -6918,9 +6920,9 @@ sh_run_binary() {
 	msg "INFO" "$(log_info_msg "$(gettext "Aguarde...") ${cmsg_Gerando} test with "${binary}" ${xurl}")"
 	evaluate_retval 1 "$err_not_fatal"
 	info "=== ${binary} ===" \
-		"\n${RED}$(gettext "binário não foi localizado no") ${YELLOW}\$PATH${RESET}" \
-		"${RED}$(gettext "binário não foi localizado na pasta local:") ${YELLOW}$PWD${RESET}" \
-		"${YELLOW}\n$(gettext "DICA: instale o pacote voidbr-utils")"
+		"\n${RED}✗ $(gettext "binário não foi localizado no") ${YELLOW}\$PATH${RESET}" \
+		"${RED}✗ $(gettext "binário não foi localizado na pasta local:") ${YELLOW}$PWD${RESET}" \
+		"${YELLOW}\n➡ $(gettext "DICA: instale o pacote voidbr-utils")"
 	return 1
 }
 
@@ -6945,7 +6947,7 @@ sh_main_menu() {
 			DEFITEM="${cmsg_Mirror}"
 		fi
 
-		ccabec="${baseccabec} - ${cERRO}${url_mirror}"
+		ccabec="${baseccabec}${BLACK}${url_mirror} "
 		$LMIRROR && MENU_MIRROR="${cWARN}[${AConfMirror[_MIRROR]}]${RST} ● " || MENU_MIRROR="${cERRO}[${cmsg_Nao_definido}]${RST} ● "
 		$LSOURCE && MENU_SOURCE="${cWARN}[${AConfMirror[_SOURCE]}]${RST} ● " || MENU_SOURCE="${cERRO}[${cmsg_Nao_definido}]${RST} ● "
 		$LDISK && MENU_DEVICE="${cWARN}[${AConfDisk[_DEVICE]}]${RST} ● " || MENU_DEVICE="${cERRO}[${cmsg_Nao_definido}]${RST} ● "
@@ -7562,13 +7564,27 @@ sh_setLanguage() {
 	#	cmsg_LBL_check[pt_BR]=$(gettext "Usar as teclas ${RED}PARA CIMA ${RESET}e ${RED}PARA BAIXO ${RESET}para navegar.\nUsar ${RED}BARRA DE ESPAÇO ${RESET}para selecionar.\nUsar ${RED}TAB ${RESET}para alternar entre os botões e ${RED}ENTER ${RESET}para aceitar.")
 	#	cmsg_Tarball_Corrompido[pt_BR]=$(gettext "\n${RED}Aparentemente o tarball rootfs ${_TARBALL_ROOTFS} está corrompido.\n\n${BOLD}${WHITE}Testar a integridade e reiniciar a instalação ?")
   #
-	cmsg_LABEL1=$(gettext "Usar as setas ${CYAN}↑ ${RST}e ${CYAN}↓ ${RST}para navegar.")
-	cmsg_LABEL2=$(gettext "Usar ${CYAN}TAB ${RST}para alternar entre os botões.")
-	cmsg_LABEL3=$(gettext "Usar ${CYAN}ENTER ${RST}ou ${CYAN}BARRA DE ESPAÇO ${RST}para selecionar e aceitar.")
-	#cmsg_LABEL1=$(gettext "Usar as setas ↑ e ↓ para navegar.")
-	#cmsg_LABEL2=$(gettext "Usar TAB para alternar entre os botões.")
-	#cmsg_LABEL3=$(gettext "Usar ENTER ou BARRA DE ESPAÇO para selecionar e aceitar.")
-	cmsg_MENU="${cmsg_LABEL1}\n${cmsg_LABEL2}\n${cmsg_LABEL3}"
+#	cmsg_LABEL1=$(gettext "Usar as setas ${CYAN}↑ ${RST}e ${CYAN}↓ ${RST}para navegar.")
+#	cmsg_LABEL2=$(gettext "Usar ${CYAN}TAB ${RST}para alternar entre os botões.")
+#	cmsg_LABEL3=$(gettext "Usar ${CYAN}ENTER ${RST}ou ${CYAN}BARRA DE ESPAÇO ${RST}para selecionar e aceitar.")
+#	#cmsg_LABEL1=$(gettext "Usar as setas ↑ e ↓ para navegar.")
+#	#cmsg_LABEL2=$(gettext "Usar TAB para alternar entre os botões.")
+#	#cmsg_LABEL3=$(gettext "Usar ENTER ou BARRA DE ESPAÇO para selecionar e aceitar.")
+#	cmsg_MENU="${cmsg_LABEL1}\n${cmsg_LABEL2}\n${cmsg_LABEL3}"
+
+  cLB1="$(gettext "Use as teclas")"
+  cLB2="$(gettext "PARA CIMA")"
+  cLB3="$(gettext "e")"
+  cLB4="$(gettext "PARA BAIXO")"
+  cLB5="$(gettext "para navegar")"
+  cLB6="$(gettext "Use")"
+  cLB7="$(gettext "para alternar entre os botões")"
+  cLB8="$(gettext "para selecionar/aceitar")"
+  ccolor="${BOLD}${RED}"
+  cmsg_MENU="$cLB1 ${ccolor}↑ $cLB2$RESET \
+$cLB3 ${ccolor}↓ $cLB4$RESET \
+$cLB5\n$cLB6 ${ccolor}⇥ TAB${RESET} \
+$cLB7 ${ccolor}↵ ENTER${RESET} ou ${ccolor}BARRA DE ESPAÇO${RESET} $cLB8"
 
 	cmsg_Tarball_Corrompido0=$(gettext "Aparentemente o tarball rootfs")
 	cmsg_Tarball_Corrompido1=$(gettext "está corrompido.")
