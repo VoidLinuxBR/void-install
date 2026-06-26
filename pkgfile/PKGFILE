@@ -1,67 +1,40 @@
-# Maintainer: Vilmar Catafesta <vcatafesta@gmail.com>
+#!/usr/bin/bash
+# Maintainer  : Vilmar Catafesta <vcatafesta@gmail.com>
 
-pkgname=voidbr-pkgname
-pkgdesc="Package template for VoidLinuxBR"
+pkgname=void-install
+pkgdesc="Instalador oficial do Void Linux da comunidade Brasil"
 pkgver=$(date +%Y%m%d)
 pkgrel=$(date +%H%M)
 provides=()
 replaces=()
 arch=('any')
 license=('MIT')
-#url="ssh://git@github.com/voidlinuxbr/${pkgname}"
-url="https://github.com/voidlinuxbr/${pkgname}"
+url="https://github.com/voidlinuxbr/$pkgname"
 source=("git+${url}.git")
 md5sums=('SKIP')
-makedepends=()
-depends=()
-
-# Automatically detect and use the correct install file
-if [ -e "${pkgname}.install" ]; then
-	install=${pkgname}.install
-elif [ -e "pkgbuild.install" ]; then
-	install=pkgfile.install
-fi
-
+depends=('bash>=0' gettext dialog pv rsync gawk grep parted curl lvm2 cryptsetup voidbr-utils xz)
 package() {
-	# Verify default folder
-	if [ -d "${srcdir}/${pkgname}/${pkgname}" ]; then
-		InternalDir="${srcdir}/${pkgname}/${pkgname}"
-	else
-		InternalDir="${srcdir}/${pkgname}"
-	fi
+	local dirs=("usr" "etc" "opt")
+	#   echo "DESTDIR=$DESTDIR"
+	#   echo "pkgdir=$pkgdir"
+	#   echo "srcdir=$srcdir"
+	#   echo "_pkgsrc=$_pkgsrc"
 
-	cd "${srcdir}/${pkgname}"
-	# Copiar a estrutura de /etc, /usr e /opt para /
-	local dirs=("boot" "etc" "opt" "usr")
+	cd ${srcdir}/${pkgname}
 	for dir in "${dirs[@]}"; do
-		if [ -d "${InternalDir}/${dir}" ]; then
-			cp -a "${InternalDir}/${dir}" "${pkgdir}/"
+		if [ -d "${_pkgsrc}/${dir}" ]; then
+			cp -a "${_pkgsrc}/${dir}" "$DESTDIR/"
 		fi
 	done
 
-	# Install license file if present
-	if [ -f "LICENSE" ]; then
-		install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
-	fi
+   # Install binary
+   install -Dm755 ${_pkgsrc}/void-install "${pkgdir}/usr/bin/void-install"
+   install -Dm755 ${_pkgsrc}/void-install "${pkgdir}/usr/bin/voidbr-install"
 
-	# Install documentation if present
-	if [ -f "README.md" ]; then
-		install -Dm644 README.md "${pkgdir}/usr/share/doc/${pkgname}/README.md"
-	fi
-}
+   # Install license file if present
+   if [ -f "LICENSE" ]; then
+      install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+   fi
 
-pre_install() {
-	log "Iniciando instalação"
-}
 
-post_install() {
-	log "Finalizando instalação"
-}
-
-pre_upgrade() {
-	log "Iniciando upgrade"
-}
-
-post_upgrade() {
-	log "Finalizando upgrade"
 }

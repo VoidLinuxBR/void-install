@@ -2,9 +2,9 @@ name: Criar release e arquivo .tar.gz
 
 # Gatilhos para o workflow
 on:
-#  push:
-#    branches:
-#      - main
+  push:
+    branches:
+      - main
 
   workflow_dispatch: # Permite a execução manual do workflow
     inputs:
