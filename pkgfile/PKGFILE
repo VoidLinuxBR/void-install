@@ -1,0 +1,67 @@
+# Maintainer: Vilmar Catafesta <vcatafesta@gmail.com>
+
+pkgname=voidbr-pkgname
+pkgdesc="Package template for VoidLinuxBR"
+pkgver=$(date +%Y%m%d)
+pkgrel=$(date +%H%M)
+provides=()
+replaces=()
+arch=('any')
+license=('MIT')
+#url="ssh://git@github.com/voidlinuxbr/${pkgname}"
+url="https://github.com/voidlinuxbr/${pkgname}"
+source=("git+${url}.git")
+md5sums=('SKIP')
+makedepends=()
+depends=()
+
+# Automatically detect and use the correct install file
+if [ -e "${pkgname}.install" ]; then
+	install=${pkgname}.install
+elif [ -e "pkgbuild.install" ]; then
+	install=pkgfile.install
+fi
+
+package() {
+	# Verify default folder
+	if [ -d "${srcdir}/${pkgname}/${pkgname}" ]; then
+		InternalDir="${srcdir}/${pkgname}/${pkgname}"
+	else
+		InternalDir="${srcdir}/${pkgname}"
+	fi
+
+	cd "${srcdir}/${pkgname}"
+	# Copiar a estrutura de /etc, /usr e /opt para /
+	local dirs=("boot" "etc" "opt" "usr")
+	for dir in "${dirs[@]}"; do
+		if [ -d "${InternalDir}/${dir}" ]; then
+			cp -a "${InternalDir}/${dir}" "${pkgdir}/"
+		fi
+	done
+
+	# Install license file if present
+	if [ -f "LICENSE" ]; then
+		install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+	fi
+
+	# Install documentation if present
+	if [ -f "README.md" ]; then
+		install -Dm644 README.md "${pkgdir}/usr/share/doc/${pkgname}/README.md"
+	fi
+}
+
+pre_install() {
+	log "Iniciando instalação"
+}
+
+post_install() {
+	log "Finalizando instalação"
+}
+
+pre_upgrade() {
+	log "Iniciando upgrade"
+}
+
+post_upgrade() {
+	log "Finalizando upgrade"
+}
