@@ -668,7 +668,8 @@ sh_choose_common_packages() {
   		  font-fira-ttf
   			font-firacode
   			font-hack-ttf
-  			nerd-fonts
+  			ttf-jetbrains-mono-nerd
+  			#nerd-fonts
       )
 		fi
 		aIconsAndThemes+=(Adapta adwaita-icon-theme arc-theme)
