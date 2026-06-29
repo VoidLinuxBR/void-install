@@ -54,7 +54,7 @@ readonly _VERSION_='3.6.29-20260629'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
-	lvm cryptsetup gettext tput gdisk vilmar
+	lvm cryptsetup gettext tput gdisk
 )
 declare -gA PACKAGEDEP=(
 	['tput']='ncurses'
