@@ -54,7 +54,7 @@ readonly _VERSION_='3.6.29-20260629'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
-	lvm cryptsetup gettext tput gdisk
+	lvm cryptsetup gettext tput gdisk vilmar
 )
 declare -gA PACKAGEDEP=(
 	['tput']='ncurses'
@@ -328,7 +328,11 @@ check_dependencies() {
 	reset
 	for d in "${DEPENDENCIES[@]}"; do
 		if [[ -z $(command -v "$d") ]]; then
-			printf '%s\n' "${red} ✗ ${rst} ${cmsg_CommandNotFound} ${cyan}'$d'${reset}"
+      if has_command dialog; then
+        sh_info_msg "${RED} ✗ ${RST} ${cmsg_CommandNotFound} ${CYAN}'$d'${RST}"
+      else
+  			printf '%s\n' "${red} ✗ ${rst} ${cmsg_CommandNotFound} ${cyan}'$d'${reset}"
+      fi
 			errorFound=true
 		fi
 	done
@@ -337,7 +341,11 @@ check_dependencies() {
 		return 0
 	fi
 
-	echo -e "Distro detectada: ${green}${DISTRO}${rst}"
+  if has_command dialog; then
+    sh_info_msg "Distro detectada: ${GREEN}${DISTRO}${RST}"
+  else
+  	echo -e "Distro detectada: ${green}${DISTRO}${rst}"
+  fi
 
 	# 3. Extração dos dados dos mapas que você definiu
 	local pkgs="${DISTRO_PKGS[$DISTRO]}"
@@ -345,16 +353,41 @@ check_dependencies() {
 
 	# Se a distro atual não existir no mapa, precisamos avisar e parar
 	if [[ -z "$cmd" ]]; then
-		echo -e "${red}Erro: Nenhuma configuração de pacotes encontrada para a distro: '$DISTRO'${rst}"
-		exit 1
+    if has_command dialog; then
+  		alerta "${APP}" "${RED}Erro: Nenhuma configuração de pacotes encontrada para a distro: '$DISTRO'${RST}"
+    else
+  		echo -e "${red}Erro: Nenhuma configuração de pacotes encontrada para a distro: '$DISTRO'${rst}"
+    fi
+    exit 1
 	fi
 
-	echo
-	if readconf "${cyan}Instalar dependências base agora?${rst}"; then
-		echo -e "${blue}::${reset} Preparando ambiente para ${green}${DISTRO}${rst}..."
+	lprossiga=false
+  if has_command dialog; then
+    if conf "${APP}" \
+            "\n${BOLD}${RED} ✗ ${RST} ${cmsg_CommandNotFound} ${CYAN}'$d'${RST}" \
+            "\n\n${YELLOW}Instalar dependências base agora ?"; then
+      lprossiga=true
+    fi
+  else
+  	echo
+    if readconf "${cyan}Instalar dependências base agora?${rst}"; then
+	    lprossiga=true
+	  fi
+  fi
+
+  if $lprossiga; then
+    if has_command dialog; then
+		  sh_info_msg "${BLUE}::${RST} Preparando ambiente para ${GREEN}${DISTRO}${RST}..."
+    else
+  		echo -e "${blue}::${reset} Preparando ambiente para ${green}${DISTRO}${rst}..."
+    fi
 		# Execução dinâmica: $cmd (gerenciador) + $pkgs (lista de pacotes)
 		if ! $cmd $pkgs; then
-			echo -e "${red}Erro Crítico:${reset} A instalação dos pacotes básicos falhou."
+      if has_command dialog; then
+	  		alerta "${APP}" "${RED}Erro Crítico:${RST} A instalação dos pacotes básicos falhou."
+      else
+	  		echo -e "${red}Erro Crítico:${reset} A instalação dos pacotes básicos falhou."
+		  fi
 			exit 1
 		fi
 		echo -e "${green}Sucesso:${reset} Dependências instaladas."
@@ -362,9 +395,21 @@ check_dependencies() {
 		exec "$0" "$@"
 	else
 		# Se o usuário negar a instalação de ferramentas básicas, o instalador não tem como seguir
-		die "${yellow}Aviso:${rst} Os comandos são indispensáveis. Saindo..."
+    if has_command dialog; then
+  		alerta "${APP}" "${YELLOW}Aviso:${RST} Os comandos são indispensáveis. Saindo..."
+    else
+  		echo -e "${yellow}Aviso:${rst} Os comandos são indispensáveis. Saindo..."
+    fi
 		exit 1
 	fi
+}
+
+has_command() {
+  local ccmd="$1"
+  if command -v "$ccmd" >/dev/null; then
+    return 0
+  fi
+  return 1
 }
 
 ###########################################################################################################
