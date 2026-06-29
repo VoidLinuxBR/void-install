@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: sex 26 jun 2026 11:27:02 -04
+#  Updated: seg 29 jun 2026 01:03:09 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -50,7 +50,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.6.26-20260626'
+readonly _VERSION_='3.6.29-20260629'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -69,6 +69,7 @@ declare -gA PACKAGEDEP=(
 )
 readonly LOCKFILE="/tmp/void-install.lock"
 declare -gA DISTRO_PKGS=(
+	["voidbr"]="dialog gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools nilfs-utils"
 	["void"]="dialog gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools nilfs-utils"
 	["void-live"]="dialog gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools nilfs-utils"
 	["voidlinux"]="dialog gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools nilfs-utils"
@@ -79,6 +80,7 @@ declare -gA DISTRO_PKGS=(
 	["debian"]="dialog gettext-base rsync parted curl xz-utils lvm2 xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools nilfs-utils"
 )
 declare -gA DISTRO_MGR=(
+	["voidbr"]="xbps-install -Syu --ignore-file-conflicts"
 	["void"]="xbps-install -Syu --ignore-file-conflicts"
 	["void-live"]="xbps-install -Syu --ignore-file-conflicts"
 	["voidlinux"]="xbps-install -Syu --ignore-file-conflicts"
@@ -4113,7 +4115,7 @@ sh_choose_mirror() {
 		AConfMirror[location]="$(sh_splitarray "${Amirror[$mirror]}" "$FLD_LOCATION")"
 		LMIRROR=true
 
-		if [[ "$DISTRO" = @(void|void-live|voidlinux) ]]; then
+		if [[ "$DISTRO" = @(void|void-live|voidlinux|voidbr) ]]; then
 			if conf "=== ${cmsg_Mirror^^} ===" \
 				"\n${BOLD}$(gettext "Aparentemente, o VOID Linux está sendo usado como host.")\n" \
 				"\n${BOLD}${CYAN}Mirror     : ${AConfMirror[_MIRROR]}" \
@@ -7757,7 +7759,7 @@ sh_checkUpdatePackages() {
 
 	sh_msg_job "Distro detectada : ${CYAN}${DISTRO}${RST}"
 
-	if [[ "$DISTRO" = @(void|void-live|voidlinux) ]]; then
+	if [[ "$DISTRO" = @(void|void-live|voidlinux|voidbr) ]]; then
 		# adiciona repositorios inexistentes no /etc/xbps.d/00-repository-main.conf
 		#sh_add_repo
 
