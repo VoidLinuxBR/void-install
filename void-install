@@ -433,9 +433,14 @@ die() {
 		evaluate_retval 1
 	fi
 	local msg=$1
+	local erros
+    mapfile -t erros < <(
+      tail -n 15 "$BOOTLOG" | grep 'ERRO:'
+    )
 	shift
+
   if has_command dialog; then
-    alerta "DIE" "${BOLD}${RED}$msg${RST}"
+    alerta "DIE" "${erros[@]}" "\n${BOLD}${RED}$msg${RST}"
   else
   	printf "%-75s\n" "$(DOT)${bold}${red}$msg${reset}" >&2
   fi
@@ -7864,8 +7869,6 @@ sh_setVarColors
 sh_setAsciiLines
 sh_setLogPrefix
 #sh_check_lock
-
-die teste
 
 [[ "${1-}" = @(-V|--version) ]] && {
 	sh_version
