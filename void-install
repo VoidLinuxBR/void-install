@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: seg 29 jun 2026 01:03:09 -04
+#  Updated: qua 01 jul 2026 01:54:08 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -50,7 +50,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.6.29-20260629'
+readonly _VERSION_='3.7.01-20260701'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -429,12 +429,30 @@ get_option() {
 }
 
 die() {
+	local msg=$1
+	local erros
+
 	if test $# -ge 2; then
 		evaluate_retval 1
 	fi
-	local msg=$1
+
+  mapfile -t erros < <(
+    tail -n 30 "$BOOTLOG" | grep 'ERROR:'
+  )
+
+  if [[ "${#erros[@]}" -eq 0 ]]; then
+    mapfile -t erros < <(
+      tail -n 20 "$BOOTLOG"
+    )
+  fi
+
 	shift
-	printf "%-75s\n" "$(DOT)${bold}${red}$msg${reset}" >&2
+
+  if has_command dialog; then
+    alerta_die "DIE" "\n${BOLD}${RED}$msg${RST}" erros
+  else
+  	printf "%-75s\n" "$(DOT)${bold}${red}$msg${reset}" >&2
+  fi
 	sh_enablePrintk
 	exit 1
 }
@@ -1494,6 +1512,32 @@ alerta() {
 		--ok-label "${cmsg_ok}" \
 		--msgbox "\n$2\n$3\n$4\n$5\n$6" \
 		10 81
+}
+
+alerta_die() {
+  local xtitle="$1"
+  local cmsg="$2"
+  local -n linhas="$3"
+  local texto=""
+  local linha
+
+  for linha in "${linhas[@]}"; do
+    texto+="$linha"$'\n'
+  done
+
+  texto+=$'\n'"${RED}$cmsg"
+  texto="$(strip_ansi "${texto}")"
+
+  ${DIALOG} \
+    --colors \
+    --clear \
+    --no-collapse \
+    --no-cr-wrap \
+    --title "$xtitle" \
+    --backtitle "$ccabec" \
+    --ok-label "${cmsg_ok}" \
+    --msgbox "$texto" \
+    20 120
 }
 
 conf() {
@@ -6804,7 +6848,7 @@ sh_main_menu() {
 				--yes-label "${cmsg_yeslabel}" \
 				--no-label "${cmsg_nolabel}" \
 				--yesno "\n${BOLD}${WHITE}${cmsg_SairSemInstalar}?" \
-				8 70 && die
+				8 70 && exit 0
 			;;
 		esac
 	done
@@ -7862,8 +7906,8 @@ sh_setLogPrefix
 #sh_check_lock
 
 [[ "${1-}" = @(-V|--version) ]] && {
-	sh_version
-	exit $(($# ? 0 : 1))
+  sh_version
+  exit $(($# ? 0 : 1))
 }
 
 [[ "${1-}" = @(-h|--help) ]] && {
