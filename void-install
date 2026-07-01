@@ -432,15 +432,23 @@ die() {
 	if test $# -ge 2; then
 		evaluate_retval 1
 	fi
+
 	local msg=$1
 	local erros
     mapfile -t erros < <(
-      tail -n 15 "$BOOTLOG" | grep 'ERRO:'
+      tail -n 30 "$BOOTLOG" | grep 'ERROR:'
     )
+
+  if [[ "${#erros[@]}" -eq 0 ]]; then
+    mapfile -t erros < <(
+      tail -n 20 "$BOOTLOG"
+    )
+  fi
+
 	shift
 
   if has_command dialog; then
-    alerta "DIE" "${erros[@]}" "\n${BOLD}${RED}$msg${RST}"
+    alerta_die "DIE" "${erros[@]}" "\n${BOLD}${RED}$msg${RST}"
   else
   	printf "%-75s\n" "$(DOT)${bold}${red}$msg${reset}" >&2
   fi
@@ -1503,6 +1511,22 @@ alerta() {
 		--ok-label "${cmsg_ok}" \
 		--msgbox "\n$2\n$3\n$4\n$5\n$6" \
 		10 81
+}
+
+alerta_die() {
+	msg "${fmt} $@"
+	evaluate_retval 0
+
+	${DIALOG} \
+		--colors \
+		--clear \
+		--no-collapse \
+		--no-cr-wrap \
+		--title "$1" \
+		--backtitle "$ccabec" \
+		--ok-label "${cmsg_ok}" \
+		--msgbox "\n$2\n$3\n$4\n$5\n$6" \
+		0 0
 }
 
 conf() {
@@ -6813,7 +6837,7 @@ sh_main_menu() {
 				--yes-label "${cmsg_yeslabel}" \
 				--no-label "${cmsg_nolabel}" \
 				--yesno "\n${BOLD}${WHITE}${cmsg_SairSemInstalar}?" \
-				8 70 && die
+				8 70 && exit 0
 			;;
 		esac
 	done
