@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qua 01 jul 2026 01:54:08 -04
+#  Updated: qua 01 jul 2026 12:25:28 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -431,25 +431,32 @@ get_option() {
 die() {
 	local msg=$1
 	local erros
+	local tmp
 
 	if test $# -ge 2; then
 		evaluate_retval 1
 	fi
 
-  mapfile -t erros < <(
-    tail -n 30 "$BOOTLOG" | grep 'ERROR:'
-  )
+#  mapfile -t erros < <(
+#    tail -n 30 "$BOOTLOG" | grep -Ei 'ERRO:|ERROR:|FAIL|FAILED'
+#  )
+#  if [[ "${#erros[@]}" -eq 0 ]]; then
+#    mapfile -t erros < <(
+#      tail -n 20 "$BOOTLOG"
+#    )
+#  fi
 
-  if [[ "${#erros[@]}" -eq 0 ]]; then
-    mapfile -t erros < <(
-      tail -n 20 "$BOOTLOG"
-    )
-  fi
+  tmp="$(mktemp)"
+# tail -n 40 "$BOOTLOG" | grep -Ei 'ERRO:|ERROR:|FAIL|FAILED' > "$tmp"
+  tail -n 13 "$BOOTLOG" > "$tmp"
+  printf '\n%s\n' "$msg" >> "$tmp"
 
 	shift
 
   if has_command dialog; then
-    alerta_die "DIE" "\n${BOLD}${RED}$msg${RST}" erros
+    #alerta_die "DIE" "\n${BOLD}${RED}$msg${RST}" erros
+    ${DIALOG} --title "ERRO - $msg" --textbox "$tmp" 20 120
+    rm -f "$tmp"
   else
   	printf "%-75s\n" "$(DOT)${bold}${red}$msg${reset}" >&2
   fi
@@ -1530,10 +1537,9 @@ alerta_die() {
 
   ${DIALOG} \
     --colors \
-    --clear \
+    --title "$xtitle" \
     --no-collapse \
     --no-cr-wrap \
-    --title "$xtitle" \
     --backtitle "$ccabec" \
     --ok-label "${cmsg_ok}" \
     --msgbox "$texto" \
