@@ -448,7 +448,7 @@ die() {
 	shift
 
   if has_command dialog; then
-    alerta_die "DIE" "${erros[@]}" "\n${BOLD}${RED}$msg${RST}"
+    alerta_die "DIE" "\n${BOLD}${RED}$msg${RST}" erros
   else
   	printf "%-75s\n" "$(DOT)${bold}${red}$msg${reset}" >&2
   fi
@@ -1514,19 +1514,28 @@ alerta() {
 }
 
 alerta_die() {
-	msg "${fmt} $@"
-	evaluate_retval 0
+    local xtitle="$1"
+    local cmsg="$2"
+    local -n linhas="$3"
+    local texto="$cmsg"
 
-	${DIALOG} \
-		--colors \
-		--clear \
-		--no-collapse \
-		--no-cr-wrap \
-		--title "$1" \
-		--backtitle "$ccabec" \
-		--ok-label "${cmsg_ok}" \
-		--msgbox "\n$2\n$3\n$4\n$5\n$6" \
-		0 0
+    msg "${fmt} $@"
+    evaluate_retval 0
+
+    for linha in "${linhas[@]}"; do
+        texto+=$'\n'"$linha"
+    done
+
+    ${DIALOG} \
+        --colors \
+        --clear \
+        --no-collapse \
+        --no-cr-wrap \
+        --title "$xtitle" \
+        --backtitle "$ccabec" \
+        --ok-label "${cmsg_ok}" \
+        --msgbox "$texto" \
+        0 0
 }
 
 conf() {
