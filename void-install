@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qua 01 jul 2026 12:25:28 -04
+#  Updated: ter 07 jul 2026 15:07:36 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -50,7 +50,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.7.01-20260701'
+readonly _VERSION_='3.7.07-20260707'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -2222,8 +2222,9 @@ sh_mkparted() {
 		LFS=true
 		LPARTITION=true
 		LFSREVISED=true
-		#		sync 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
-		#		partprobe 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
+#		sync 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
+#		partprobe 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
+#   sh_check_disk_health "${AConfDisk[_DEVICE]}"
 	else
 		die "${cmsg_InstalacaoAbortada}..."
 	fi
@@ -3607,6 +3608,158 @@ sh_part_info() {
 			awk -F'"' '!seen[$6]++'
 	)
 	#	done < <(lsblk -fPAo TYPE,NAME,PATH,SIZE,TRAN,MODEL,LABEL,SERIAL,FSTYPE,PARTTYPENAME | grep -P 'TYPE="(part)"' | sort -k5,5 -k2,2)
+}
+
+# ------------------------------------------------------------
+# Verifica possíveis problemas no disco
+# Retorna:
+#   0 = OK
+#   1 = Aviso
+#   2 = Crítico
+# ------------------------------------------------------------
+sh_check_disk_health() {
+  local disk="$1"
+
+	[[ -b "$disk" ]] || {
+    alerta "=== ERRO ===" \
+      "\n${BOLD}${RED}$(gettext 'Dispositivo inválido'):\n${CYAN}${disk}${RESET}" \
+      "\n${BOLD}${YELLOW}$(gettext 'Escolha o disco em Armazenamento')${RESET}"
+		return 2
+	}
+
+  sh_info_msg "$(gettext 'Testando saude do disco'): ${CYAN}${disk}${RESET}"
+
+	local model serial size tran
+	local pttype=""
+	local status=0
+	local report=""
+	local errors=""
+	local smart="Não disponível"
+
+	model=$(lsblk -dn -o MODEL "$disk")
+	serial=$(lsblk -dn -o SERIAL "$disk")
+	size=$(lsblk -dn -o SIZE "$disk")
+	tran=$(lsblk -dn -o TRAN "$disk")
+	pttype=$(lsblk -dn -o PTTYPE "$disk")
+
+	report+="Disco.............: ${CYAN}$disk${RESET}\n"
+	report+="Modelo............: ${CYAN}${model:-Desconhecido}${RESET}\n"
+	report+="Serial............: ${CYAN}${serial:-N/A}${RESET}\n"
+	report+="Tamanho...........: ${CYAN}$size${RESET}\n"
+	report+="Interface.........: ${CYAN}${tran:-N/A}${RESET}\n\n"
+
+	# --------------------------------------------------------
+	# GPT / MBR
+	# --------------------------------------------------------
+	if [[ -z "$pttype" ]]; then
+		if fdisk -l "$disk" 2>/dev/null | grep -qi "Tipo de rótulo do disco: gpt"; then
+			report+="Tabela............: ${RED}GPT (lsblk não detectou)${RESET}\n"
+			report+="Aviso.............: ${RED}libblkid falhou ao detectar GPT.${RESET}\n"
+			status=1
+		else
+			report+="Tabela............: ${RED}Não detectada${RESET}\n"
+			status=2
+		fi
+	else
+		report+="Tabela............: ${GREEN}$pttype${RESET}\n"
+	fi
+
+	# --------------------------------------------------------
+	# GPT Primária
+	# --------------------------------------------------------
+	if dd if="$disk" bs=512 skip=1 count=1 status=none 2>/dev/null | strings | grep -q "EFI PART"; then
+		report+="GPT Primária......: ${GREEN}OK${RESET}\n"
+	else
+		report+="GPT Primária......: ${RED}FALHOU${RESET}\n"
+		status=2
+	fi
+
+	# --------------------------------------------------------
+	# GPT Backup
+	# --------------------------------------------------------
+	local sectors
+	sectors=$(blockdev --getsz "$disk" 2>/dev/null)
+
+	if [[ -n "$sectors" ]]; then
+		if dd if="$disk" bs=512 skip=$((sectors-1)) count=1 status=none 2>/dev/null | strings | grep -q "EFI PART"; then
+			report+="GPT Backup........: ${GREEN}OK${RESET}\n"
+		else
+			report+="GPT Backup........: ${RED}FALHOU${RESET}\n"
+			(( status < 2 )) && status=1
+		fi
+	fi
+
+	# --------------------------------------------------------
+	# blkid
+	# --------------------------------------------------------
+	if blkid -p "$disk" >/dev/null 2>&1; then
+		report+="blkid.............: ${GREEN}OK${RESET}\n"
+	else
+		report+="blkid.............: ${RED}FALHOU${RESET}\n"
+		(( status < 1 )) && status=1
+	fi
+
+	# --------------------------------------------------------
+	# wipefs
+	# --------------------------------------------------------
+	if wipefs "$disk" >/dev/null 2>&1; then
+		report+="wipefs............: ${GREEN}OK${RESET}\n"
+	else
+		report+="wipefs............: ${RED}FALHOU${RESET}\n"
+		(( status < 1 )) && status=1
+	fi
+
+	# --------------------------------------------------------
+	# SMART (opcional)
+	# --------------------------------------------------------
+	if command -v smartctl >/dev/null; then
+		smart=$(smartctl -H "$disk" 2>/dev/null | awk -F: '/overall-health|SMART overall-health|SMART Health Status/ {
+			gsub(/^[ \t]+/, "", $2)
+			print $2
+		}')
+
+		[[ -z "$smart" ]] && smart="Indisponível"
+		report+="SMART.............: $smart\n"
+
+		if echo "$smart" | grep -qiE 'FAILED|BAD'; then
+			status=2
+		fi
+	else
+		report+="SMART.............: Não instalado\n"
+	fi
+
+	# --------------------------------------------------------
+	# dmesg
+	# --------------------------------------------------------
+	local dev
+	dev=$(basename "$disk")
+	errors=$(dmesg | grep -iE "$dev|I/O error|Buffer I/O|blk_update_request|critical medium error|end_request" | tail -5)
+
+	if [[ -n "$errors" ]]; then
+		report+="\nErros recentes:\n"
+		report+="----------------------------------------\n"
+		report+="${YELLOW}$errors${RESET}\n"
+		(( status < 2 )) && status=2
+	fi
+
+	# --------------------------------------------------------
+	# Status Final
+	# --------------------------------------------------------
+	report+="\n----------------------------------------\n"
+	case "$status" in
+		0) report+="${GREEN}STATUS: DISCO APARENTEMENTE SAUDÁVEL${RESET}" ;;
+		1) report+="${YELLOW}STATUS: AVISOS ENCONTRADOS${RESET}" ;;
+		2) report+="${RED}STATUS: POSSÍVEIS DEFEITOS NO DISCO${RESET}" ;;
+	esac
+
+	${DIALOG} \
+	  --colors \
+		--backtitle "$ccabec" \
+		--title "Diagnóstico do Disco" \
+		--msgbox "$report" \
+		00 00
+
+	return "$status"
 }
 
 set_custom_install() {
@@ -6805,6 +6958,7 @@ sh_main_menu() {
 			"${cmsg_Usuario}" "${MENU_EXTRA}${cmsg_descExtra}" \
 			"${cmsg_Instalar}" "${cmsg_descInstalar}" \
 			'↑↓' '↓↑' \
+			"${cmsg_Saude_disco}" "${cmsg_Testar_Saude_disco} ${AConfDisk[_DEVICE]}" \
 			"Fde" "$(gettext 'Criptografia de disco completo + LVM (opcional)')" \
 			"Lvm" "$(gettext 'Gerenciamento de Volume Lógico LVM (opcional)')" \
 			"Vg" "Delete/Clear Volume Group (VG) from LVM (optional)" \
@@ -6813,7 +6967,8 @@ sh_main_menu() {
 			"Clonedisk" "$(gettext 'Utilitário para clonar discos (opcional)')" \
 			"Wifi" "${cmsg_descWifi}" \
 			"Prompt" "$(gettext 'Prompt de comando - Exit para voltar')" \
-			"${cmsg_Sair}" "${cmsg_descSair}" 2>&1 >/dev/tty)
+			"${cmsg_Sair}" "${cmsg_descSair}" \
+			2>&1 >/dev/tty)
 
 		if [ $? -eq 3 ]; then
 			display_config
@@ -6837,6 +6992,7 @@ sh_main_menu() {
 		"${cmsg_Usuario}") sh_confadduser "$@" && [ -n "$LEXTRA" ] && DEFITEM="${cmsg_Instalar}" ;;
 		"${cmsg_Instalar}") sh_install ;;
 		'↑↓') : ;;
+		"${cmsg_Saude_disco}") sh_check_disk_health "${AConfDisk[_DEVICE]}" ;;
 		"${cmsg_Tema}") sh_run_binary 'voidbr-dialog-theme-selector' ;;
 		"${cmsg_Servicos}") sh_run_binary 'void-services' "$LC_DEFAULT" "-g" ;;
 		"Clonedisk") sh_run_binary 'void-clonedisk' ;;
@@ -7426,6 +7582,8 @@ $cLB7 ${ccolor}↵ ENTER${RESET} ou ${ccolor}BARRA DE ESPAÇO${RESET} $cLB8"
 	cmsg_Nao_definido=$(gettext "Não definido")
 	cmsg_Mudar=$(gettext "Mudar")
 	cmsg_Sair=$(gettext "Sair")
+	cmsg_Saude_disco=$(gettext "Saúde disco")
+	cmsg_Testar_Saude_disco=$(gettext "Fazer diagnostico da saúde do disco")
 	cmsg_Instalar=$(gettext "Instalar")
 	cmsg_Mirror=$(gettext "Espelho")
 	cmsg_BootLoader="Bootloader (GRUB)"
