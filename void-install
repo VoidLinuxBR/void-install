@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 07 jul 2026 15:07:36 -04
+#  Updated: ter 07 jul 2026 19:25:28 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -163,6 +163,7 @@ declare -gA AConfDisk=(
 	[_DISKTABLE]=''
 	[_BOOTLOADER]='/dev/sdX'
 	[_OSPROBER]=false
+	[_HEALTH]='/dev/sdX'
 )
 declare -gA AConfLocale=(
 	[_TIMEZONE]='America/Sao_Paulo'
@@ -1559,7 +1560,7 @@ conf() {
 		--yes-label "${cmsg_yeslabel}" \
 		--no-label "${cmsg_nolabel}" \
 		--yesno "$*" \
-		0 0
+		10 60
 	nchoice=$?
 	return "$nchoice"
 }
@@ -3619,12 +3620,25 @@ sh_part_info() {
 # ------------------------------------------------------------
 sh_check_disk_health() {
   local disk="$1"
+  local msg
 
+  AConfDisk[_HEALTH]="$disk"
 	[[ -b "$disk" ]] || {
-    alerta "=== ERRO ===" \
-      "\n${BOLD}${RED}$(gettext 'Dispositivo inválido'):\n${CYAN}${disk}${RESET}" \
-      "\n${BOLD}${YELLOW}$(gettext 'Escolha o disco em Armazenamento')${RESET}"
-		return 2
+    if [[ -z "$1" ]]; then
+      msg="\n${BOLD}${RED}$(gettext 'Necessário escolher um dispositivo para TESTAR')${RESET}"
+    else
+      msg="\n${BOLD}${RED}$(gettext 'Dispositivo inválido'): ${CYAN}${disk}${RESET}"
+    fi
+    if conf "=== ERRO ===" \
+      "${msg}\n\n${YELLOW}$(gettext 'Deseja escolher agora?')"; then
+	    if ! sh_choose_disk "${cmsg_DiskHealth}"; then
+        return 1
+      fi
+
+      disk="${AConfDisk[_HEALTH]}"
+    else
+      return 2
+    fi
 	}
 
   sh_info_msg "$(gettext 'Testando saude do disco'): ${CYAN}${disk}${RESET}"
@@ -4557,7 +4571,8 @@ sh_getlgrub() {
 sh_choose_disk() {
 	local old_device="${AConfDisk[_DEVICE]}"
 
-	sh_umount_fs
+  sh_umount_fs
+
 	while true; do
 		sh_disk_part_info
 		local array=()
@@ -4568,14 +4583,21 @@ sh_choose_disk() {
 		local result
 		local sep="\xe2\x94\x82"
 		local xtitle
-		local LCHOOSEBOOTLOADER
+		local LCHOOSEBOOTLOADER=0
+		local LCHOOSEHEALTH=false
 
 		if [ $# -eq 0 ]; then
 			xtitle="${cmsg_TitleDisco}"
 			LCHOOSEBOOTLOADER=0
+  		LCHOOSEHEALTH=false
 		else
-			xtitle="${cmsg_BootLoader^^}"
-			LCHOOSEBOOTLOADER=1
+		  if [[ "$1" == "${cmsg_DiskHealth}" ]]; then
+  			xtitle="${cmsg_DiskHealth^^}"
+	  		LCHOOSEHEALTH=true
+      else
+  			xtitle="${cmsg_BootLoader^^}"
+	  		LCHOOSEBOOTLOADER=1
+	    fi
 		fi
 
 		for i in "${ARRAY_DSK_DEVICES[@]}"; do
@@ -4601,8 +4623,7 @@ sh_choose_disk() {
 			--cancel-label "${cmsg_ButtonBack}" \
 			--colors \
 			--extra-button \
-			--extra-button \
-			--extra-label "$(gettext 'Particionamento')" \
+			--extra-button --extra-label "$(gettext 'Particionamento')" \
 			--menu "${cmsg_MENU}\n\n\
 $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "BOOT" "TRAN" "SIZE" "PTTYPE" "LABEL" "MODEL")" \
 			24 0 2 "${array[@]}" 2>&1 >/dev/tty)
@@ -4615,14 +4636,21 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 		esac
 
 		if [[ -n "$sd" ]]; then
+			if $LCHOOSEHEALTH; then
+        AConfDisk[_HEALTH]="$sd"
+				return 0
+			fi
+
 			if ((LCHOOSEBOOTLOADER)); then
 				AConfDisk[_BOOTLOADER]="$sd"
 				LGRUB=true
 				LOSPROBER=false
 				return 0
 			fi
+
 			AConfDisk[_DEVICE]="$sd"
 			AConfDisk[_BOOTLOADER]="$sd"
+			AConfDisk[_HEALTH]="$sd"
 			index=$(sh_seekstrarray "${ARRAY_DSK_DEVICES[*]}" "${AConfDisk[_DEVICE]}")
 			NAME_ORIGEM="$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_DEVICE]}]}" "$DSK_NAME")"
 			MODEL_ORIGEM="$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_DEVICE]}]}" "$DSK_MODEL")"
@@ -4636,6 +4664,7 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 		set_disk_choosed() {
 			AConfDisk[_DEVICE]="$sd"
 			AConfDisk[_BOOTLOADER]="$sd"
+			AConfDisk[_HEALTH]="$sd"
 			sh_checkdisk "$sd"
 			sh_backup_partitions "$sd" "$NAME_ORIGEM"
 			LDISK=true
@@ -4673,11 +4702,11 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 			return 0
 			;;
 		"$D_CONFIG")
-			sh_checkdisk "${AConfDisk[_DEVICE]}"
-			sh_menuUtilDisk
-			#continue
-			set_disk_choosed # qui 07 mai 2026 21:22:11 -04
-			return 0         # qui 07 mai 2026 21:22:11 -04
+ 			sh_checkdisk "${AConfDisk[_DEVICE]}"
+  		sh_menuUtilDisk
+	  	#continue
+		  set_disk_choosed # qui 07 mai 2026 21:22:11 -04
+ 			return 0         # qui 07 mai 2026 21:22:11 -04
 			;;
 		esac
 	done
@@ -4686,10 +4715,13 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 	return 0
 }
 
-sh_setBootLoader() {
-	if sh_choose_disk "=== BOOTLOADER (GRUB) ==="; then
-		AConfDisk[_BOOTLOADER]="${AConfDisk[_DEVICE]}"
-		LGRUB=true
+sh_chooseBootLoader() {
+  if ! $LDISK; then
+    AConfDisk[_BOOTLOADER]="${AConfDisk[_DEVICE]}"
+    LGRUB=true
+  fi
+
+  if sh_choose_disk "=== BOOTLOADER (GRUB) ==="; then
 		LOSPROBER=false
 		if conf "=== OS-PROBER ===" "\n$(gettext "Detectar outro OS(s) instalado ?")\n\n"; then
 			LOSPROBER=true
@@ -6958,7 +6990,7 @@ sh_main_menu() {
 			"${cmsg_Usuario}" "${MENU_EXTRA}${cmsg_descExtra}" \
 			"${cmsg_Instalar}" "${cmsg_descInstalar}" \
 			'↑↓' '↓↑' \
-			"${cmsg_Saude_disco}" "${cmsg_Testar_Saude_disco} ${AConfDisk[_DEVICE]}" \
+			"${cmsg_Saude_disco}" "${cmsg_Testar_Saude_disco} ${AConfDisk[_HEALTH]}" \
 			"Fde" "$(gettext 'Criptografia de disco completo + LVM (opcional)')" \
 			"Lvm" "$(gettext 'Gerenciamento de Volume Lógico LVM (opcional)')" \
 			"Vg" "Delete/Clear Volume Group (VG) from LVM (optional)" \
@@ -6981,7 +7013,7 @@ sh_main_menu() {
 		"${cmsg_Source}") sh_chooseSource && [ -n "$LSOURCE" ] && DEFITEM="${cmsg_Disco}" ;;
 		"${cmsg_Disco}") sh_choose_disk && [ -n "$LDISK" ] && DEFITEM="FileSystem" ;;
 		"FileSystem") sh_choose_Partition && [ -n "$LPARTITION" ] && DEFITEM="${cmsg_BootLoader}" ;;
-		"${cmsg_BootLoader}") sh_setBootLoader && [ -n "$LGRUB" ] && DEFITEM="${cmsg_Teclado}" ;;
+		"${cmsg_BootLoader}") sh_chooseBootLoader && [ -n "$LGRUB" ] && DEFITEM="${cmsg_Teclado}" ;;
 		"${cmsg_Teclado}") sh_chooseKeymap && [ -n "$LKEYMAP" ] && DEFITEM="Timezone" ;;
 		"Timezone") sh_chooseTimezone && [ -n "$LTIMEZONE" ] && DEFITEM="Locale" ;;
 		"Locale") sh_chooseLocale && [ -n "$LLOCALE" ] && DEFITEM="Kernel" ;;
@@ -6992,7 +7024,7 @@ sh_main_menu() {
 		"${cmsg_Usuario}") sh_confadduser "$@" && [ -n "$LEXTRA" ] && DEFITEM="${cmsg_Instalar}" ;;
 		"${cmsg_Instalar}") sh_install ;;
 		'↑↓') : ;;
-		"${cmsg_Saude_disco}") sh_check_disk_health "${AConfDisk[_DEVICE]}" ;;
+		"${cmsg_Saude_disco}") sh_check_disk_health ;;
 		"${cmsg_Tema}") sh_run_binary 'voidbr-dialog-theme-selector' ;;
 		"${cmsg_Servicos}") sh_run_binary 'void-services' "$LC_DEFAULT" "-g" ;;
 		"Clonedisk") sh_run_binary 'void-clonedisk' ;;
@@ -7587,6 +7619,7 @@ $cLB7 ${ccolor}↵ ENTER${RESET} ou ${ccolor}BARRA DE ESPAÇO${RESET} $cLB8"
 	cmsg_Instalar=$(gettext "Instalar")
 	cmsg_Mirror=$(gettext "Espelho")
 	cmsg_BootLoader="Bootloader (GRUB)"
+	cmsg_DiskHealth="Health disk test"
 	cmsg_FileSystem=$(gettext "Sistema de Arquivos")
 	cmsg_Revised=$(gettext "não foi revisado!")
 	cmsg_Disco=$(gettext "Armazenamento")
