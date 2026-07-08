@@ -1556,7 +1556,7 @@ conf() {
 		--yes-label "${cmsg_yeslabel}" \
 		--no-label "${cmsg_nolabel}" \
 		--yesno "$*" \
-		10 60
+		0 0
 	nchoice=$?
 	return "$nchoice"
 }
