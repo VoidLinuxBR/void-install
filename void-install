@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 07 jul 2026 19:25:28 -04
+#  Updated: ter 07 jul 2026 23:04:17 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -406,11 +406,7 @@ check_dependencies() {
 }
 
 has_command() {
-  local ccmd="$1"
-  if command -v "$ccmd" >/dev/null; then
-    return 0
-  fi
-  return 1
+  command -v "$1" >/dev/null && return 0 || return 1
 }
 
 ###########################################################################################################
@@ -3747,19 +3743,22 @@ sh_check_disk_health() {
 	# --------------------------------------------------------
 	local dev
 	dev=$(basename "$disk")
-	errors=$(dmesg | grep -iE "$dev|I/O error|Buffer I/O|blk_update_request|critical medium error|end_request" | tail -5)
+  errors=$(dmesg | grep -iE "$dev" | tail -5)
 
-	if [[ -n "$errors" ]]; then
-		report+="\nErros recentes:\n"
-		report+="----------------------------------------\n"
-		report+="${YELLOW}$errors${RESET}\n"
-		(( status < 2 )) && status=2
-	fi
+  if [[ -n "$errors" ]]; then
+    report+="\n${CYAN}Erros recentes:${RESET}\n"
+    report+="${YELLOW}$errors${RESET}\n"
+    if grep -iE "I/O error|Buffer I/O|blk_update_request|critical medium error|end_request" <<< "$errors"
+    then
+      (( status < 2 )) && status=2
+    fi
+  fi
 
-	# --------------------------------------------------------
-	# Status Final
-	# --------------------------------------------------------
-	report+="\n----------------------------------------\n"
+  # --------------------------------------------------------
+  # Status Final
+  # --------------------------------------------------------
+  report+="\n"
+
 	case "$status" in
 		0) report+="${GREEN}STATUS: DISCO APARENTEMENTE SAUDÁVEL${RESET}" ;;
 		1) report+="${YELLOW}STATUS: AVISOS ENCONTRADOS${RESET}" ;;
