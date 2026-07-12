@@ -646,12 +646,12 @@ sh_choose_common_packages() {
 	fi
 
 	if $LSWAY; then
-		aPackageDaemons+=(acpi acpid irqbalance)
+		aPackageDaemons+=(acpi acpid irqbalance NetworkManager)
 		return
 	fi
 
 	if $LHYPRLAND; then
-		aPackageDaemons+=(acpi acpid irqbalance)
+		aPackageDaemons+=(acpi acpid irqbalance NetworkManager)
 		return
 	fi
 
