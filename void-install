@@ -113,7 +113,6 @@ declare LBIOS=true
 declare LOSPROBER=false
 declare LCHROOT=false
 declare LINSTALL=false
-declare HYPRLAND=false
 declare LVM=false
 declare LFDE=false
 declare LONLY_TTY=true
@@ -5177,7 +5176,6 @@ sh_choose_wm() {
 		;;
 	esac
 
-	HYPRLAND=false
 	LWM=true
 	_WINDOWMANAGER=($(strtoarray "$wm"))
 	_WM="$wm"
