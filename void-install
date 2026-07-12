@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 07 jul 2026 23:04:17 -04
+#  Updated: dom 12 jul 2026 14:47:45 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -50,7 +50,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.7.07-20260707'
+readonly _VERSION_='3.7.12-20260712'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -124,6 +124,7 @@ declare LEXTRA=false
 declare LLOCALE=true
 declare LXORG=false
 declare LSWAY=false
+declare LHYPRLAND=false
 #
 declare DEFITEM
 #
@@ -650,6 +651,11 @@ sh_choose_common_packages() {
 		return
 	fi
 
+	if $LHYPRLAND; then
+		aPackageDaemons+=(acpi acpid irqbalance)
+		return
+	fi
+
 	if $LXORG; then
 		return
 	fi
@@ -893,6 +899,7 @@ sh_touchConf() {
 		declare -p aCustomPackages
 		declare -p LONLY_TTY
 		declare -p LSWAY
+		declare -p LHYPRLAND
 		declare -p LDHCP
 		declare -p LCUSTOM
 		declare -p LCUSTOM
@@ -3278,6 +3285,15 @@ sh_sway_meta_package() {
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
 
+sh_hyprland_meta_package() {
+	local DE='hyprland'
+	local apkgs=(voidbr-hyprland)
+	      apkgs+=(voidbr-base-config)
+	      apkgs+=(voidbr-hyprland-config)
+
+	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
+}
+
 sh_sway_minimal() {
 	local DE='Sway'
 	local apkgs=(sway)
@@ -5098,13 +5114,12 @@ sh_choose_wm() {
 	aWm[plasma]="Kde Plasma"
 	aWm[xfce4]="Xfce"
 	aWm[mate]="Mate"
-
 	aWm[awesome]="Awesome"
 	aWm[blackbox]="Blackbox"
 	aWm[bspwm]="Bspwm"
 	aWm[dwm]="Dwm"
 	aWm[fluxbox]="Fluxbox"
-	aWm[hyprland]="Hyprland"
+	aWm[hyprland]="(Experimental) Hyprland"
 	aWm[i3wm]="I3wm"
 	aWm[lxde]="Lxde"
 	aWm[lxqt]="Lxqt"
@@ -5125,7 +5140,6 @@ sh_choose_wm() {
 	#		bspwm "${aWm[bspwm]}" "${aFlag[bspwm]}" \
 	#		dwm "${aWm[dwm]}" "${aFlag[dwm]}" \
 	#		blackbox "${aWm[blackbox]}" "${aFlag[blackbox]}" \
-	#	  hyprland "${aWm[hyprland]}" "${aFlag[hyprland]}" \
 	#		lxde "${aWm[lxde]}" "${aFlag[lxde]}" \
 	#		lxqt "${aWm[lxqt]}" "${aFlag[lxqt]}" \
 	#		openbox "${aWm[openbox]}" "${aFlag[openbox]}" \
@@ -5151,6 +5165,7 @@ sh_choose_wm() {
 		mate "${aWm[mate]}" "${aFlag[mate]}" \
 		plasma "${aWm[plasma]}" "${aFlag[plasma]}" \
 		sway "${aWm[sway]}" "${aFlag[sway]}" \
+  	hyprland "${aWm[hyprland]}" "${aFlag[hyprland]}" \
 		river "${aWm[river]}" "${aFlag[river]}" \
 		xfce4 "${aWm[xfce4]}" "${aFlag[xfce4]}" \
 		2>&1 >/dev/tty)
@@ -5195,6 +5210,14 @@ sh_choose_wm() {
 			AConfAudio[_AUDIOSERVER]="None"
 			_DISPLAYMANAGER="None"
 			LSWAY=true
+			_WM="$wm"
+			break
+			;;
+		hyprland)
+			LONLY_TTY=false
+			AConfAudio[_AUDIOSERVER]="None"
+			_DISPLAYMANAGER="None"
+			LHYPRLAND=true
 			_WM="$wm"
 			break
 			;;
@@ -6263,6 +6286,8 @@ sh_install() {
 					:
 				elif $LSWAY; then
   				:
+				elif $LHYPRLAND; then
+  				:
 				else
 					sh_X11_minimal
 				fi
@@ -6287,6 +6312,8 @@ sh_install() {
 				"enlightenment") sh_enlightenment_minimal ;;
 				"fluxbox") sh_fluxbox_minimal ;;
 				"hyprland") sh_hyprland_minimal ;;
+#				"hyprland") sh_hyprland_minimal ;;
+				"hyprland") sh_hyprland_meta_package ;;
 				"openbox") sh_openbox_minimal ;;
 				"gnome") sh_gnome_minimal ;;
 				"plasma") sh_plasma_minimal ;;
