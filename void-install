@@ -5239,7 +5239,7 @@ sh_choose_wm() {
 	LDM=true
 
 	if grep -qi hyprland <<<"${_WINDOWMANAGER[@]}"; then
-		HYPRLAND=true
+		LHYPRLAND=true
 	fi
 
 	LDHCP=false
@@ -6309,7 +6309,6 @@ sh_install() {
 				"dwm") sh_dwm_minimal ;;
 				"enlightenment") sh_enlightenment_minimal ;;
 				"fluxbox") sh_fluxbox_minimal ;;
-				"hyprland") sh_hyprland_minimal ;;
 #				"hyprland") sh_hyprland_minimal ;;
 				"hyprland") sh_hyprland_meta_package ;;
 				"openbox") sh_openbox_minimal ;;
