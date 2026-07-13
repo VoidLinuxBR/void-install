@@ -3432,6 +3432,17 @@ sh_hyprland_minimal() {
 	apkgs+=(wofi)
 	apkgs+=(bemenu fuzzel tofi)
 
+	if $LCUSTOM; then
+		apkgs+=(
+			voidbr-hyprland-config
+			voidbr-wallpapers
+			voidbr-tokyo-theme
+			voidbr-theme-dracula
+			voidbr-professional-theme
+			voidbr-beauty-icons
+		)
+
+	fi
 	shell='/bin/bash'
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
