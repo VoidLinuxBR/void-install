@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: dom 12 jul 2026 14:47:45 -04
+#  Updated: ter 14 jul 2026 11:36:08 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -50,7 +50,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.7.12-20260712'
+readonly _VERSION_='3.7.14-20260714'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -3144,12 +3144,12 @@ sh_xfce4_minimal() {
 			umc
 			plank
 			voidbr-xfce-config
-			voidbr-theme-dracula
-			voidbr-wallpapers
+			voidbr-dracula-theme
 			voidbr-tokyo-theme
 			voidbr-professional-theme
-			voidbr-beauty-icons
 			voidbr-xfwm-axiom-theme
+			voidbr-wallpapers
+			voidbr-beauty-icons
 		)
 	fi
 
@@ -3305,7 +3305,7 @@ sh_sway_minimal() {
 	      apkgs+=(mate-polkit kanshi Thunar thunar-archive-plugin)
 	      apkgs+=(engrampa cliphist mate-calc pluma nwg-look atril wl-clipboard mako)
 	      apkgs+=(voidbr-sway-config)
-	      apkgs+=(voidbr-theme-dracula)
+	      apkgs+=(voidbr-dracula-theme)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -3437,7 +3437,7 @@ sh_hyprland_minimal() {
 			voidbr-hyprland-config
 			voidbr-wallpapers
 			voidbr-tokyo-theme
-			voidbr-theme-dracula
+			voidbr-dracula-theme
 			voidbr-professional-theme
 			voidbr-beauty-icons
 		)
