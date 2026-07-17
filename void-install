@@ -2970,6 +2970,17 @@ sh_mount_fs() {
 	done
 }
 
+sh_common_theme() {
+  apkgs+=(
+	  voidbr-wallpapers
+		voidbr-tokyo-theme
+		voidbr-dracula-theme
+		voidbr-professional-theme
+    voidbr-xfwm-axiom-theme
+		voidbr-beauty-icons
+  )
+}
+
 sh_X11_minimal() {
 	local apkgs=()
 	local aMedia=()
@@ -3073,11 +3084,9 @@ sh_plasma_minimal() {
 
 		apkgs+=(
 			voidbr-plasma-config
-			voidbr-wallpapers
-			voidbr-tokyo-theme
-			voidbr-professional-theme
-			voidbr-beauty-icons
 		)
+
+    sh_common_theme
 
 	fi
 
@@ -3092,11 +3101,10 @@ sh_cinnamon_minimal() {
 		apkgs+=(
 			plank
 			voidbr-cinnamon-config
-			voidbr-wallpapers
-			voidbr-tokyo-theme
-			voidbr-professional-theme
-			voidbr-beauty-icons
 		)
+
+    sh_common_theme
+
 	fi
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
@@ -3116,11 +3124,10 @@ sh_enlightenment_minimal() {
 	if $LCUSTOM; then
 		apkgs+=(
 			voidbr-enlightenment-config
-			voidbr-wallpapers
-			voidbr-tokyo-theme
-			voidbr-professional-theme
-			voidbr-beauty-icons
 		)
+
+		sh_common_theme
+
 	fi
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
@@ -3146,13 +3153,9 @@ sh_xfce4_minimal() {
 			umc
 			plank
 			voidbr-xfce-config
-			voidbr-dracula-theme
-			voidbr-tokyo-theme
-			voidbr-professional-theme
-			voidbr-xfwm-axiom-theme
-			voidbr-wallpapers
-			voidbr-beauty-icons
 		)
+
+		sh_common_theme
 	fi
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
@@ -3226,12 +3229,10 @@ sh_gnome_minimal() {
 		)
 		apkgs+=(
 			voidbr-gnome-config
-			voidbr-wallpapers
-			voidbr-tokyo-theme
-			voidbr-professional-theme
-			voidbr-beauty-icons
 			voidbr-change-gnome-wallpaper
 		)
+
+		sh_common_theme
 	fi
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
@@ -3354,11 +3355,9 @@ sh_mate_minimal() {
 			plank
 			brisk-menu
 			voidbr-mate-config
-			voidbr-wallpapers
-			voidbr-tokyo-theme
-			voidbr-professional-theme
-			voidbr-beauty-icons
 		)
+
+		sh_common_theme
 	fi
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
@@ -3437,14 +3436,11 @@ sh_hyprland_minimal() {
 	if $LCUSTOM; then
 		apkgs+=(
 			voidbr-hyprland-config
-			voidbr-wallpapers
-			voidbr-tokyo-theme
-			voidbr-dracula-theme
-			voidbr-professional-theme
-			voidbr-beauty-icons
 		)
 
+    sh_common_theme
 	fi
+
 	shell='/bin/bash'
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
