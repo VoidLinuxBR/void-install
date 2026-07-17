@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 14 jul 2026 11:36:08 -04
+#  Updated: qui 16 jul 2026 22:33:02 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -50,7 +50,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.7.14-20260714'
+readonly _VERSION_='3.7.16-20260716'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -6997,6 +6997,7 @@ sh_main_menu() {
 		$LKERNEL && MENU_KERNEL="${cWARN}[${AConfKernel[_KERNEL]}${RST} ● " || MENU_KERNEL="${cERRO}[${cmsg_Nao_definido}]${RST} ● "
 
 		#			"Sistema" "${MENU_KEYMAP}Configurações regionais" \
+#			"${cmsg_Mirror}" "${MENU_MIRROR}${cmsg_descMirror}" \
 
 		menu=$(${DIALOG} \
 			--backtitle "$ccabec" \
@@ -7009,7 +7010,6 @@ sh_main_menu() {
 			--title "$APP - ${cmsg_MenuInstalacao} $(sh_getparamfile)" \
 			--menu "${RESET}${cmsg_MENU}" \
 			25 100 2 \
-			"${cmsg_Mirror}" "${MENU_MIRROR}${cmsg_descMirror}" \
 			"${cmsg_Source}" "${MENU_SOURCE}${cmsg_DefinirInstalacaoDeOrigem}" \
 			"${cmsg_Disco}" "${MENU_DEVICE}${cmsg_descDisco}" \
 			"FileSystem" "${MENU_FS}${cmsg_descFileSystem}" \
