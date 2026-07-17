@@ -5271,6 +5271,8 @@ sh_choose_custom_packages() {
 	local custom
 
 	if ! $LONLY_TTY; then
+		aCustom['Thunar']="$(gettext 'Thunar File Manager')"
+		aCustom['thunar-archive-plugin']="$(gettext 'Create and extract archives in Thunar')"
 		aCustom['opera']="$(gettext 'Fast, secure, easy to use browser')"
 		aCustom['eog']="$(gettext 'Eye of GNOME graphics viewer program')"
 		aCustom['chromium']="$(gettext 'Google attempt at creating a safer, faster, and more stable browser')"
