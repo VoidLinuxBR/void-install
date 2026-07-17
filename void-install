@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: sex 17 jul 2026 00:25:28 -04
+#  Updated: sex 17 jul 2026 07:21:27 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -5323,6 +5323,7 @@ sh_choose_custom_packages() {
 	fi
 
   # tty
+	aCustom['tailscaled']="$(gettext 'Easy, secure, cross platform WireGuard, oauth2, and 2FA/SSO')"
 	aCustom['micro']="$(gettext 'Modern and intuitive terminal-based text editor')"
 	aCustom['inxi']="$(gettext 'Full featured system information script')"
 	aCustom['htop']="$(gettext 'Interactive process viewer')"
