@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qui 16 jul 2026 22:33:02 -04
+#  Updated: sex 17 jul 2026 00:25:28 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -50,7 +50,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.7.16-20260716'
+readonly _VERSION_='3.7.17-20260717'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -2974,7 +2974,7 @@ sh_X11_minimal() {
 	local apkgs=()
 	local aMedia=()
 
-	if ! $HYPRLAND; then
+	if ! $LHYPRLAND; then
 		apkgs+=("${aXorg[@]}")
 	fi
 
@@ -3003,7 +3003,7 @@ sh_X11_minimal() {
 	apkgs+=("${aArchiverX[@]}")
 	apkgs+=("${aEditorX[@]}")
 
-	if ! $HYPRLAND; then
+	if ! $LHYPRLAND; then
 		sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Xorg')" "${aXorg[*]}"
 	fi
 
