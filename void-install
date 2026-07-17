@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: sex 17 jul 2026 07:21:27 -04
+#  Updated: sex 17 jul 2026 13:16:29 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -5234,7 +5234,7 @@ sh_choose_wm() {
 		sway)
 			LONLY_TTY=false
 			AConfAudio[_AUDIOSERVER]="None"
-			_DISPLAYMANAGER="None"
+			_DISPLAYMANAGER="sddm"
 			LSWAY=true
 			_WM="$wm"
 			break
@@ -5242,7 +5242,7 @@ sh_choose_wm() {
 		hyprland)
 			LONLY_TTY=false
 			AConfAudio[_AUDIOSERVER]="None"
-			_DISPLAYMANAGER="None"
+			_DISPLAYMANAGER="sddm"
 			LHYPRLAND=true
 			_WM="$wm"
 			break
@@ -6405,9 +6405,9 @@ sh_install() {
                rm -fv /var/cache/xbps/*.sig*
             "
 
-			if $HYPRLAND; then
-				sh_chroot_job "${cmsg_Instalando} User into group _seatd" "usermod -aG _seatd "$user"}" "$err_not_fatal"
-			fi
+			#if $LHYPRLAND; then
+			#	sh_chroot_job "${cmsg_Instalando} User into group _seatd" "usermod -aG _seatd "$user"}" "$err_not_fatal"
+			#fi
 
 			sh_chmod_tmp
 			sh_update_etc_issue
