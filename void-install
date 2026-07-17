@@ -1508,7 +1508,7 @@ infobox() {
 		--infobox "$@"
 }
 
-alerta() {
+alerta_end() {
 	msg "${fmt} $@"
 	evaluate_retval 0
 
@@ -1519,8 +1519,10 @@ alerta() {
 		--no-cr-wrap \
 		--title "$1" \
 		--backtitle "$ccabec" \
-		--ok-label "${cmsg_ok}" \
-		--msgbox "\n$2\n$3\n$4\n$5\n$6" \
+		--ok-label "$(gettext 'Sair')" \
+		--extra-button --extra-label "$(gettext 'Reboot')" \
+		--no-label "$(gettext 'Desligar')" \
+		--yesno "\n$2\n$3\n$4\n$5\n$6" \
 		10 81
 }
 
@@ -6393,10 +6395,15 @@ sh_install() {
 			sh_umount_fs
 			end_datetime=$(date)
 
-			alerta "$APP" "${cmsg_FinalizadaComSucesso}\n" \
+			alerta_end "$APP" "${cmsg_FinalizadaComSucesso}\n" \
 				"Start Date time  : $start_datetime" \
 				"Finish Date Time : $end_datetime" \
 				"Time elapsed     : ${RED}$(sh_time_elapsed)"
+      nchoice="$?"
+      case "$nchoice" in
+      1) poweroff;;
+      3) reboot;;
+      esac
 		else
 			die "${cmsg_ERRO} tar #$?. ${cmsg_ErroTar} $_TARBALL_ROOTFS"
 		fi
