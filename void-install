@@ -66,6 +66,7 @@ declare -gA PACKAGEDEP=(
 	['find']='findutils'
 	['awk']='gawk'
 	['brctl']='bridge-utils'
+	['gdisk']='gptfdisk'
 )
 readonly LOCKFILE="/tmp/void-install.lock"
 declare -gA DISTRO_PKGS=(
@@ -73,10 +74,10 @@ declare -gA DISTRO_PKGS=(
 	["void"]="dialog gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools nilfs-utils"
 	["void-live"]="dialog gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools nilfs-utils"
 	["voidlinux"]="dialog gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools nilfs-utils"
-	["chili"]="dialog gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools nilfs-utils"
-	["chililinux"]="dialog gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools nilfs-utils"
-	["arch"]="dialog gettext rsync parted curl xz lvm2 xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools nilfs-utils"
-	["manjaro"]="dialog gettext rsync parted curl lvm2 xz xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools nilfs-utils"
+	["chili"]="dialog gettext rsync parted curl xz lvm2 xfsprogs libntfs-3g ntfs-3g ntfsprogs jfsutils gptfdisk btrfs-progs f2fs-tools nilfs-utils"
+	["chililinux"]="dialog gettext rsync parted curl xz lvm2 xfsprogs libntfs-3g ntfs-3g ntfsprogs jfsutils gptfdisk btrfs-progs f2fs-tools nilfs-utils"
+	["arch"]="dialog gettext rsync parted curl xz lvm2 xfsprogs libntfs-3g ntfs-3g ntfsprogs jfsutils gptfdisk btrfs-progs f2fs-tools nilfs-utils"
+	["manjaro"]="dialog gettext rsync parted curl xz lvm2 xfsprogs libntfs-3g ntfs-3g ntfsprogs jfsutils gptfdisk btrfs-progs f2fs-tools nilfs-utils"
 	["debian"]="dialog gettext-base rsync parted curl xz-utils lvm2 xfsprogs ntfs-3g jfsutils gptfdisk btrfs-progs f2fs-tools nilfs-utils"
 )
 declare -gA DISTRO_MGR=(
@@ -324,6 +325,7 @@ check_dependencies() {
 	local TMP_FILE="/tmp/$(basename "$0").restarted"
 	local d
 	local errorFound=false
+	local aCmdNotFound=()
 
 	clear
 	reset
@@ -334,6 +336,7 @@ check_dependencies() {
       else
   			printf '%s\n' "${red} ✗ ${rst} ${cmsg_CommandNotFound} ${cyan}'$d'${reset}"
       fi
+      aCmdNotFound+=("$d")
 			errorFound=true
 		fi
 	done
@@ -365,7 +368,7 @@ check_dependencies() {
 	lprossiga=false
   if has_command dialog; then
     if conf "${APP}" \
-            "\n${BOLD}${RED} ✗ ${RST} ${cmsg_CommandNotFound} ${CYAN}'$d'${RST}" \
+            "\n${BOLD}${RED} ✗ ${RST} ${cmsg_CommandNotFound} ${CYAN}'${aCmdNotFound[*]}'${RST}" \
             "\n\n${YELLOW}Instalar dependências base agora ?"; then
       lprossiga=true
     fi
