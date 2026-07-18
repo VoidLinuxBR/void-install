@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: sex 17 jul 2026 07:21:27 -04
+#  Updated: sex 17 jul 2026 22:36:09 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -648,29 +648,7 @@ sh_choose_common_packages() {
 		)
 	fi
 
-	if $LSWAY; then
-		aPackageDaemons+=(acpi acpid irqbalance NetworkManager)
-		return
-	fi
-
-	if $LHYPRLAND; then
-		aPackageDaemons+=(acpi acpid irqbalance NetworkManager)
-		return
-	fi
-
-	if $LXORG; then
-		return
-	fi
-
 	if ! $LONLY_TTY; then
-		declare -ga aXorg=(xorg xinit xterm xorg-fonts dbus-x11 elogind dbus-elogind polkit-elogind xdg-user-dirs xrdb xorg-server-xwayland)
-		declare -ga aVideo=(mesa-dri linux-firmware-intel xf86-video-amdgpu xf86-video-ati mesa-nouveau-dri libavif libheif gdk-pixbuf libheif-pixbuf-loader)
-		declare -ga aPulseaudio=(pulseaudio pavucontrol pasystray gst-plugins-bad1 gst-plugins-good1 gst-plugins-ugly1 gst-plugins-base1 alsa-plugins-pulseaudio alsa-utils)
-		declare -ga aPipewire=(pipewire wireplumber alsa-pipewire pulseaudio-utils pavucontrol libspa-bluetooth libjack-pipewire alsa-plugins-pulseaudio alsa-utils)
-		declare -ga aDisplaymanager=()
-		declare -ga aDisplaymanagerConfig=()
-		declare -a custom=()
-
 		case $_DISPLAYMANAGER in
 		lxdm)
 			aDisplaymanager=(lxdm)
@@ -678,7 +656,10 @@ sh_choose_common_packages() {
 			;;
 
 		sddm)
-			aDisplaymanager=(sddm)
+			aDisplaymanager=(
+			  sddm
+			  weston # Reference implementation of a Wayland compositor
+		  )
 			custom=(voidbr-sddm-themes)
 			;;
 
@@ -707,6 +688,30 @@ sh_choose_common_packages() {
 		if $LCUSTOM && ((${#custom[@]})); then
 			aDisplaymanagerConfig=("${custom[@]}")
 		fi
+  fi
+
+	if $LSWAY; then
+		aPackageDaemons+=(acpi acpid irqbalance NetworkManager)
+		return
+	fi
+
+	if $LHYPRLAND; then
+		aPackageDaemons+=(acpi acpid irqbalance NetworkManager)
+		return
+	fi
+
+	if $LXORG; then
+		return
+	fi
+
+	if ! $LONLY_TTY; then
+		declare -ga aXorg=(xorg xinit xterm xorg-fonts dbus-x11 elogind dbus-elogind polkit-elogind xdg-user-dirs xrdb xorg-server-xwayland)
+		declare -ga aVideo=(mesa-dri linux-firmware-intel xf86-video-amdgpu xf86-video-ati mesa-nouveau-dri libavif libheif gdk-pixbuf libheif-pixbuf-loader)
+		declare -ga aPulseaudio=(pulseaudio pavucontrol pasystray gst-plugins-bad1 gst-plugins-good1 gst-plugins-ugly1 gst-plugins-base1 alsa-plugins-pulseaudio alsa-utils)
+		declare -ga aPipewire=(pipewire wireplumber alsa-pipewire pulseaudio-utils pavucontrol libspa-bluetooth libjack-pipewire alsa-plugins-pulseaudio alsa-utils)
+		declare -ga aDisplaymanager=()
+		declare -ga aDisplaymanagerConfig=()
+		declare -a custom=()
 
 		if $LCUSTOM; then
 			if ! $LONLY_TTY; then
@@ -5234,7 +5239,7 @@ sh_choose_wm() {
 		sway)
 			LONLY_TTY=false
 			AConfAudio[_AUDIOSERVER]="None"
-			_DISPLAYMANAGER="None"
+			_DISPLAYMANAGER="sddm"
 			LSWAY=true
 			_WM="$wm"
 			break
@@ -5242,7 +5247,7 @@ sh_choose_wm() {
 		hyprland)
 			LONLY_TTY=false
 			AConfAudio[_AUDIOSERVER]="None"
-			_DISPLAYMANAGER="None"
+			_DISPLAYMANAGER="sddm"
 			LHYPRLAND=true
 			_WM="$wm"
 			break
@@ -5524,6 +5529,19 @@ sh_choose_dm() {
 		;;
 	esac
 
+	LDM=true
+	_DISPLAYMANAGER="$dm"
+
+  if $LHYPRLAND || $LSWAY; then
+    if [[ "$dm" != "None" && "$dm" != "sddm" ]]; then
+	  	if conf "=== ${cmsg_Dm^^} ===" \
+            "\n${BOLD}${CYAN}$(gettext "É aconselhável escolhar sddm para compatibilidade")" \
+      			"\n\n${BOLD}${RED}$(gettext "Deseja ativar esse Display Manager?")\n\n"; then
+     	  _DISPLAYMANAGER="sddm"
+      fi
+    fi
+  fi
+
 	LAUTOLOGIN=false
 	if [[ $dm != "None" ]]; then
 		if conf "=== ${cmsg_Dm^^} ===" \
@@ -5534,8 +5552,6 @@ sh_choose_dm() {
 		fi
 	fi
 
-	LDM=true
-	_DISPLAYMANAGER="$dm"
 }
 
 pcount() {
@@ -6405,9 +6421,9 @@ sh_install() {
                rm -fv /var/cache/xbps/*.sig*
             "
 
-			if $HYPRLAND; then
-				sh_chroot_job "${cmsg_Instalando} User into group _seatd" "usermod -aG _seatd "$user"}" "$err_not_fatal"
-			fi
+			#if $LHYPRLAND; then
+			#	sh_chroot_job "${cmsg_Instalando} User into group _seatd" "usermod -aG _seatd "$user"}" "$err_not_fatal"
+			#fi
 
 			sh_chmod_tmp
 			sh_update_etc_issue
