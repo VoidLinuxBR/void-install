@@ -6103,6 +6103,7 @@ EOF
 }
 
 sh_update_sddm_conf() {
+	local cfileconf="$dir_install/etc/sddm.conf"
 	local cfile="$dir_install/etc/sddm.conf.d/00-autologin.conf"
 	local cuser="${AsUser[cuser]}"
 	local SESSION_NAME=$(sh_get_session_name)
@@ -6126,6 +6127,16 @@ Enable=$enable
 User=$user
 Session=$session
 EOF
+
+if $LHYPRLAND || $LSWAY; then
+  sed -i '/^\[General\]/,/^\[/{
+    /^\[/!b
+    /^\[General\]/!i\
+  DisplayServer=wayland
+  }' "$cfileconf"
+
+fi
+
 }
 
 sh_change_accountsservice_user() {
@@ -6331,9 +6342,13 @@ sh_install() {
 				if [[ "${AConfMirror[_SOURCE]}" = "local" && "${LCUSTOM:-}" = "false" ]]; then
 					:
 				elif $LSWAY; then
-  				:
+    			sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
+          sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM Config')" "${aDisplaymanagerConfig[*]}"
+	        :
 				elif $LHYPRLAND; then
-  				:
+        	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
+          sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM Config')" "${aDisplaymanagerConfig[*]}"
+				  :
 				else
 					sh_X11_minimal
 				fi
