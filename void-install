@@ -5328,7 +5328,7 @@ sh_choose_custom_packages() {
 	fi
 
   # tty
-	aCustom['tailscaled']="$(gettext 'Easy, secure, cross platform WireGuard, oauth2, and 2FA/SSO')"
+	aCustom['tailscale']="$(gettext 'Easy, secure, cross platform WireGuard, oauth2, and 2FA/SSO')"
 	aCustom['micro']="$(gettext 'Modern and intuitive terminal-based text editor')"
 	aCustom['inxi']="$(gettext 'Full featured system information script')"
 	aCustom['htop']="$(gettext 'Interactive process viewer')"
