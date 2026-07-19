@@ -3311,9 +3311,9 @@ sh_i3_minimal() {
 
 sh_mango_meta_package() {
 	local DE='Mango'
-	local apkgs=(voidbr-mangowm)
+	local apkgs=(voidbr-mango)
 	      apkgs+=(voidbr-base-config)
-	      apkgs+=(voidbr-mangowm-config)
+	      apkgs+=(voidbr-mango-config)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
