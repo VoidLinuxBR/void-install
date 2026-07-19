@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: sex 17 jul 2026 22:36:09 -04
+#  Updated: dom 19 jul 2026 12:27:26 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -50,7 +50,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.7.17-20260717'
+readonly _VERSION_='3.7.19-20260719'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -124,6 +124,7 @@ declare LEXTRA=false
 declare LLOCALE=true
 declare LXORG=false
 declare LSWAY=false
+declare LMANGO=false
 declare LHYPRLAND=false
 #
 declare DEFITEM
@@ -695,6 +696,11 @@ sh_choose_common_packages() {
 		return
 	fi
 
+	if $LMANGO; then
+		aPackageDaemons+=(acpi acpid irqbalance NetworkManager)
+		return
+	fi
+
 	if $LHYPRLAND; then
 		aPackageDaemons+=(acpi acpid irqbalance NetworkManager)
 		return
@@ -906,6 +912,7 @@ sh_touchConf() {
 		declare -p aCustomPackages
 		declare -p LONLY_TTY
 		declare -p LSWAY
+		declare -p LMANGO
 		declare -p LHYPRLAND
 		declare -p LDHCP
 		declare -p LCUSTOM
@@ -3302,6 +3309,15 @@ sh_i3_minimal() {
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
 
+sh_mango_meta_package() {
+	local DE='Mango'
+	local apkgs=(voidbr-mangowm)
+	      apkgs+=(voidbr-base-config)
+	      apkgs+=(voidbr-mangowm-config)
+
+	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
+}
+
 sh_sway_meta_package() {
 	local DE='Sway'
 	local apkgs=(voidbr-sway)
@@ -5157,6 +5173,7 @@ sh_choose_wm() {
 	aWm[lxqt]="Lxqt"
 	aWm[openbox]="Openbox"
 	aWm[sway]="(Experimental) $(gettext "Tiling Wayland compositor compatible with i3")"
+	aWm[mango]="(Experimental) $(gettext "Dwl-based wayland compositor using scenefx")"
 	aWm[river]="(Experimental) $(gettext "Dynamic tiling Wayland compositor")"
 	aWm[twm]="Twm"
 
@@ -5197,6 +5214,7 @@ sh_choose_wm() {
 		mate "${aWm[mate]}" "${aFlag[mate]}" \
 		plasma "${aWm[plasma]}" "${aFlag[plasma]}" \
 		sway "${aWm[sway]}" "${aFlag[sway]}" \
+		mango "${aWm[mango]}" "${aFlag[mango]}" \
   	hyprland "${aWm[hyprland]}" "${aFlag[hyprland]}" \
 		river "${aWm[river]}" "${aFlag[river]}" \
 		xfce4 "${aWm[xfce4]}" "${aFlag[xfce4]}" \
@@ -5241,6 +5259,14 @@ sh_choose_wm() {
 			AConfAudio[_AUDIOSERVER]="None"
 			_DISPLAYMANAGER="sddm"
 			LSWAY=true
+			_WM="$wm"
+			break
+			;;
+		mango)
+			LONLY_TTY=false
+			AConfAudio[_AUDIOSERVER]="None"
+			_DISPLAYMANAGER="sddm"
+			LMANGO=true
 			_WM="$wm"
 			break
 			;;
@@ -5532,7 +5558,7 @@ sh_choose_dm() {
 	LDM=true
 	_DISPLAYMANAGER="$dm"
 
-  if $LHYPRLAND || $LSWAY; then
+  if $LHYPRLAND || $LSWAY || $LMANGO; then
     if [[ "$dm" != "None" && "$dm" != "sddm" ]]; then
 	  	if conf "=== ${cmsg_Dm^^} ===" \
             "\n${BOLD}${CYAN}$(gettext "É aconselhável escolhar sddm para compatibilidade")" \
@@ -6128,7 +6154,7 @@ User=$user
 Session=$session
 EOF
 
-if $LHYPRLAND || $LSWAY; then
+if $LHYPRLAND || $LSWAY || $LMANGO; then
   sed -i '/^\[General\]/,/^\[/{
     /^\[/!b
     /^\[General\]/!i\
@@ -6345,6 +6371,10 @@ sh_install() {
     			sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
           sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM Config')" "${aDisplaymanagerConfig[*]}"
 	        :
+				elif $LMANGO; then
+    			sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
+          sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM Config')" "${aDisplaymanagerConfig[*]}"
+	        :
 				elif $LHYPRLAND; then
         	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
           sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM Config')" "${aDisplaymanagerConfig[*]}"
@@ -6382,6 +6412,7 @@ sh_install() {
 				"i3wm") sh_i3_minimal ;;
 #				"sway") sh_sway_minimal ;;
 				"sway") sh_sway_meta_package ;;
+				"mango") sh_mango_meta_package ;;
 				"river") sh_river_minimal ;;
 				"twm") sh_twm_minimal ;;
 				"mate") sh_mate_minimal ;;
