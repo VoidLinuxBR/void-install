@@ -50,7 +50,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.7.19-20260719'
+readonly _VERSION_='3.7.26-20260726'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -3101,7 +3101,9 @@ sh_openbox_minimal() {
 }
 
 sh_plasma_minimal() {
-	local apkgs=(kde5
+	local DE='Plasma Desktop'
+	local apkgs=(
+	  kde5
 		plasma-desktop
 		plasma-nm
 		plasma-pa
@@ -3110,13 +3112,14 @@ sh_plasma_minimal() {
 		konsole
 		dolphin
 	)
-	local DE='Plasma Desktop'
 
 	if $LCUSTOM; then
 		apkgs+=(
 			kf6-kaccounts-integration
 			kaccounts-providers
 			signon-kwallet-extension
+      ark
+      kwalletmanager
 		)
 
 		apkgs+=(
