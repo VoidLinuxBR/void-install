@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: dom 19 jul 2026 12:27:26 -04
+#  Updated: dom 26 jul 2026 22:28:03 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -764,7 +764,7 @@ sh_choose_common_packages() {
 		aTerminal+=(xfce4-terminal)
 		aBrowser+=(firefox firefox-i18n-$(sh_get_language_without_utf8))
 		#		aFilemanager+=(octoxbps)
-		aUtilityX+=(chili-iso2usb)
+		aUtilityX+=(chili-iso2usb voidbr-iso-writer)
 		aPackageDaemons+=(avahi acpi acpid irqbalance)
 		aNetworkX+=(network-manager-applet)
 	fi
@@ -2838,6 +2838,8 @@ sh_global_audio_cleaning() {
     sudo rm -f /etc/alsa/conf.d/50-pipewire.conf
     sudo rm -f /etc/alsa/conf.d/99-pipewire-default.conf
     sudo rm -f /etc/alsa/conf.d/50-pulseaudio.conf
+    #limpar /etc/asound.conf residual
+    sudo rm -f /etc/asound.conf
 
     # LIMPEZA DO USUÁRIO
     rm -f /home/$cuser/.config/autostart/pipewire.desktop
@@ -2879,6 +2881,8 @@ EOF
     ln -sf /usr/share/alsa/alsa.conf.d/50-pipewire.conf /home/${cuser}/.config/alsa/conf.d/50-pipewire.conf
     ln -sf /usr/share/alsa/alsa.conf.d/99-pipewire-default.conf /home/${cuser}/.config/alsa/conf.d/99-pipewire-default.conf
 
+    chown $cuser:$cuser /home/$cuser/ -R
+
   " $err_not_fatal
 }
 
@@ -2903,6 +2907,8 @@ EOF
 
     # ---- integração ALSA → PulseAudio ----
     ln -sf /usr/share/alsa/alsa.conf.d/50-pulseaudio.conf /home/$cuser/.config/alsa/conf.d/50-pulseaudio.conf
+
+    chown $cuser:$cuser /home/$cuser/ -R
 
     " $err_not_fatal
 }
