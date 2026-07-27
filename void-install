@@ -3101,7 +3101,9 @@ sh_openbox_minimal() {
 }
 
 sh_plasma_minimal() {
-	local apkgs=(kde5
+	local DE='Plasma Desktop'
+	local apkgs=(
+	  kde5
 		plasma-desktop
 		plasma-nm
 		plasma-pa
@@ -3110,13 +3112,14 @@ sh_plasma_minimal() {
 		konsole
 		dolphin
 	)
-	local DE='Plasma Desktop'
 
 	if $LCUSTOM; then
 		apkgs+=(
 			kf6-kaccounts-integration
 			kaccounts-providers
 			signon-kwallet-extension
+      ark
+      kwalletmanager
 		)
 
 		apkgs+=(
