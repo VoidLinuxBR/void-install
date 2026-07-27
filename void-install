@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: dom 26 jul 2026 22:28:03 -04
+#  Updated: seg 27 jul 2026 08:31:15 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -50,7 +50,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.7.26-20260726'
+readonly _VERSION_='3.7.27-20260727'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -332,12 +332,12 @@ check_dependencies() {
 	reset
 	for d in "${DEPENDENCIES[@]}"; do
 		if [[ -z $(command -v "$d") ]]; then
-      if has_command dialog; then
-        sh_info_msg "${RED} ✗ ${RST} ${cmsg_CommandNotFound} ${CYAN}'$d'${RST}"
-      else
-  			printf '%s\n' "${red} ✗ ${rst} ${cmsg_CommandNotFound} ${cyan}'$d'${reset}"
-      fi
-      aCmdNotFound+=("$d")
+			if has_command dialog; then
+				sh_info_msg "${RED} ✗ ${RST} ${cmsg_CommandNotFound} ${CYAN}'$d'${RST}"
+			else
+				printf '%s\n' "${red} ✗ ${rst} ${cmsg_CommandNotFound} ${cyan}'$d'${reset}"
+			fi
+			aCmdNotFound+=("$d")
 			errorFound=true
 		fi
 	done
@@ -346,11 +346,11 @@ check_dependencies() {
 		return 0
 	fi
 
-  if has_command dialog; then
-    sh_info_msg "Distro detectada: ${GREEN}${DISTRO}${RST}"
-  else
-  	echo -e "Distro detectada: ${green}${DISTRO}${rst}"
-  fi
+	if has_command dialog; then
+		sh_info_msg "Distro detectada: ${GREEN}${DISTRO}${RST}"
+	else
+		echo -e "Distro detectada: ${green}${DISTRO}${rst}"
+	fi
 
 	# 3. Extração dos dados dos mapas que você definiu
 	local pkgs="${DISTRO_PKGS[$DISTRO]}"
@@ -358,41 +358,41 @@ check_dependencies() {
 
 	# Se a distro atual não existir no mapa, precisamos avisar e parar
 	if [[ -z "$cmd" ]]; then
-    if has_command dialog; then
-  		alerta "${APP}" "${RED}Erro: Nenhuma configuração de pacotes encontrada para a distro: '$DISTRO'${RST}"
-    else
-  		echo -e "${red}Erro: Nenhuma configuração de pacotes encontrada para a distro: '$DISTRO'${rst}"
-    fi
-    exit 1
+		if has_command dialog; then
+			alerta "${APP}" "${RED}Erro: Nenhuma configuração de pacotes encontrada para a distro: '$DISTRO'${RST}"
+		else
+			echo -e "${red}Erro: Nenhuma configuração de pacotes encontrada para a distro: '$DISTRO'${rst}"
+		fi
+		exit 1
 	fi
 
 	lprossiga=false
-  if has_command dialog; then
-    if conf "${APP}" \
-            "\n${BOLD}${RED} ✗ ${RST} ${cmsg_CommandNotFound} ${CYAN}'${aCmdNotFound[*]}'${RST}" \
-            "\n\n${YELLOW}Instalar dependências base agora ?"; then
-      lprossiga=true
-    fi
-  else
-  	echo
-    if readconf "${cyan}Instalar dependências base agora?${rst}"; then
-	    lprossiga=true
-	  fi
-  fi
+	if has_command dialog; then
+		if conf "${APP}" \
+			"\n${BOLD}${RED} ✗ ${RST} ${cmsg_CommandNotFound} ${CYAN}'${aCmdNotFound[*]}'${RST}" \
+			"\n\n${YELLOW}Instalar dependências base agora ?"; then
+			lprossiga=true
+		fi
+	else
+		echo
+		if readconf "${cyan}Instalar dependências base agora?${rst}"; then
+			lprossiga=true
+		fi
+	fi
 
-  if $lprossiga; then
-    if has_command dialog; then
-		  sh_info_msg "${BLUE}::${RST} Preparando ambiente para ${GREEN}${DISTRO}${RST}..."
-    else
-  		echo -e "${blue}::${reset} Preparando ambiente para ${green}${DISTRO}${rst}..."
-    fi
+	if $lprossiga; then
+		if has_command dialog; then
+			sh_info_msg "${BLUE}::${RST} Preparando ambiente para ${GREEN}${DISTRO}${RST}..."
+		else
+			echo -e "${blue}::${reset} Preparando ambiente para ${green}${DISTRO}${rst}..."
+		fi
 		# Execução dinâmica: $cmd (gerenciador) + $pkgs (lista de pacotes)
 		if ! $cmd $pkgs; then
-      if has_command dialog; then
-	  		alerta "${APP}" "${RED}Erro Crítico:${RST} A instalação dos pacotes básicos falhou."
-      else
-	  		echo -e "${red}Erro Crítico:${reset} A instalação dos pacotes básicos falhou."
-		  fi
+			if has_command dialog; then
+				alerta "${APP}" "${RED}Erro Crítico:${RST} A instalação dos pacotes básicos falhou."
+			else
+				echo -e "${red}Erro Crítico:${reset} A instalação dos pacotes básicos falhou."
+			fi
 			exit 1
 		fi
 		echo -e "${green}Sucesso:${reset} Dependências instaladas."
@@ -400,17 +400,17 @@ check_dependencies() {
 		exec "$0" "$@"
 	else
 		# Se o usuário negar a instalação de ferramentas básicas, o instalador não tem como seguir
-    if has_command dialog; then
-  		alerta "${APP}" "${YELLOW}Aviso:${RST} Os comandos são indispensáveis. Saindo..."
-    else
-  		echo -e "${yellow}Aviso:${rst} Os comandos são indispensáveis. Saindo..."
-    fi
+		if has_command dialog; then
+			alerta "${APP}" "${YELLOW}Aviso:${RST} Os comandos são indispensáveis. Saindo..."
+		else
+			echo -e "${yellow}Aviso:${rst} Os comandos são indispensáveis. Saindo..."
+		fi
 		exit 1
 	fi
 }
 
 has_command() {
-  command -v "$1" >/dev/null && return 0 || return 1
+	command -v "$1" >/dev/null && return 0 || return 1
 }
 
 ###########################################################################################################
@@ -438,29 +438,29 @@ die() {
 		evaluate_retval 1
 	fi
 
-#  mapfile -t erros < <(
-#    tail -n 30 "$BOOTLOG" | grep -Ei 'ERRO:|ERROR:|FAIL|FAILED'
-#  )
-#  if [[ "${#erros[@]}" -eq 0 ]]; then
-#    mapfile -t erros < <(
-#      tail -n 20 "$BOOTLOG"
-#    )
-#  fi
+	#  mapfile -t erros < <(
+	#    tail -n 30 "$BOOTLOG" | grep -Ei 'ERRO:|ERROR:|FAIL|FAILED'
+	#  )
+	#  if [[ "${#erros[@]}" -eq 0 ]]; then
+	#    mapfile -t erros < <(
+	#      tail -n 20 "$BOOTLOG"
+	#    )
+	#  fi
 
-  tmp="$(mktemp)"
-# tail -n 40 "$BOOTLOG" | grep -Ei 'ERRO:|ERROR:|FAIL|FAILED' > "$tmp"
-  tail -n 13 "$BOOTLOG" > "$tmp"
-  printf '\n%s\n' "$msg" >> "$tmp"
+	tmp="$(mktemp)"
+	# tail -n 40 "$BOOTLOG" | grep -Ei 'ERRO:|ERROR:|FAIL|FAILED' > "$tmp"
+	tail -n 13 "$BOOTLOG" >"$tmp"
+	printf '\n%s\n' "$msg" >>"$tmp"
 
 	shift
 
-  if has_command dialog; then
-    #alerta_die "DIE" "\n${BOLD}${RED}$msg${RST}" erros
-    ${DIALOG} --title "ERRO - $msg" --textbox "$tmp" 20 120
-    rm -f "$tmp"
-  else
-  	printf "%-75s\n" "$(DOT)${bold}${red}$msg${reset}" >&2
-  fi
+	if has_command dialog; then
+		#alerta_die "DIE" "\n${BOLD}${RED}$msg${RST}" erros
+		${DIALOG} --title "ERRO - $msg" --textbox "$tmp" 20 120
+		rm -f "$tmp"
+	else
+		printf "%-75s\n" "$(DOT)${bold}${red}$msg${reset}" >&2
+	fi
 	sh_enablePrintk
 	exit 1
 }
@@ -613,6 +613,9 @@ sh_update_self() {
 }
 
 sh_choose_common_packages() {
+	declare -ga aDisplaymanager=()
+	declare -ga aDisplaymanagerConfig=()
+	declare -ga custom=()
 	declare -ga aExtra=(
 		bash-completion
 		fzf
@@ -658,9 +661,9 @@ sh_choose_common_packages() {
 
 		sddm)
 			aDisplaymanager=(
-			  sddm
-			  weston # Reference implementation of a Wayland compositor
-		  )
+				sddm
+				weston # Reference implementation of a Wayland compositor
+			)
 			custom=(voidbr-sddm-themes)
 			;;
 
@@ -689,7 +692,7 @@ sh_choose_common_packages() {
 		if $LCUSTOM && ((${#custom[@]})); then
 			aDisplaymanagerConfig=("${custom[@]}")
 		fi
-  fi
+	fi
 
 	if $LSWAY; then
 		aPackageDaemons+=(acpi acpid irqbalance NetworkManager)
@@ -715,9 +718,6 @@ sh_choose_common_packages() {
 		declare -ga aVideo=(mesa-dri linux-firmware-intel xf86-video-amdgpu xf86-video-ati mesa-nouveau-dri libavif libheif gdk-pixbuf libheif-pixbuf-loader)
 		declare -ga aPulseaudio=(pulseaudio pavucontrol pasystray gst-plugins-bad1 gst-plugins-good1 gst-plugins-ugly1 gst-plugins-base1 alsa-plugins-pulseaudio alsa-utils)
 		declare -ga aPipewire=(pipewire wireplumber alsa-pipewire pulseaudio-utils pavucontrol libspa-bluetooth libjack-pipewire alsa-plugins-pulseaudio alsa-utils)
-		declare -ga aDisplaymanager=()
-		declare -ga aDisplaymanagerConfig=()
-		declare -a custom=()
 
 		if $LCUSTOM; then
 			if ! $LONLY_TTY; then
@@ -751,14 +751,14 @@ sh_choose_common_packages() {
 		aFonts+=(noto-fonts-emoji)
 		if ! $LONLY_TTY; then
 			aFonts+=(
-  		  noto-fonts-cjk
-  			dejavu-fonts-ttf
-  		  font-fira-ttf
-  			font-firacode
-  			font-hack-ttf
-  			ttf-jetbrains-mono-nerd
-  			#nerd-fonts
-      )
+				noto-fonts-cjk
+				dejavu-fonts-ttf
+				font-fira-ttf
+				font-firacode
+				font-hack-ttf
+				ttf-jetbrains-mono-nerd
+				#nerd-fonts
+			)
 		fi
 		aIconsAndThemes+=(Adapta adwaita-icon-theme arc-theme)
 		aTerminal+=(xfce4-terminal)
@@ -1524,19 +1524,19 @@ infobox() {
 }
 
 alerta() {
-  msg "${fmt} $@"
-  evaluate_retval 0
+	msg "${fmt} $@"
+	evaluate_retval 0
 
-  ${DIALOG} \
-    --colors \
-    --clear \
-    --no-collapse \
-    --no-cr-wrap \
-    --title "$1" \
-    --backtitle "$ccabec" \
-    --ok-label "${cmsg_ok}" \
-    --msgbox "\n$2\n$3\n$4\n$5\n$6" \
-    10 81
+	${DIALOG} \
+		--colors \
+		--clear \
+		--no-collapse \
+		--no-cr-wrap \
+		--title "$1" \
+		--backtitle "$ccabec" \
+		--ok-label "${cmsg_ok}" \
+		--msgbox "\n$2\n$3\n$4\n$5\n$6" \
+		10 81
 }
 
 alerta_end() {
@@ -1550,7 +1550,7 @@ alerta_end() {
 		--no-cr-wrap \
 		--title "$1" \
 		--backtitle "$ccabec" \
-		--ok-label "$(gettext 'Sair')" \
+		--ok-label "${cmsg_Sair}" \
 		--extra-button --extra-label "$(gettext 'Reboot')" \
 		--no-label "$(gettext 'Desligar')" \
 		--yesno "\n$2\n$3\n$4\n$5\n$6" \
@@ -1558,28 +1558,28 @@ alerta_end() {
 }
 
 alerta_die() {
-  local xtitle="$1"
-  local cmsg="$2"
-  local -n linhas="$3"
-  local texto=""
-  local linha
+	local xtitle="$1"
+	local cmsg="$2"
+	local -n linhas="$3"
+	local texto=""
+	local linha
 
-  for linha in "${linhas[@]}"; do
-    texto+="$linha"$'\n'
-  done
+	for linha in "${linhas[@]}"; do
+		texto+="$linha"$'\n'
+	done
 
-  texto+=$'\n'"${RED}$cmsg"
-  texto="$(strip_ansi "${texto}")"
+	texto+=$'\n'"${RED}$cmsg"
+	texto="$(strip_ansi "${texto}")"
 
-  ${DIALOG} \
-    --colors \
-    --title "$xtitle" \
-    --no-collapse \
-    --no-cr-wrap \
-    --backtitle "$ccabec" \
-    --ok-label "${cmsg_ok}" \
-    --msgbox "$texto" \
-    20 120
+	${DIALOG} \
+		--colors \
+		--title "$xtitle" \
+		--no-collapse \
+		--no-cr-wrap \
+		--backtitle "$ccabec" \
+		--ok-label "${cmsg_ok}" \
+		--msgbox "$texto" \
+		20 120
 }
 
 conf() {
@@ -2260,7 +2260,7 @@ sh_mkparted() {
 		LFSREVISED=true
 		sync 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 		partprobe 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
-    sh_check_disk_health "${AConfDisk[_DEVICE]}"
+		sh_check_disk_health "${AConfDisk[_DEVICE]}"
 	else
 		die "${cmsg_InstalacaoAbortada}..."
 	fi
@@ -3008,14 +3008,14 @@ sh_mount_fs() {
 }
 
 sh_common_theme() {
-  apkgs+=(
-	  voidbr-wallpapers
+	apkgs+=(
+		voidbr-wallpapers
 		voidbr-tokyo-theme
 		voidbr-dracula-theme
 		voidbr-professional-theme
-    voidbr-xfwm-axiom-theme
+		voidbr-xfwm-axiom-theme
 		voidbr-beauty-icons
-  )
+	)
 }
 
 sh_X11_minimal() {
@@ -3103,7 +3103,7 @@ sh_openbox_minimal() {
 sh_plasma_minimal() {
 	local DE='Plasma Desktop'
 	local apkgs=(
-	  kde5
+		kde5
 		plasma-desktop
 		plasma-nm
 		plasma-pa
@@ -3118,15 +3118,15 @@ sh_plasma_minimal() {
 			kf6-kaccounts-integration
 			kaccounts-providers
 			signon-kwallet-extension
-      ark
-      kwalletmanager
+			ark
+			kwalletmanager
 		)
 
 		apkgs+=(
 			voidbr-plasma-config
 		)
 
-    sh_common_theme
+		sh_common_theme
 
 	fi
 
@@ -3143,7 +3143,7 @@ sh_cinnamon_minimal() {
 			voidbr-cinnamon-config
 		)
 
-    sh_common_theme
+		sh_common_theme
 
 	fi
 
@@ -3321,8 +3321,8 @@ sh_i3_minimal() {
 sh_mango_meta_package() {
 	local DE='Mango'
 	local apkgs=(voidbr-mango)
-	      apkgs+=(voidbr-base-config)
-	      apkgs+=(voidbr-mango-config)
+	apkgs+=(voidbr-base-config)
+	apkgs+=(voidbr-mango-config)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -3330,8 +3330,8 @@ sh_mango_meta_package() {
 sh_sway_meta_package() {
 	local DE='Sway'
 	local apkgs=(voidbr-sway)
-	      apkgs+=(voidbr-base-config)
-	      apkgs+=(voidbr-sway-config)
+	apkgs+=(voidbr-base-config)
+	apkgs+=(voidbr-sway-config)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -3339,8 +3339,8 @@ sh_sway_meta_package() {
 sh_hyprland_meta_package() {
 	local DE='hyprland'
 	local apkgs=(voidbr-hyprland)
-	      apkgs+=(voidbr-base-config)
-	      apkgs+=(voidbr-hyprland-config)
+	apkgs+=(voidbr-base-config)
+	apkgs+=(voidbr-hyprland-config)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -3348,16 +3348,16 @@ sh_hyprland_meta_package() {
 sh_sway_minimal() {
 	local DE='Sway'
 	local apkgs=(sway)
-	      apkgs+=(foot wofi grim slurp brightnessctl eom)
-	      apkgs+=(fuse-exfat ffmpeg mesa-vaapi psmisc)
-	      apkgs+=(cpupower mesa-demos noto-fonts-ttf)
-	      apkgs+=(font-awesome)
-	      apkgs+=(optipng sassc jq swayidle swaylock sway-audio-idle-inhibit Waybar wmenu xdg-utils)
-	      apkgs+=(xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-wlr rtkit)
-	      apkgs+=(mate-polkit kanshi Thunar thunar-archive-plugin)
-	      apkgs+=(engrampa cliphist mate-calc pluma nwg-look atril wl-clipboard mako)
-	      apkgs+=(voidbr-sway-config)
-	      apkgs+=(voidbr-dracula-theme)
+	apkgs+=(foot wofi grim slurp brightnessctl eom)
+	apkgs+=(fuse-exfat ffmpeg mesa-vaapi psmisc)
+	apkgs+=(cpupower mesa-demos noto-fonts-ttf)
+	apkgs+=(font-awesome)
+	apkgs+=(optipng sassc jq swayidle swaylock sway-audio-idle-inhibit Waybar wmenu xdg-utils)
+	apkgs+=(xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-wlr rtkit)
+	apkgs+=(mate-polkit kanshi Thunar thunar-archive-plugin)
+	apkgs+=(engrampa cliphist mate-calc pluma nwg-look atril wl-clipboard mako)
+	apkgs+=(voidbr-sway-config)
+	apkgs+=(voidbr-dracula-theme)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -3487,7 +3487,7 @@ sh_hyprland_minimal() {
 			voidbr-hyprland-config
 		)
 
-    sh_common_theme
+		sh_common_theme
 	fi
 
 	shell='/bin/bash'
@@ -3688,29 +3688,29 @@ sh_part_info() {
 #   2 = Crítico
 # ------------------------------------------------------------
 sh_check_disk_health() {
-  local disk="$1"
-  local msg
+	local disk="$1"
+	local msg
 
-  AConfDisk[_HEALTH]="$disk"
+	AConfDisk[_HEALTH]="$disk"
 	[[ -b "$disk" ]] || {
-    if [[ -z "$1" ]]; then
-      msg="\n${BOLD}${RED}$(gettext 'Necessário escolher um dispositivo para TESTAR')${RESET}"
-    else
-      msg="\n${BOLD}${RED}$(gettext 'Dispositivo inválido'): ${CYAN}${disk}${RESET}"
-    fi
-    if conf "=== ERRO ===" \
-      "${msg}\n\n${YELLOW}$(gettext 'Deseja escolher agora?')"; then
-	    if ! sh_choose_disk "${cmsg_DiskHealth}"; then
-        return 1
-      fi
+		if [[ -z "$1" ]]; then
+			msg="\n${BOLD}${RED}$(gettext 'Necessário escolher um dispositivo para TESTAR')${RESET}"
+		else
+			msg="\n${BOLD}${RED}$(gettext 'Dispositivo inválido'): ${CYAN}${disk}${RESET}"
+		fi
+		if conf "=== ERRO ===" \
+			"${msg}\n\n${YELLOW}$(gettext 'Deseja escolher agora?')"; then
+			if ! sh_choose_disk "${cmsg_DiskHealth}"; then
+				return 1
+			fi
 
-      disk="${AConfDisk[_HEALTH]}"
-    else
-      return 2
-    fi
+			disk="${AConfDisk[_HEALTH]}"
+		else
+			return 2
+		fi
 	}
 
-  sh_info_msg "$(gettext 'Testando saude do disco'): ${CYAN}${disk}${RESET}"
+	sh_info_msg "$(gettext 'Testando saude do disco'): ${CYAN}${disk}${RESET}"
 
 	local model serial size tran
 	local pttype=""
@@ -3764,11 +3764,11 @@ sh_check_disk_health() {
 	sectors=$(blockdev --getsz "$disk" 2>/dev/null)
 
 	if [[ -n "$sectors" ]]; then
-		if dd if="$disk" bs=512 skip=$((sectors-1)) count=1 status=none 2>/dev/null | strings | grep -q "EFI PART"; then
+		if dd if="$disk" bs=512 skip=$((sectors - 1)) count=1 status=none 2>/dev/null | strings | grep -q "EFI PART"; then
 			report+="GPT Backup........: ${GREEN}OK${RESET}\n"
 		else
 			report+="GPT Backup........: ${RED}FALHOU${RESET}\n"
-			(( status < 2 )) && status=1
+			((status < 2)) && status=1
 		fi
 	fi
 
@@ -3779,7 +3779,7 @@ sh_check_disk_health() {
 		report+="blkid.............: ${GREEN}OK${RESET}\n"
 	else
 		report+="blkid.............: ${RED}FALHOU${RESET}\n"
-		(( status < 1 )) && status=1
+		((status < 1)) && status=1
 	fi
 
 	# --------------------------------------------------------
@@ -3789,7 +3789,7 @@ sh_check_disk_health() {
 		report+="wipefs............: ${GREEN}OK${RESET}\n"
 	else
 		report+="wipefs............: ${RED}FALHOU${RESET}\n"
-		(( status < 1 )) && status=1
+		((status < 1)) && status=1
 	fi
 
 	# --------------------------------------------------------
@@ -3816,30 +3816,29 @@ sh_check_disk_health() {
 	# --------------------------------------------------------
 	local dev
 	dev=$(basename "$disk")
-  errors=$(dmesg | grep -iE "$dev" | tail -5)
+	errors=$(dmesg | grep -iE "$dev" | tail -5)
 
-  if [[ -n "$errors" ]]; then
-    report+="\n${CYAN}Erros recentes:${RESET}\n"
-    report+="${YELLOW}$errors${RESET}\n"
-    if grep -iE "I/O error|Buffer I/O|blk_update_request|critical medium error|end_request" <<< "$errors"
-    then
-      (( status < 2 )) && status=2
-    fi
-  fi
+	if [[ -n "$errors" ]]; then
+		report+="\n${CYAN}Erros recentes:${RESET}\n"
+		report+="${YELLOW}$errors${RESET}\n"
+		if grep -iE "I/O error|Buffer I/O|blk_update_request|critical medium error|end_request" <<<"$errors"; then
+			((status < 2)) && status=2
+		fi
+	fi
 
-  # --------------------------------------------------------
-  # Status Final
-  # --------------------------------------------------------
-  report+="\n"
+	# --------------------------------------------------------
+	# Status Final
+	# --------------------------------------------------------
+	report+="\n"
 
 	case "$status" in
-		0) report+="${GREEN}STATUS: DISCO APARENTEMENTE SAUDÁVEL${RESET}" ;;
-		1) report+="${YELLOW}STATUS: AVISOS ENCONTRADOS${RESET}" ;;
-		2) report+="${RED}STATUS: POSSÍVEIS DEFEITOS NO DISCO${RESET}" ;;
+	0) report+="${GREEN}STATUS: DISCO APARENTEMENTE SAUDÁVEL${RESET}" ;;
+	1) report+="${YELLOW}STATUS: AVISOS ENCONTRADOS${RESET}" ;;
+	2) report+="${RED}STATUS: POSSÍVEIS DEFEITOS NO DISCO${RESET}" ;;
 	esac
 
 	${DIALOG} \
-	  --colors \
+		--colors \
 		--backtitle "$ccabec" \
 		--title "Diagnóstico do Disco" \
 		--msgbox "$report" \
@@ -4643,7 +4642,7 @@ sh_getlgrub() {
 sh_choose_disk() {
 	local old_device="${AConfDisk[_DEVICE]}"
 
-  sh_umount_fs
+	sh_umount_fs
 
 	while true; do
 		sh_disk_part_info
@@ -4661,15 +4660,15 @@ sh_choose_disk() {
 		if [ $# -eq 0 ]; then
 			xtitle="${cmsg_TitleDisco}"
 			LCHOOSEBOOTLOADER=0
-  		LCHOOSEHEALTH=false
+			LCHOOSEHEALTH=false
 		else
-		  if [[ "$1" == "${cmsg_DiskHealth}" ]]; then
-  			xtitle="${cmsg_DiskHealth^^}"
-	  		LCHOOSEHEALTH=true
-      else
-  			xtitle="${cmsg_BootLoader^^}"
-	  		LCHOOSEBOOTLOADER=1
-	    fi
+			if [[ "$1" == "${cmsg_DiskHealth}" ]]; then
+				xtitle="${cmsg_DiskHealth^^}"
+				LCHOOSEHEALTH=true
+			else
+				xtitle="${cmsg_BootLoader^^}"
+				LCHOOSEBOOTLOADER=1
+			fi
 		fi
 
 		for i in "${ARRAY_DSK_DEVICES[@]}"; do
@@ -4709,7 +4708,7 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 
 		if [[ -n "$sd" ]]; then
 			if $LCHOOSEHEALTH; then
-        AConfDisk[_HEALTH]="$sd"
+				AConfDisk[_HEALTH]="$sd"
 				return 0
 			fi
 
@@ -4774,11 +4773,11 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 			return 0
 			;;
 		"$D_CONFIG")
- 			sh_checkdisk "${AConfDisk[_DEVICE]}"
-  		sh_menuUtilDisk
-	  	#continue
-		  set_disk_choosed # qui 07 mai 2026 21:22:11 -04
- 			return 0         # qui 07 mai 2026 21:22:11 -04
+			sh_checkdisk "${AConfDisk[_DEVICE]}"
+			sh_menuUtilDisk
+			#continue
+			set_disk_choosed # qui 07 mai 2026 21:22:11 -04
+			return 0         # qui 07 mai 2026 21:22:11 -04
 			;;
 		esac
 	done
@@ -4788,12 +4787,12 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 }
 
 sh_chooseBootLoader() {
-  if ! $LDISK; then
-    AConfDisk[_BOOTLOADER]="${AConfDisk[_DEVICE]}"
-    LGRUB=true
-  fi
+	if ! $LDISK; then
+		AConfDisk[_BOOTLOADER]="${AConfDisk[_DEVICE]}"
+		LGRUB=true
+	fi
 
-  if sh_choose_disk "=== BOOTLOADER (GRUB) ==="; then
+	if sh_choose_disk "=== BOOTLOADER (GRUB) ==="; then
 		LOSPROBER=false
 		if conf "=== OS-PROBER ===" "\n$(gettext "Detectar outro OS(s) instalado ?")\n\n"; then
 			LOSPROBER=true
@@ -5224,7 +5223,7 @@ sh_choose_wm() {
 		plasma "${aWm[plasma]}" "${aFlag[plasma]}" \
 		sway "${aWm[sway]}" "${aFlag[sway]}" \
 		mango "${aWm[mango]}" "${aFlag[mango]}" \
-  	hyprland "${aWm[hyprland]}" "${aFlag[hyprland]}" \
+		hyprland "${aWm[hyprland]}" "${aFlag[hyprland]}" \
 		river "${aWm[river]}" "${aFlag[river]}" \
 		xfce4 "${aWm[xfce4]}" "${aFlag[xfce4]}" \
 		2>&1 >/dev/tty)
@@ -5236,11 +5235,13 @@ sh_choose_wm() {
 		;;
 	esac
 
-	LWM=true
 	_WINDOWMANAGER=($(strtoarray "$wm"))
 	_WM="$wm"
-	LSERVER=false
+	LWM=true
 	LONLY_TTY=true
+	LSERVER=false
+	AConfAudio[_AUDIOSERVER]="None"
+	_DISPLAYMANAGER="None"
 
 	for wm in "${_WINDOWMANAGER[@]}"; do
 		case "$wm" in
@@ -5248,6 +5249,7 @@ sh_choose_wm() {
 			LONLY_TTY=true
 			AConfAudio[_AUDIOSERVER]="None"
 			_DISPLAYMANAGER="None"
+			_WM="server"
 			;;
 		xorg)
 			LONLY_TTY=true
@@ -5255,6 +5257,7 @@ sh_choose_wm() {
 			AConfAudio[_AUDIOSERVER]="None"
 			_DISPLAYMANAGER="None"
 			_WM="xorg"
+			break
 			;;
 		server)
 			LONLY_TTY=true
@@ -5262,6 +5265,7 @@ sh_choose_wm() {
 			AConfAudio[_AUDIOSERVER]="None"
 			_DISPLAYMANAGER="None"
 			_WM="server"
+			break
 			;;
 		sway)
 			LONLY_TTY=false
@@ -5319,7 +5323,7 @@ sh_choose_wm() {
 		fi
 	fi
 
-	# debug "${_WINDOWMANAGER[@]}" "\nLONLY_TTY=$LONLY_TTY" "\nLXORG=$LXORG"
+	#  debug "${_DISPLAYMANAGER[@]}" "\n${_WINDOWMANAGER[@]}" "\nLONLY_TTY=$LONLY_TTY" "\nLXORG=$LXORG"
 
 }
 
@@ -5349,20 +5353,20 @@ sh_choose_custom_packages() {
 		aCustom['mugshot']="$(gettext 'Program to update personal user details')"
 		aCustom['ocs-url']="$(gettext 'Install helper program for OpenCollaborationServices (ocs://)')"
 		aCustom['vlc']="$(gettext 'Cross-platform multimedia player')"
-  	aCustom['samsung-unified-driver']="$(gettext 'Unified Linux Driver for Samsung printers and scanners')"
-  	aCustom['splix']="$(gettext 'CUPS driver for SPL printers (Samsung and several Xerox printers)')"
-  	aCustom['system-config-printer']="$(gettext 'CUPS printer configuration tool and status applet')"
-  	aCustom['bluez-cups']="$(gettext 'CUPS printer backend for Bluetooth printers')"
-  	aCustom['cups-pdf']="$(gettext 'PDF printer for cups')"
-  	aCustom['samba-cups']="$(gettext 'SMB backend for cups (transitional dummy package)')"
-  	aCustom['cups']="$(gettext 'Common Unix Printing System')"
+		aCustom['samsung-unified-driver']="$(gettext 'Unified Linux Driver for Samsung printers and scanners')"
+		aCustom['splix']="$(gettext 'CUPS driver for SPL printers (Samsung and several Xerox printers)')"
+		aCustom['system-config-printer']="$(gettext 'CUPS printer configuration tool and status applet')"
+		aCustom['bluez-cups']="$(gettext 'CUPS printer backend for Bluetooth printers')"
+		aCustom['cups-pdf']="$(gettext 'PDF printer for cups')"
+		aCustom['samba-cups']="$(gettext 'SMB backend for cups (transitional dummy package)')"
+		aCustom['cups']="$(gettext 'Common Unix Printing System')"
 	fi
 
 	if $LSERVER; then
 		aCustom['voidbr-network-tools']="$(gettext 'Meta‑pacote com utilitários essenciais de rede e monitoramento para Void Linux')"
 	fi
 
-  # tty
+	# tty
 	aCustom['tailscale']="$(gettext 'Easy, secure, cross platform WireGuard, oauth2, and 2FA/SSO')"
 	aCustom['micro']="$(gettext 'Modern and intuitive terminal-based text editor')"
 	aCustom['inxi']="$(gettext 'Full featured system information script')"
@@ -5400,7 +5404,7 @@ sh_choose_custom_packages() {
 
 	custom=$(
 		${DIALOG} \
-		  --stdout \
+			--stdout \
 			--backtitle "$ccabec" \
 			--title "=== Pacotes Extras ===" \
 			--colors \
@@ -5567,15 +5571,15 @@ sh_choose_dm() {
 	LDM=true
 	_DISPLAYMANAGER="$dm"
 
-  if $LHYPRLAND || $LSWAY || $LMANGO; then
-    if [[ "$dm" != "None" && "$dm" != "sddm" ]]; then
-	  	if conf "=== ${cmsg_Dm^^} ===" \
-            "\n${BOLD}${CYAN}$(gettext "É aconselhável escolhar sddm para compatibilidade")" \
-      			"\n\n${BOLD}${RED}$(gettext "Deseja ativar esse Display Manager?")\n\n"; then
-     	  _DISPLAYMANAGER="sddm"
-      fi
-    fi
-  fi
+	if $LHYPRLAND || $LSWAY || $LMANGO; then
+		if [[ "$dm" != "None" && "$dm" != "sddm" ]]; then
+			if conf "=== ${cmsg_Dm^^} ===" \
+				"\n${BOLD}${CYAN}$(gettext "É aconselhável escolhar sddm para compatibilidade")" \
+				"\n\n${BOLD}${RED}$(gettext "Deseja ativar esse Display Manager?")\n\n"; then
+				_DISPLAYMANAGER="sddm"
+			fi
+		fi
+	fi
 
 	LAUTOLOGIN=false
 	if [[ $dm != "None" ]]; then
@@ -5586,6 +5590,8 @@ sh_choose_dm() {
 			LAUTOLOGIN=true
 		fi
 	fi
+
+	#debug $_DISPLAYMANAGER
 
 }
 
@@ -5667,26 +5673,25 @@ sh_chmod_tmp() {
 
 display_config() {
 	sh_disk_part_info
-	#                                     \n$(padr "${cmsg_Extra3} :" 30 ' ') \Zb\Z0$(sh_gethidden-password "${AsUser[cpass]}")${RESET}\
-	#                                     \n$(padr "${cmsg_Extra4} :" 30 ' ') \Zb\Z0$(sh_gethidden-password "${AsUser[cpassroot]}")${RESET}\
-	#   \n$(padr "${cmsg_senhawifi} (${cmsg_opcional}) :" 30 ' ') \Zb\Z0$(sh_gethidden-password "${AConfWifi[_PASSWORD]}")${RESET}\
-	SETUP="\
-                            			  \n$(padr "${cmsg_Extra2} :" 30 ' ') \Zb\Z0${AsUser[cuser]} - [${AsUser[cfullname]}] ${RESET}\
-                                                         \n$(padr "Hostname :" 30 ' ') \Zb\Z0${AsUser[chostname]}${RESET}\
-                                     \n$(padr "${cmsg_Teclado} :" 30 ' ') \Zb\Z0${AConfLocale[_KEYMAP]}${RESET}\
-                                                         \n$(padr "Timezone :" 30 ' ') \Zb\Z0${AConfLocale[_TIMEZONE]}${RESET}\
-     \n$(padr "${cmsg_redewifi} (${cmsg_opcional}) :" 30 ' ') \Zb\Z0${AConfWifi[_NETWORK]}${RESET}\
-                                                   \n$(padr "${cmsg_Mirror} :" 30 ' ') \Zb\Z0${AConfMirror[url_mirror]} - ${AConfMirror[location]}${RESET}\
-                                      \n$(padr "${cmsg_Source} :" 30 ' ') \Zb\Z0${AConfMirror[_SOURCE]}${RESET}\
-                                      \n$(padr "${cmsg_Extra6} :" 30 ' ') \Zb\Z0${AConfDisk[_DEVICE]} | $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 2) | $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 4)${RESET}\
-       \n$(padr "${cmsg_BootLoader} (${AConfDisk[_DISKTABLE]}) :" 30 ' ') \Zb\Z0${AConfDisk[_BOOTLOADER]} | $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 2) | $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 4)${RESET}\
-                                          \n$(padr "Detect SO's (os-prober) :" 30 ' ') \Zb\Z0$(sh_getyes "${AConfDisk[_OSPROBER]}")${RESET}\
-                                     \n$(padr "${cmsg_Extra11} :" 30 ' ') \Zb\Z0"${_WINDOWMANAGER[*]}"${RESET}\
-                                                     \n$(padr "Customizacao :" 30 ' ') \Zb\Z0$(sh_getTrueFalse "$LCUSTOM")${RESET}\
-                                                              \n$(padr "Fde :" 30 ' ') \Zb\Z0$(sh_getinfoFde "$LFDE")${RESET}\
-                                                              \n$(padr "Lvm :" 30 ' ') \Zb\Z0$(sh_getinfoFde "$LVM")${RESET}\
-                                            \n$(padr "FileSystem/Mountpoint :" 30 ' ') ${BOLD}${GREEN}↓↓↓\
-                                                       \n\Zb\Z4$(sh_getmntpoint)${RESET}${RESET}"
+	SETUP="$(padr "${cmsg_Extra2} :" 30 ' ') \Zb\Z0${AsUser[cuser]} - [${AsUser[cfullname]}] ${RESET}\
+                                         \n$(padr "Hostname :" 30 ' ') \Zb\Z0${AsUser[chostname]}${RESET}\
+                                  \n$(padr "${cmsg_Teclado} :" 30 ' ') \Zb\Z0${AConfLocale[_KEYMAP]}${RESET}\
+                                         \n$(padr "Timezone :" 30 ' ') \Zb\Z0${AConfLocale[_TIMEZONE]}${RESET}\
+              \n$(padr "${cmsg_redewifi} (${cmsg_opcional}) :" 30 ' ') \Zb\Z0${AConfWifi[_NETWORK]}${RESET}\
+                                   \n$(padr "${cmsg_Mirror} :" 30 ' ') \Zb\Z0${AConfMirror[url_mirror]} - ${AConfMirror[location]}${RESET}\
+                                   \n$(padr "${cmsg_Source} :" 30 ' ') \Zb\Z0${AConfMirror[_SOURCE]}${RESET}\
+                                   \n$(padr "${cmsg_Extra6} :" 30 ' ') \Zb\Z0${AConfDisk[_DEVICE]} | $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 2) | $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 4)${RESET}\
+    \n$(padr "${cmsg_BootLoader} (${AConfDisk[_DISKTABLE]}) :" 30 ' ') \Zb\Z0${AConfDisk[_BOOTLOADER]} | $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 2) | $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 4)${RESET}\
+                          \n$(padr "Detect SO's (os-prober) :" 30 ' ') \Zb\Z0$(sh_getyes "${AConfDisk[_OSPROBER]}")${RESET}\
+                                  \n$(padr "${cmsg_Extra11} :" 30 ' ') \Zb\Z0"${_WINDOWMANAGER[*]}"${RESET}\
+                                      \n$(padr "${cmsg_Dm=} :" 30 ' ') \Zb\Z0"${_DISPLAYMANAGER[*]}"${RESET}\
+                                            \n$(padr "Audio :" 30 ' ') \Zb\Z0"${AConfAudio[_AUDIOSERVER]}"${RESET}\
+                                     \n$(padr "Customizacao :" 30 ' ') ${YELLOW}$(sh_getTrueFalse "$LCUSTOM") \Zb\Z0${aCustomPackages[*]}${RESET}\
+                                              \n$(padr "Fde :" 30 ' ') \Zb\Z0$(sh_getinfoFde "$LFDE")${RESET}\
+                                              \n$(padr "Lvm :" 30 ' ') \Zb\Z0$(sh_getinfoFde "$LVM")${RESET}\
+                            \n$(padr "FileSystem/Mountpoint :" 30 ' ') ${BOLD}${GREEN}↓↓↓\
+    \n\Zb\Z4$(sh_getmntpoint)${RESET}${RESET}
+  "
 }
 
 sh_getTrueFalse() {
@@ -6163,14 +6168,14 @@ User=$user
 Session=$session
 EOF
 
-if $LHYPRLAND || $LSWAY || $LMANGO; then
-  sed -i '/^\[General\]/,/^\[/{
+	if $LHYPRLAND || $LSWAY || $LMANGO; then
+		sed -i '/^\[General\]/,/^\[/{
     /^\[/!b
     /^\[General\]/!i\
   DisplayServer=wayland
   }' "$cfileconf"
 
-fi
+	fi
 
 }
 
@@ -6377,17 +6382,17 @@ sh_install() {
 				if [[ "${AConfMirror[_SOURCE]}" = "local" && "${LCUSTOM:-}" = "false" ]]; then
 					:
 				elif $LSWAY; then
-    			sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
-          sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM Config')" "${aDisplaymanagerConfig[*]}"
-	        :
+					sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
+					sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM Config')" "${aDisplaymanagerConfig[*]}"
+					:
 				elif $LMANGO; then
-    			sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
-          sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM Config')" "${aDisplaymanagerConfig[*]}"
-	        :
+					sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
+					sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM Config')" "${aDisplaymanagerConfig[*]}"
+					:
 				elif $LHYPRLAND; then
-        	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
-          sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM Config')" "${aDisplaymanagerConfig[*]}"
-				  :
+					sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
+					sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM Config')" "${aDisplaymanagerConfig[*]}"
+					:
 				else
 					sh_X11_minimal
 				fi
@@ -6411,7 +6416,7 @@ sh_install() {
 				"dwm") sh_dwm_minimal ;;
 				"enlightenment") sh_enlightenment_minimal ;;
 				"fluxbox") sh_fluxbox_minimal ;;
-#				"hyprland") sh_hyprland_minimal ;;
+					#				"hyprland") sh_hyprland_minimal ;;
 				"hyprland") sh_hyprland_meta_package ;;
 				"openbox") sh_openbox_minimal ;;
 				"gnome") sh_gnome_minimal ;;
@@ -6419,7 +6424,7 @@ sh_install() {
 				"xfce4") sh_xfce4_minimal ;;
 				"cinnamon") sh_cinnamon_minimal ;;
 				"i3wm") sh_i3_minimal ;;
-#				"sway") sh_sway_minimal ;;
+					#				"sway") sh_sway_minimal ;;
 				"sway") sh_sway_meta_package ;;
 				"mango") sh_mango_meta_package ;;
 				"river") sh_river_minimal ;;
@@ -6448,10 +6453,9 @@ sh_install() {
 				sh_activating_pulseaudio
 			fi
 
-			# debug "$_DISPLAYMANAGER"
-			# debug "${aDisplaymanager[*]}"
+			#			debug "$_DISPLAYMANAGER" "\n${aDisplaymanager[*]}"
 
-			case $_DISPLAYMANAGER in
+			case "$_DISPLAYMANAGER" in
 			lxdm) sh_update_lxdm_conf ;;
 			sddm) sh_update_sddm_conf ;;
 			gdm) sh_update_gdm_conf ;;
@@ -6489,11 +6493,11 @@ sh_install() {
 				"Start Date time  : $start_datetime" \
 				"Finish Date Time : $end_datetime" \
 				"Time elapsed     : ${RED}$(sh_time_elapsed)"
-      nchoice="$?"
-      case "$nchoice" in
-      1) poweroff;;
-      3) reboot;;
-      esac
+			nchoice="$?"
+			case "$nchoice" in
+			1) poweroff ;;
+			3) reboot ;;
+			esac
 		else
 			die "${cmsg_ERRO} tar #$?. ${cmsg_ErroTar} $_TARBALL_ROOTFS"
 		fi
@@ -7094,7 +7098,7 @@ sh_main_menu() {
 		$LKERNEL && MENU_KERNEL="${cWARN}[${AConfKernel[_KERNEL]}${RST} ● " || MENU_KERNEL="${cERRO}[${cmsg_Nao_definido}]${RST} ● "
 
 		#			"Sistema" "${MENU_KEYMAP}Configurações regionais" \
-#			"${cmsg_Mirror}" "${MENU_MIRROR}${cmsg_descMirror}" \
+		#			"${cmsg_Mirror}" "${MENU_MIRROR}${cmsg_descMirror}" \
 
 		menu=$(${DIALOG} \
 			--backtitle "$ccabec" \
@@ -8234,8 +8238,8 @@ sh_setLogPrefix
 #sh_check_lock
 
 [[ "${1-}" = @(-V|--version) ]] && {
-  sh_version
-  exit $(($# ? 0 : 1))
+	sh_version
+	exit $(($# ? 0 : 1))
 }
 
 [[ "${1-}" = @(-h|--help) ]] && {
