@@ -3120,6 +3120,7 @@ sh_plasma_minimal() {
 			signon-kwallet-extension
 			ark
 			kwalletmanager
+		  spectacle
 		)
 
 		apkgs+=(
