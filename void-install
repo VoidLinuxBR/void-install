@@ -2819,27 +2819,48 @@ sh_activating_services() {
 	fi
 }
 
+sh_hack_hyprland_lib() {
+	local cpath="$dir_install/usr/lib"
+	local lib
+
+	sh_info_msg "${cmsg_Ajustando} libs"
+	pushd "$cpath" >/dev/null || return
+	for lib in libjxl libjxl_cms libjxl_threads; do
+		[ -e "${lib}.so.0.12" ] && ln -sf "${lib}.so.0.12" "${lib}.so.0.11"
+	done
+	popd >/dev/null || return
+}
+
 sh_configure_hyprland_audio() {
 	local cuser="${AsUser[cuser]}"
-	local cfile="/home/$cuser/.config/hypr/hyprland.lua"
+	local cfile_home="$dir_install/home/$cuser/.config/hypr/hyprland.lua"
+	local cfile_skel="$dir_install/etc/skel/.config/hypr/hyprland.lua"
 
-  sh_info_msg "${cmsg_Ajustando} hyprland.lua"
-  case "${AConfAudio[_AUDIOSERVER]:-Pulseaudio}" in
-    Pulseaudio)
-      #inserir pulseaudio
-      sed -i '/hl\.exec_cmd("pulseaudio --start")/s/^[[:space:]]*/--   /' "$cfile"
-      #retirar pipewire
-      sed -i '/hl\.exec_cmd("pipewire")/s/^[[:space:]]*--[[:space:]]*//' "$cfile"
-      ;;
-    Pipewire)
-      #inserir pipewire
-      sed -i '/hl\.exec_cmd("pipewire")/s/^[[:space:]]*/--   /' "$cfile"
-      #retirar pulseaudio
-      sed -i '/hl\.exec_cmd("pulseaudio --start")/s/^[[:space:]]*--[[:space:]]*//' "$cfile"
-      ;;
-    None)
-      ;;
-  esac
+	sh_info_msg "${cmsg_Ajustando} hyprland.lua"
+	case "${AConfAudio[_AUDIOSERVER]:-Pipewire}" in
+	Pulseaudio)
+		# Remove qualquer comentário das duas linhas
+		sed -i '/hl\.exec_cmd("pulseaudio --start")/s/^[[:space:]]*--[[:space:]]*//' "$cfile_home"
+		sed -i '/hl\.exec_cmd("pulseaudio --start")/s/^[[:space:]]*--[[:space:]]*//' "$cfile_skel"
+		sed -i '/hl\.exec_cmd("pipewire")/s/^[[:space:]]*--[[:space:]]*//' "$cfile_home"
+		sed -i '/hl\.exec_cmd("pipewire")/s/^[[:space:]]*--[[:space:]]*//' "$cfile_skel"
+
+		# Comenta apenas o pipewire
+		sed -i '/hl\.exec_cmd("pipewire")/s/^/--   /' "$cfile_home"
+		sed -i '/hl\.exec_cmd("pipewire")/s/^/--   /' "$cfile_skel"
+		;;
+	Pipewire)
+		# Remove qualquer comentário das duas linhas
+		sed -i '/hl\.exec_cmd("pulseaudio --start")/s/^[[:space:]]*--[[:space:]]*//' "$cfile_home"
+		sed -i '/hl\.exec_cmd("pulseaudio --start")/s/^[[:space:]]*--[[:space:]]*//' "$cfile_skel"
+		sed -i '/hl\.exec_cmd("pipewire")/s/^[[:space:]]*--[[:space:]]*//' "$cfile_home"
+		sed -i '/hl\.exec_cmd("pipewire")/s/^[[:space:]]*--[[:space:]]*//' "$cfile_skel"
+
+		# Comenta apenas o pulseaudio
+		sed -i '/hl\.exec_cmd("pulseaudio --start")/s/^/--   /' "$cfile_home"
+		sed -i '/hl\.exec_cmd("pulseaudio --start")/s/^/--   /' "$cfile_skel"
+		;;
+	esac
 }
 
 sh_global_audio_cleaning() {
@@ -3151,7 +3172,7 @@ sh_plasma_minimal() {
 			signon-kwallet-extension
 			ark
 			kwalletmanager
-		  spectacle
+			spectacle
 		)
 
 		apkgs+=(
@@ -4041,7 +4062,7 @@ sh_choose_audioserver() {
 	local caudio
 
 	if ! $LONLY_TTY; then
-		case "${AConfAudio[_AUDIOSERVER]:-Pulseaudio}" in
+		case "${AConfAudio[_AUDIOSERVER]:-Pipewire}" in
 		Pulseaudio)
 			array+=("Pulseaudio" "Pulseaudio" "on")
 			array+=("Pipewire" "Pipewire" "off")
@@ -5081,6 +5102,8 @@ sh_dryrun() {
 	sh_umount_fs
 	sh_mount_fs
 	sh_init_bind
+	sh_hack_hyprland_lib
+	sh_configure_hyprland_audio
 
 	#sh_update_locale
 	#sh_update_rc_conf
@@ -5301,7 +5324,7 @@ sh_choose_wm() {
 			;;
 		sway)
 			LONLY_TTY=false
-			AConfAudio[_AUDIOSERVER]="None"
+			AConfAudio[_AUDIOSERVER]="Pipewire"
 			_DISPLAYMANAGER="sddm"
 			LSWAY=true
 			_WM="$wm"
@@ -5309,7 +5332,7 @@ sh_choose_wm() {
 			;;
 		mango)
 			LONLY_TTY=false
-			AConfAudio[_AUDIOSERVER]="None"
+			AConfAudio[_AUDIOSERVER]="Pipewire"
 			_DISPLAYMANAGER="sddm"
 			LMANGO=true
 			_WM="$wm"
@@ -5317,7 +5340,7 @@ sh_choose_wm() {
 			;;
 		hyprland)
 			LONLY_TTY=false
-			AConfAudio[_AUDIOSERVER]="None"
+			AConfAudio[_AUDIOSERVER]="Pipewire"
 			_DISPLAYMANAGER="sddm"
 			LHYPRLAND=true
 			_WM="$wm"
@@ -6513,7 +6536,8 @@ sh_install() {
             "
 
 			if $LHYPRLAND; then
-			  sh_configure_hyprland_audio
+				sh_configure_hyprland_audio
+				sh_hack_hyprland_lib
 			fi
 
 			sh_chmod_tmp
