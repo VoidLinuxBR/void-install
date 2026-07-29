@@ -2823,8 +2823,8 @@ sh_configure_hyprland_audio() {
 	local cuser="${AsUser[cuser]}"
 	local cfile="/home/$cuser/.config/hypr/hyprland.lua"
 
-	sh_cmd_job "${cmsg_Ajustando} hyprland.lua" '
-    case "${AConfAudio[_AUDIOSERVER]:-Pulseaudio}" in
+  sh_info_msg "${cmsg_Ajustando} hyprland.lua"
+  case "${AConfAudio[_AUDIOSERVER]:-Pulseaudio}" in
     Pulseaudio)
       #inserir pulseaudio
       sed -i '/hl\.exec_cmd("pulseaudio --start")/s/^[[:space:]]*/--   /' "$cfile"
@@ -2839,8 +2839,7 @@ sh_configure_hyprland_audio() {
       ;;
     None)
       ;;
-    esac
-  ' $err_not_fatal
+  esac
 }
 
 sh_global_audio_cleaning() {
@@ -6515,7 +6514,7 @@ sh_install() {
 
 			if $LHYPRLAND; then
 			  sh_configure_hyprland_audio
-			#fi
+			fi
 
 			sh_chmod_tmp
 			sh_update_etc_issue
@@ -6845,7 +6844,7 @@ sh_choose_Partition() {
 			--cancel-label "${cmsg_ButtonFeito}" \
 			--colors \
 			--extra-button \
-			--extra-label "${cmsg_info_particao}" \
+			--extra-label "${clmsg_info_particao}" \
 			--menu "${cmsg_MENU}\n\n\
 $(printf "%${nlen}s$sep%-11s$sep%6s$sep%-20s$sep%-20s$sep%-20s$sep%-8s$sep%s" \
 				"PARTITION" \
