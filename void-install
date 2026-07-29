@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: seg 27 jul 2026 08:31:15 -04
+#  Updated: ter 28 jul 2026 15:02:53 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -50,7 +50,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.7.27-20260727'
+readonly _VERSION_='3.7.28-20260728'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -2838,6 +2838,7 @@ sh_global_audio_cleaning() {
     sudo rm -f /etc/alsa/conf.d/50-pipewire.conf
     sudo rm -f /etc/alsa/conf.d/99-pipewire-default.conf
     sudo rm -f /etc/alsa/conf.d/50-pulseaudio.conf
+
     #limpar /etc/asound.conf residual
     sudo rm -f /etc/asound.conf
 
@@ -2851,6 +2852,7 @@ sh_global_audio_cleaning() {
     rm -rf /home/$cuser/.config/pipewire
     rm -rf /home/$cuser/.config/wireplumber
     rm -rf /home/$cuser/.config/pulse
+    rm -rf /home/$cuser/.config/alsa
 
   " $err_not_fatal
 }
@@ -2872,14 +2874,19 @@ EOF
 
     #AUTOSTART CORRETO (SÓ USUÁRIO)
     mkdir -p /home/${cuser}/.config/autostart
-    ln -sf /usr/share/applications/pipewire.desktop /home/${cuser}/.config/autostart/pipewire.desktop
-    ln -sf /usr/share/applications/pipewire-pulse.desktop /home/${cuser}/.config/autostart/pipewire-pulse.desktop
-    ln -sf /usr/share/applications/wireplumber.desktop /home/$cuser/.config/autostart/wireplumber.desktop
+    ln -sf /usr/share/applications/pipewire.desktop \
+      /home/${cuser}/.config/autostart/pipewire.desktop
+
+    mkdir -p /home/${cuser}/.config/pipewire/pipewire.conf.d
+    ln -sf /usr/share/examples/wireplumber/10-wireplumber.conf \
+      /home/${cuser}/.config/pipewire/pipewire.conf.d/10-wireplumber.conf
+    ln -sf /usr/share/examples/pipewire/20-pipewire-pulse.conf \
+      /home/${cuser}/.config/pipewire/pipewire.conf.d/20-pipewire-pulse.conf
 
     # ---- integração ALSA → PipeWire ----
-    mkdir -p ~/.config/alsa/conf.d
-    ln -sf /usr/share/alsa/alsa.conf.d/50-pipewire.conf /home/${cuser}/.config/alsa/conf.d/50-pipewire.conf
-    ln -sf /usr/share/alsa/alsa.conf.d/99-pipewire-default.conf /home/${cuser}/.config/alsa/conf.d/99-pipewire-default.conf
+    mkdir -p /etc/alsa/conf.d
+    ln -sf /usr/share/alsa/alsa.conf.d/50-pipewire.conf /etc/alsa/conf.d/50-pipewire.conf
+    ln -sf /usr/share/alsa/alsa.conf.d/99-pipewire-default.conf /etc/alsa/conf.d/99-pipewire-default.conf
 
     chown $cuser:$cuser /home/$cuser/ -R
 
@@ -2906,7 +2913,8 @@ Name=PulseAudio
 EOF
 
     # ---- integração ALSA → PulseAudio ----
-    ln -sf /usr/share/alsa/alsa.conf.d/50-pulseaudio.conf /home/$cuser/.config/alsa/conf.d/50-pulseaudio.conf
+    mkdir -p /etc/alsa/conf.d/
+    ln -sf /usr/share/alsa/alsa.conf.d/50-pulseaudio.conf /etc/alsa/conf.d/50-pulseaudio.conf
 
     chown $cuser:$cuser /home/$cuser/ -R
 
@@ -3120,6 +3128,7 @@ sh_plasma_minimal() {
 			signon-kwallet-extension
 			ark
 			kwalletmanager
+		  spectacle
 		)
 
 		apkgs+=(
