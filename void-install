@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 28 jul 2026 15:02:53 -04
+#  Updated: qua 29 jul 2026 01:29:09 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -50,7 +50,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.7.28-20260728'
+readonly _VERSION_='3.7.29-20260729'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -2817,6 +2817,30 @@ sh_activating_services() {
 				"$level"
 		done
 	fi
+}
+
+sh_configure_hyprland_audio() {
+	local cuser="${AsUser[cuser]}"
+	local cfile="/home/$cuser/.config/hypr/hyprland.lua"
+
+	sh_cmd_job "${cmsg_Ajustando} hyprland.lua" '
+    case "${AConfAudio[_AUDIOSERVER]:-Pulseaudio}" in
+    Pulseaudio)
+      #inserir pulseaudio
+      sed -i '/hl\.exec_cmd("pulseaudio --start")/s/^[[:space:]]*/--   /' "$cfile"
+      #retirar pipewire
+      sed -i '/hl\.exec_cmd("pipewire")/s/^[[:space:]]*--[[:space:]]*//' "$cfile"
+      ;;
+    Pipewire)
+      #inserir pipewire
+      sed -i '/hl\.exec_cmd("pipewire")/s/^[[:space:]]*/--   /' "$cfile"
+      #retirar pulseaudio
+      sed -i '/hl\.exec_cmd("pulseaudio --start")/s/^[[:space:]]*--[[:space:]]*//' "$cfile"
+      ;;
+    None)
+      ;;
+    esac
+  ' $err_not_fatal
 }
 
 sh_global_audio_cleaning() {
@@ -6489,8 +6513,8 @@ sh_install() {
                rm -fv /var/cache/xbps/*.sig*
             "
 
-			#if $LHYPRLAND; then
-			#	sh_chroot_job "${cmsg_Instalando} User into group _seatd" "usermod -aG _seatd "$user"}" "$err_not_fatal"
+			if $LHYPRLAND; then
+			  sh_configure_hyprland_audio
 			#fi
 
 			sh_chmod_tmp
