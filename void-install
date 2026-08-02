@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: sáb 01 ago 2026 08:14:02 -04
+#  Updated: dom 02 ago 2026 09:26:14 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -50,7 +50,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.8.01-20260801'
+readonly _VERSION_='3.8.02-20260802'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -171,7 +171,7 @@ declare -gA AConfLocale=(
 	[_TIMEZONE]='America/Sao_Paulo'
 	[_KEYMAP]='br-abnt2'
 	[_CLOCK]='UTC'
-	[_FONT]='Uni2-TerminusBold16'
+	[_FONT]='Uni3-TerminusBold24x12'
 	[_LOCALE]='pt_BR.utf8'
 	[_REGION]='Portuguese Brazil'
 )
@@ -612,46 +612,7 @@ sh_update_self() {
 	fi
 }
 
-sh_choose_common_packages() {
-	declare -ga aDisplaymanager=()
-	declare -ga aDisplaymanagerConfig=()
-	declare -ga custom=()
-	declare -ga aExtra=(
-		bash-completion
-		fzf
-		dialog
-		pv
-		tree
-		duf
-		parted
-		rsync
-		exa
-		nvme-cli
-		curl
-		wget
-		nano
-	)
-
-	if $LCUSTOM; then
-		declare -ga aMicrocode=(
-			intel-ucode
-			linux-firmware-amd
-		)
-
-		declare -ga aSuplemento=(
-			voidbr-utils
-			voidbr-nano-config
-			voidbr-vinstall
-			voidbr-webapps
-			chili-utils
-			chili-clonedisk
-		)
-
-		aExtra+=(
-			parallel
-		)
-	fi
-
+sh_configure_display_manager() {
 	if ! $LONLY_TTY; then
 		case $_DISPLAYMANAGER in
 		lxdm)
@@ -693,19 +654,67 @@ sh_choose_common_packages() {
 			aDisplaymanagerConfig=("${custom[@]}")
 		fi
 	fi
+}
+
+sh_choose_common_packages() {
+	declare -ga aDisplaymanager=()
+	declare -ga aDisplaymanagerConfig=()
+	declare -ga custom=()
+	declare -ga aExtra=(
+		bash-completion
+		fzf
+		dialog
+		pv
+		tree
+		duf
+		parted
+		rsync
+		nvme-cli
+		curl
+		wget
+		nano
+	)
+
+	if $LCUSTOM; then
+		declare -ga aMicrocode=(
+			intel-ucode
+			linux-firmware-amd
+		)
+
+		declare -ga aSuplemento=(
+			voidbr-utils
+			voidbr-nano-config
+			voidbr-webapps
+			chili-utils
+			chili-clonedisk
+		)
+
+		aExtra+=(
+			parallel
+		)
+	fi
+
+	sh_configure_display_manager
+
+	if $LSERVER; then
+		aPackageDaemons+=(iptables)
+		aServicesTTY+=(dhcpcd iptables)
+		return
+	fi
+
+	#common
+	aPackageDaemons+=(NetworkManager dhcpcd)
+	aServicesTTY+=(NetworkManager)
 
 	if $LSWAY; then
-		aPackageDaemons+=(acpi acpid irqbalance NetworkManager)
 		return
 	fi
 
 	if $LMANGO; then
-		aPackageDaemons+=(acpi acpid irqbalance NetworkManager)
 		return
 	fi
 
 	if $LHYPRLAND; then
-		aPackageDaemons+=(acpi acpid irqbalance NetworkManager)
 		return
 	fi
 
@@ -720,59 +729,47 @@ sh_choose_common_packages() {
 		declare -ga aPipewire=(pipewire wireplumber alsa-pipewire pulseaudio-utils pavucontrol libspa-bluetooth libjack-pipewire alsa-plugins-pulseaudio alsa-utils)
 
 		if $LCUSTOM; then
-			if ! $LONLY_TTY; then
-				declare -ga aIconsAndThemes=()
-				declare -ga aArchiverX=()
-				declare -ga aBrowser=()
-				declare -ga aFilemanager=()
-				declare -ga aBluetooth=(bluez bluez-alsa bluedevil blueman bluez-deprecated gnome-bluetooth1 blueberry)
-				declare -ga aFonts=()
-				declare -ga aPerfumery=()
-				declare -ga aPrinter=()
-				declare -ga aTerminal=(rxvt-unicode)
-				declare -ga aEditorX=()
-				declare -ga aNetworkX=(gvfs gvfs-smb gvfs-mtp gvfs-afc gvfs-cdda gvfs-gphoto2 udisks2)
-				declare -ga aUtilityX=(xkill lm_sensors)
-				declare -ga aPackageDaemons=()
-			fi
+			declare -ga aIconsAndThemes=()
+			declare -ga aArchiverX=()
+			declare -ga aBrowser=()
+			declare -ga aFilemanager=()
+			declare -ga aBluetooth=(bluez bluez-alsa bluedevil blueman bluez-deprecated gnome-bluetooth1 blueberry)
+			declare -ga aFonts=()
+			declare -ga aPerfumery=()
+			declare -ga aPrinter=()
+			declare -ga aTerminal=(rxvt-unicode)
+			declare -ga aEditorX=()
+			declare -ga aNetworkX=(gvfs gvfs-smb gvfs-mtp gvfs-afc gvfs-cdda gvfs-gphoto2 udisks2)
+			declare -ga aUtilityX=(xkill lm_sensors)
 			declare -ga aArchiverTty=()
 			declare -ga aDownloader=()
 			#			declare -ga aUtility=(binutils dfc btop parallel bubblewrap cmatrix pfetch bc bat xtools geoip geoipupdate)
 			declare -ga aUtility=(binutils bc)
+			aServicesX+=(bluetoothd)
 		else
 			declare -ga aIconsAndThemes=()
 			declare -ga aTerminal=()
 			declare -ga aBrowser=()
 			declare -ga aFilemanager=()
 			declare -ga aUtilityX=()
-			declare -ga aPackageDaemons=()
 		fi
 
 		aFonts+=(noto-fonts-emoji)
-		if ! $LONLY_TTY; then
-			aFonts+=(
-				noto-fonts-cjk
-				dejavu-fonts-ttf
-				font-fira-ttf
-				font-firacode
-				font-hack-ttf
-				ttf-jetbrains-mono-nerd
-				#nerd-fonts
-			)
-		fi
+		aFonts+=(
+			noto-fonts-cjk
+			dejavu-fonts-ttf
+			font-fira-ttf
+			font-firacode
+			font-hack-ttf
+			ttf-jetbrains-mono-nerd
+			#nerd-fonts
+		)
 		aIconsAndThemes+=(Adapta adwaita-icon-theme arc-theme)
 		aTerminal+=(xfce4-terminal)
 		aBrowser+=(firefox firefox-i18n-$(sh_get_language_without_utf8))
-		#		aFilemanager+=(octoxbps)
+		aFilemanager+=(octoxbps)
 		aUtilityX+=(chili-iso2usb voidbr-iso-writer)
-		aPackageDaemons+=(avahi acpi acpid irqbalance)
 		aNetworkX+=(network-manager-applet)
-	fi
-
-	if $LSERVER; then
-		aPackageDaemons+=(iptables dbus acpid)
-	else
-		aPackageDaemons+=(NetworkManager)
 	fi
 
 }
@@ -2318,28 +2315,33 @@ sh_update_mirror() {
 
 sh_update_rc_conf() {
 	local cfile_rc="$dir_install/etc/rc.conf"
+	local cpath_font="$dir_install/usr/share/kbd/consolefonts"
 
 	sh_cmd_job "${cmsg_Ajustando} rc.conf" '
-      if [[ ! -e $cfile_rc ]]; then
-         touch $cfile_rc
-      fi
-      if [[ -e $cfile_rc ]]; then
-         sed -i -e "s|HOSTNAME=.*|HOSTNAME=${AsUser[chostname]}|g" $cfile_rc
-         sed -i -e "s|#\?HOSTNAME=.*|HOSTNAME=${AsUser[chostname]}|g" $cfile_rc
-         sed -i -e "s|HARDWARECLOCK=.*|HARDWARECLOCK=${AConfLocale[_CLOCK]}|g" $cfile_rc
-         sed -i -e "s|#\?HARDWARECLOCK=.*|HARDWARECLOCK=${AConfLocale[_CLOCK]}|g" $cfile_rc
-         sed -i -e "s|FONT=.*|FONT=${AConfLocale[_FONT]}|g" $cfile_rc
-         sed -i -e "s|#\?FONT=.*|FONT=${AConfLocale[_FONT]}|g" $cfile_rc
-         sed -i -e "s|KEYMAP=.*|KEYMAP=${AConfLocale[_KEYMAP]}|g" $cfile_rc
-         sed -i -e "s|#\?KEYMAP=.*|KEYMAP=${AConfLocale[_KEYMAP]}|g" $cfile_rc
-         sed -i -e "s|TIMEZONE=.*|TIMEZONE=${AConfLocale[_TIMEZONE]}|g" $cfile_rc
-         sed -i -e "s|#\?TIMEZONE=.*|TIMEZONE=${AConfLocale[_TIMEZONE]}|g" $cfile_rc
-      fi
-   ' $err_not_fatal
+    if [[ ! -e $cfile_rc ]]; then
+      touch $cfile_rc
+    fi
+    if [[ -e $cfile_rc ]]; then
+      sed -i -e "s|HOSTNAME=.*|HOSTNAME=${AsUser[chostname]}|g" $cfile_rc
+      sed -i -e "s|#\?HOSTNAME=.*|HOSTNAME=${AsUser[chostname]}|g" $cfile_rc
+      sed -i -e "s|HARDWARECLOCK=.*|HARDWARECLOCK=${AConfLocale[_CLOCK]}|g" $cfile_rc
+      sed -i -e "s|#\?HARDWARECLOCK=.*|HARDWARECLOCK=${AConfLocale[_CLOCK]}|g" $cfile_rc
+      sed -i -e "s|FONT=.*|FONT=${AConfLocale[_FONT]}|g" $cfile_rc
+      sed -i -e "s|#\?FONT=.*|FONT=${AConfLocale[_FONT]}|g" $cfile_rc
+      sed -i -e "s|KEYMAP=.*|KEYMAP=${AConfLocale[_KEYMAP]}|g" $cfile_rc
+      sed -i -e "s|#\?KEYMAP=.*|KEYMAP=${AConfLocale[_KEYMAP]}|g" $cfile_rc
+      sed -i -e "s|TIMEZONE=.*|TIMEZONE=${AConfLocale[_TIMEZONE]}|g" $cfile_rc
+      sed -i -e "s|#\?TIMEZONE=.*|TIMEZONE=${AConfLocale[_TIMEZONE]}|g" $cfile_rc
+    fi
+  ' $err_not_fatal
+
+	sh_cmd_job "${cmsg_Ajustando} fonts" '
+    cp -f $cpath_font/Uni3-TerminusBold32x16.psf.gz $cpath_font/default8x16.psfu.gz
+  ' $err_not_fatal
 
 	sh_chroot_job "${cmsg_Ajustando} timezone pass2" "
-      ln -sf /usr/share/zoneinfo/${AConfLocale[_TIMEZONE]} /etc/localtime
-   " $err_not_fatal
+    ln -sf /usr/share/zoneinfo/${AConfLocale[_TIMEZONE]} /etc/localtime
+  " $err_not_fatal
 }
 
 sh_update_hostname() {
@@ -2784,13 +2786,12 @@ sh_make_fstab() {
 sh_activating_services() {
 	#dica: No Void, com dbus ativo, o elogind e o polkitd sobem automaticamente.
 	#      Você não precisa ativar os serviços deles no runit.
-	local aServicesTTY=(dbus sshd chronyd udevd uuidd dmeventd acpid socklog-unix)
-	local aServicesX=(avahi-daemon)
 	local service
 	local level=2
+	aServicesTTY+=(dbus sshd chronyd udevd uuidd dmeventd socklog-unix)
+	aServicesX+=()
 
-	$LSERVER && aServicesTTY+=(dhcpcd iptables) || aServicesTTY+=(NetworkManager)
-	! $LSERVER && ! $ONLY_TTY && aServicesX+=(bluetoothd)
+	if ! $LSERVER && ! $ONLY_TTY; then aServicesX+=(bluetoothd); fi
 
 	for x in "${aDE[@]}"; do
 		case $x in
@@ -3209,8 +3210,6 @@ sh_enlightenment_minimal() {
 		enlightenment
 		efl
 		exquisite
-		acpi
-		acpid
 		connman
 	)
 
@@ -3398,23 +3397,6 @@ sh_hyprland_meta_package() {
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
 
-sh_sway_minimal() {
-	local DE='Sway'
-	local apkgs=(sway)
-	apkgs+=(foot wofi grim slurp brightnessctl eom)
-	apkgs+=(fuse-exfat ffmpeg mesa-vaapi psmisc)
-	apkgs+=(cpupower mesa-demos noto-fonts-ttf)
-	apkgs+=(font-awesome)
-	apkgs+=(optipng sassc jq swayidle swaylock sway-audio-idle-inhibit Waybar wmenu xdg-utils)
-	apkgs+=(xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-wlr rtkit)
-	apkgs+=(mate-polkit kanshi Thunar thunar-archive-plugin)
-	apkgs+=(engrampa cliphist mate-calc pluma nwg-look atril wl-clipboard mako)
-	apkgs+=(voidbr-sway-config)
-	apkgs+=(voidbr-dracula-theme)
-
-	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
-}
-
 sh_river_minimal() {
 	local DE='river'
 	local apkgs=(river yambar fuzzel voidbr-river-config)
@@ -3515,35 +3497,6 @@ sh_dwm_minimal() {
 	local DE='Dwm'
 	local apkgs=(dwm)
 
-	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
-}
-
-sh_hyprland_minimal() {
-	local DE='Hyprland'
-	local user="${AsUser[cuser]}"
-	local apkgs=(hyprland hyprland-protocols xdg-desktop-portal-hyprland dbus polkit seatd)
-
-	apkgs+=(hyprlang)
-	apkgs+=(Waybar dunst libnotify xdg-desktop-portal-gtk)
-	apkgs+=(swaybg)    #Wallpaper tool for Wayland compositors
-	apkgs+=(hyprpaper) #Fast wallpaper utility for wlroots compositors with IPC controls
-	apkgs+=(mpvpaper)  #Video wallpaper program for wlroots based wayland compositors
-	apkgs+=(kitty alacritty)
-	#apkgs+=(alacritty wezterm)
-	#most popular option
-	apkgs+=(rofi)
-	apkgs+=(wofi)
-	apkgs+=(bemenu fuzzel tofi)
-
-	if $LCUSTOM; then
-		apkgs+=(
-			voidbr-hyprland-config
-		)
-
-		sh_common_theme
-	fi
-
-	shell='/bin/bash'
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
 
@@ -5382,6 +5335,45 @@ sh_choose_wm() {
 
 }
 
+sh_configure_custom_packages() {
+	local pkg
+
+	for pkg in "${aCustomPackages[@]}"; do
+		case "${pkg,,}" in
+		libreoffice)
+			aCustomPackages+=(libreoffice-i18n-"$(sh_get_language_without_utf8)")
+			;;
+		voidbr-epoptes-client)
+			aServicesTTY+=(epoptes-client)
+			;;
+		tailscale)
+			aServicesTTY+=(tailscaled)
+			;;
+		avahi)
+			aServicesTTY+=(avahi-daemon)
+			;;
+		acpid)
+			aServicesTTY+=(acpid)
+			;;
+		irqbalance)
+			aServicesTTY+=(irqbalance)
+			;;
+		cups)
+			aServicesTTY+=(cupsd)
+			;;
+		docker)
+			aServicesTTY+=(docker)
+			;;
+		podman)
+			aServicesTTY+=(podman)
+			;;
+		net-snmp)
+			aServicesTTY+=(snmpd)
+			;;
+		esac
+	done
+}
+
 sh_choose_custom_packages() {
 	declare -A aFlag
 	declare -A aCustom
@@ -5389,6 +5381,7 @@ sh_choose_custom_packages() {
 	local custom
 
 	if ! $LONLY_TTY; then
+		aCustom['voidbr-epoptes']="$(gettext 'An opensource computer lab management and monitoring tool (server)')"
 		aCustom['gwenview']="$(gettext 'Fast and easy to use image viewer by KD')"
 		aCustom['Thunar']="$(gettext 'Thunar File Manager')"
 		aCustom['thunar-archive-plugin']="$(gettext 'Create and extract archives in Thunar')"
@@ -5423,6 +5416,15 @@ sh_choose_custom_packages() {
 	fi
 
 	# tty
+	aCustom['voidbr-distrobox']="$(gettext 'Use any linux distribution inside your terminal')"
+	aCustom['net-snmp']="$(gettext 'Simple Network Management Protocol (SNMP) suite')"
+	aCustom['voidbr-samba']="$(gettext 'SMB/CIFS file, print, and login server for Unix')"
+	aCustom['docker']="$(gettext 'Docker container runtim')"
+	aCustom['podman']="$(gettext 'Simple management tool for containers and images')"
+	aCustom['voidbr-epoptes-client']="$(gettext 'An opensource computer lab management and monitoring tool (client)')"
+	aCustom['irqbalance']="$(gettext 'Handholding your interrupts for power and performance')"
+	aCustom['acpi']="$(gettext 'Informations about ACPI devices (battery, thermal sensors and power)')"
+	aCustom['acpid']="$(gettext 'ACPI Daemon (acpid) With Netlink Support)')"
 	aCustom['tailscale']="$(gettext 'Easy, secure, cross platform WireGuard, oauth2, and 2FA/SSO')"
 	aCustom['micro']="$(gettext 'Modern and intuitive terminal-based text editor')"
 	aCustom['inxi']="$(gettext 'Full featured system information script')"
@@ -5434,7 +5436,6 @@ sh_choose_custom_packages() {
 	aCustom['p7zip']="$(gettext 'Command-line version of the 7zip compressed file archive (transitional dummy package)')"
 	aCustom['zip']="$(gettext 'Create/update ZIP files compatible with pkzip')"
 	aCustom['7zip-unrar']="$(gettext 'File archiver with a high compression ratio - RAR support')"
-	aCustom['avahi-discover']="$(gettext 'Service discovery user interface for avahi')"
 	aCustom['avahi']="$(gettext 'Multicast DNS Service Discovery')"
 	aCustom['avahi-discover']="$(gettext 'Service discovery user interface for avahi')"
 	aCustom['dfc']="$(gettext 'Display file system space usage using graphs and colors')"
@@ -5483,10 +5484,6 @@ sh_choose_custom_packages() {
 	# mapfile -t aCustomPackages= <<<"$custom"
 	# read -r -a aCustomPackages <<< "$custom"
 	aCustomPackages=($(strtoarray "$custom"))
-
-	if grep -qi libreoffice <<<"${aCustomPackages=[@]}"; then
-		aCustomPackages+=(libreoffice-i18n-$(sh_get_language_without_utf8))
-	fi
 
 }
 
@@ -6318,8 +6315,8 @@ sh_install() {
 	local abase=()
 	local agrub=()
 
+	aPackageDaemons+=(dbus)
 	akernel+=("${AConfKernel[_KERNEL]:-linux}")
-	akernel+=(dracut)
 	#
 	afirmware+=(linux-firmware)
 	afirmware+=(linux-firmware-network)
@@ -6337,7 +6334,7 @@ sh_install() {
 	abase+=(voidbr-utils)
 	abase+=(chili-utils)
 	abase+=(fzf)
-	abase+=(exa)
+	abase+=(eza)
 	abase+=(gettext)
 	abase+=(chrony)
 	abase+=(pigz)
@@ -6349,6 +6346,7 @@ sh_install() {
 	abase+=(socklog-void)
 	abase+=(fastfetch)
 	#
+	agrub+=(dracut)
 	agrub+=(grub-i386-efi)
 	agrub+=(grub-utils)
 	agrub+=(grub-terminus)
@@ -6399,6 +6397,7 @@ sh_install() {
 		sh_mount_fs
 		sh_mk_working_dir
 		sh_copy_keys
+		sh_configure_custom_packages
 
 		if sh_extract_root_fs; then
 			sh_init_bind
@@ -6418,7 +6417,7 @@ sh_install() {
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando') GRUB" "${agrub[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Atualizando Pacotes Base')" "${abase[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Wifi Firmware')" "${afirmware[*]}"
-				sh_install_pkgs_in_chroot "$(gettext 'Instalando Daemons')" "${aDaemons[*]}"
+				sh_install_pkgs_in_chroot "$(gettext 'Instalando Daemons')" "${aPackageDaemons[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Editores Texto Gráfico ')" "${aEditorX[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Editores texto')" "${aEditorTxt[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Downloaders')" "${aDownloader[*]}"
@@ -6472,7 +6471,6 @@ sh_install() {
 				"dwm") sh_dwm_minimal ;;
 				"enlightenment") sh_enlightenment_minimal ;;
 				"fluxbox") sh_fluxbox_minimal ;;
-					#				"hyprland") sh_hyprland_minimal ;;
 				"hyprland") sh_hyprland_meta_package ;;
 				"openbox") sh_openbox_minimal ;;
 				"gnome") sh_gnome_minimal ;;
@@ -6480,7 +6478,6 @@ sh_install() {
 				"xfce4") sh_xfce4_minimal ;;
 				"cinnamon") sh_cinnamon_minimal ;;
 				"i3wm") sh_i3_minimal ;;
-					#				"sway") sh_sway_minimal ;;
 				"sway") sh_sway_meta_package ;;
 				"mango") sh_mango_meta_package ;;
 				"river") sh_river_minimal ;;
