@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 04 ago 2026 04:46:49 -04
+#  Updated: ter 04 ago 2026 16:57:08 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -6284,6 +6284,8 @@ EOF
 
 sh_update_lightdm_conf() {
 	local cfile="$dir_install/etc/lightdm/lightdm.conf.d/00-autologin.conf"
+	local cpath_state="$dir_install/var/lib/lightdm/.cache/lightdm-gtk-greeter"
+	local cfile_state="$dir_install/var/lib/lightdm/.cache/lightdm-gtk-greeter/state"
 	local cuser="${AsUser[cuser]}"
 	local SESSION_NAME
 	SESSION_NAME=$(sh_get_session_name)
@@ -6304,6 +6306,14 @@ sh_update_lightdm_conf() {
 autologin-user=$auto_user
 autologin-session=$session
 EOF
+
+  mkdir -p $cpath_state
+	cat >"${cfile_state}" <<EOF
+[greeter]
+last-user=$cuser
+last-session=$_WM
+EOF
+
 }
 
 sh_install() {
