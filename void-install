@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: dom 02 ago 2026 09:26:14 -04
+#  Updated: ter 04 ago 2026 04:46:49 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -50,7 +50,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.8.02-20260802'
+readonly _VERSION_='3.8.04-20260804'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -6406,14 +6406,19 @@ sh_install() {
 			#			sh_checkNet "$url_mirror" || return 1
 
 			# Go install
-			sh_chroot_job "${cmsg_Atualizando} xbps" "LC_ALL=C xbps-install --sync --update xbps --yes"
-#			sh_chroot_job "${cmsg_Atualizando} voidbr-xbps" "LC_ALL=C xbps-install --sync --update voidbr-xbps --yes"
+#			sh_chroot_job "${cmsg_Atualizando} xbps" "
+#       LC_ALL=C xbps-install --sync --update xbps --yes
+#     "
+			sh_chroot_job "${cmsg_Atualizando} xbps" "
+			  LC_ALL=C xbps-install -Syuf voidbr-xbps
+		  "
+  		sh_copy_keys # ao remover xbps a chave tamém é removida, recolocando!
 			if [[ "${AConfMirror[_SOURCE]}" = "local" && "${LCUSTOM:-}" = "false" ]]; then
-				#sh_chroot_job "${cmsg_AtualizandoRepositorio}" "LC_ALL=C xbps-install --sync --update --yes"
+				#sh_chroot_job "${cmsg_AtualizandoRepositorio}" "LC_ALL=C xbps-install -Syu"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando') GRUB" "${agrub[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Atualizando Pacotes Base')" "${abase[*]}"
 			else
-				sh_chroot_job "${cmsg_AtualizandoRepositorio}" "LC_ALL=C xbps-install --sync --update --yes"
+#				sh_chroot_job "${cmsg_AtualizandoRepositorio}" "LC_ALL=C xbps-install -Syu"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Kernel')" "${akernel[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando') GRUB" "${agrub[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Atualizando Pacotes Base')" "${abase[*]}"
