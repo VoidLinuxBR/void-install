@@ -6307,12 +6307,14 @@ autologin-user=$auto_user
 autologin-session=$session
 EOF
 
-  mkdir -p $cpath_state
-	cat >"${cfile_state}" <<EOF
+  if ! $LSERVER && ! $ONLY_TTY; then
+    mkdir -p $cpath_state
+	  cat >"${cfile_state}" <<EOF
 [greeter]
 last-user=$cuser
 last-session=$_WM
 EOF
+  fi
 
 }
 
