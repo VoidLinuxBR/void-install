@@ -6283,10 +6283,10 @@ EOF
 }
 
 sh_update_lightdm_conf() {
+	local cuser="${AsUser[cuser]}"
 	local cfile="$dir_install/etc/lightdm/lightdm.conf.d/00-autologin.conf"
 	local cpath_state="$dir_install/var/lib/lightdm/.cache/lightdm-gtk-greeter"
 	local cfile_state="$dir_install/var/lib/lightdm/.cache/lightdm-gtk-greeter/state"
-	local cuser="${AsUser[cuser]}"
 	local SESSION_NAME
 	SESSION_NAME=$(sh_get_session_name)
 
