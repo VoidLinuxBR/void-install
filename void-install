@@ -6407,6 +6407,7 @@ sh_install() {
 
 			# Go install
 			sh_chroot_job "${cmsg_Atualizando} xbps" "LC_ALL=C xbps-install --sync --update xbps --yes"
+#			sh_chroot_job "${cmsg_Atualizando} voidbr-xbps" "LC_ALL=C xbps-install --sync --update voidbr-xbps --yes"
 			if [[ "${AConfMirror[_SOURCE]}" = "local" && "${LCUSTOM:-}" = "false" ]]; then
 				#sh_chroot_job "${cmsg_AtualizandoRepositorio}" "LC_ALL=C xbps-install --sync --update --yes"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando') GRUB" "${agrub[*]}"
