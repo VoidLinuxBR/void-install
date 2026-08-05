@@ -142,6 +142,7 @@ declare -gA AARRAY_DSK_DEVICES
 declare -gA AARRAY_PART_DEVICES
 declare -gA AARRAY_VG_DEVICES
 #
+declare chostname_base='voidbr'
 declare -gA AsUser=(
 	[cpass]='voidlinux'
 	[cpassroot]='voidlinux'
@@ -517,6 +518,76 @@ sh_create_dialogrc() {
 	export DIALOGRC="$dialogRcFile"
 }
 
+sh_cmd_job() {
+	local cmsg="$1"
+	local cjob="$2"
+	local erro_fatal="$3"
+	local lretval=0
+  local disk="${AConfDisk[_DEVICE]}"
+
+#	cmsg+=" ${cmsg_Em} ${yellow}${disk}"
+	last_msg="$cmsg"
+	msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
+
+	if ((grafico)); then
+		read LINES COLUMNS <<<"$(stty size)"
+		cmsg=$(strip_ansi "$cmsg")
+		eval "$cjob" 2>&1 | tee -i -a "$BOOTLOG" |
+			${DIALOG} \
+				--colors \
+				--backtitle "$ccabec" \
+				--title "\Zb\Z3[$ufmt] ${WHITE}[$cmsg] ${CYAN}[$(sh_time_elapsed)]${RST}" \
+				--progressbox $((MAXROW / 2)) $((MAXCOL - 20))
+	else
+		eval "$cjob" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
+	fi
+
+	lretval="${PIPESTATUS[0]}"
+	evaluate_retval "$lretval" "$erro_fatal"
+	shell='/bin/sh'
+
+	return "$lretval"
+}
+
+sh_chroot_job() {
+	local cmsg="$1"
+	local cjob="$2"
+	local erro_fatal="$3"
+	local level="$4"
+	local lretval=0
+  local disk="${AConfDisk[_DEVICE]}"
+
+#	cmsg+=" ${cmsg_Em} ${yellow}${disk}"
+	last_msg="$cmsg"
+
+	# CHAMADA DA MSG: Agora com "silent" para não cagar o progressbox abaixo
+	if [[ -n "$level" ]]; then
+		msg "INFO" "$last_msg" "$(log_info_msg_level "$last_msg")" "silent"
+	else
+		msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")" "silent"
+	fi
+
+	if ((grafico)); then
+		read LINES COLUMNS <<<"$(stty size)"
+		clean_logmessage="$(strip_ansi "$logmessage")"
+		# SEU CÓDIGO ORIGINAL ABAIXO
+		chroot "$dir_install" "$shell" -c "$cjob" 2>&1 | tee -i -a "$BOOTLOG" |
+			${DIALOG} \
+				--colors \
+				--backtitle "$ccabec" \
+				--title "\Zb\Z3[$ufmt] \Z7[$clean_logmessage]\Zn \Z6[$(sh_time_elapsed)]\Zn" \
+				--progressbox $((MAXROW / 2)) $((MAXCOL - 20))
+	else
+		chroot "$dir_install" "$shell" -c "$cjob" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
+	fi
+
+	lretval="${PIPESTATUS[0]}"
+	evaluate_retval "$lretval" "$erro_fatal" "" "$level"
+	shell='/bin/sh'
+
+	return "$lretval"
+}
+
 sh_update_sshd() {
 	sh_chroot_job "$(gettext 'Atualizando config sshd')" '
    	mkdir -p /etc/ssh/sshd_config.d/
@@ -789,7 +860,7 @@ sh_setEnvironment() {
 
 	declare url_mirror='https://repo-fastly.voidlinux.org/'
 	declare -g app_conf='/tmp/void-install.conf'
-	declare -g dir_install='/mnt/voidlinux'
+	declare -g dir_install='/mnt/voidbr'
 	readonly cnickefi='Void_install'
 	readonly _TARBALL_ROOTFS=void-x86_64-base-custom-current.tar.xz
 	readonly url_tarball="https://raw.githubusercontent.com/voidlinuxbr/void-install/refs/heads/main/${_TARBALL_ROOTFS}"
@@ -854,19 +925,19 @@ sh_setEnvironment() {
 	: "${LCUSTOM=}"
 
 	# dialog colors
-	GREEN="\Z2"
-	MAGENTA="\Z5"
-	REVERSE="\Zr"
-	UNDERLINE="\Zu"
-	BLACK="\Z0"
-	YELLOW="\Z3"
-	WHITE="\Z7"
-	BLUE="\Z4"
-	CYAN="\Z6"
-	RED='\Z1'
-	BOLD="\Zb"
 	RESET="\Zn"
 	RST='\Zn'
+	BOLD="\Zb"
+	RED='\Z1'
+	GREEN="\Z2"
+	YELLOW="\Z3"
+	BLUE="\Z4"
+	MAGENTA="\Z5"
+	CYAN="\Z6"
+	WHITE="\Z7"
+	BLACK="\Z0"
+	REVERSE="\Zr"
+	UNDERLINE="\Zu"
 	: echo "$err_fatal"
 
 	size=$(stty size)
@@ -907,6 +978,8 @@ sh_touchConf() {
 		WIFI_PASSWORD=$_WIFI_PASSWORD
 	EOF
 	{
+		declare -p _WM
+		declare -p LEXTRA
 		declare -p aCustomPackages
 		declare -p LONLY_TTY
 		declare -p LSWAY
@@ -1064,7 +1137,7 @@ sh_setUser() {
 	AsUser[cfullname]=${AsUser[cfullname]:-$(sh_getfullusernameloggeduserbyGetent)}
 	AsUser[cpass]=${AsUser[cpass]:-voidlinux}
 	AsUser[cpassroot]=${AsUser[cpassroot]:-voidlinux}
-	AsUser[chostname]=${AsUser[chostname]:-voidlinux}
+	AsUser[chostname]=${AsUser[chostname]:-voidbr}
 	AsUser[cgroups]=${AsUser[cgroups]:-"wheel,audio,video,floppy,cdrom,optical,kvm,xbuilder"}
 }
 
@@ -1310,7 +1383,7 @@ msg() {
 			--colors \
 			--title "$cinfo" \
 			--backtitle "$ccabec" \
-			--infobox "\nStep:${BOLD}${YELLOW}${ufmt} ${RESET}${BOLD}$logmessage" \
+			--infobox "\n[${BOLD}${YELLOW}${ufmt}] ${RESET}${BOLD}$logmessage" \
 			6 100
 	else
 		log_info_msg "$(fmt) ${logmessage}"
@@ -1318,7 +1391,7 @@ msg() {
 }
 
 fmt() {
-	printf "${bold}${yellow}%03d/%03d${reset}" "$njobs" "$ncounter"
+	printf "${bold}${yellow}%03d/%03d${reset}" "$ncounter" "$njobs"
 	return $?
 }
 
@@ -1548,7 +1621,6 @@ alerta_end() {
 		--no-cr-wrap \
 		--title "$1" \
 		--backtitle "$ccabec" \
-		--ok-label "${cmsg_Sair}" \
 		--extra-button --extra-label "$(gettext 'Reboot')" \
 		--no-label "$(gettext 'Desligar')" \
 		--yesno "\n$2\n$3\n$4\n$5\n$6" \
@@ -2582,73 +2654,6 @@ strip_ansi() {
     '
 }
 
-sh_cmd_job() {
-	local cmsg="$1"
-	local cjob="$2"
-	local erro_fatal="$3"
-	local lretval=0
-
-	cmsg+=" ${cmsg_Em} ${yellow}$dir_install"
-	last_msg="$cmsg"
-	msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
-
-	if ((grafico)); then
-		read LINES COLUMNS <<<"$(stty size)"
-		cmsg=$(strip_ansi "$cmsg")
-		eval "$cjob" 2>&1 | tee -i -a "$BOOTLOG" |
-			${DIALOG} \
-				--colors \
-				--backtitle "$ccabec" \
-				--title "\Zb\Z3Step:$ufmt \Z1==>\Zn \Z7[$cmsg]\Zn \Z6[$(sh_time_elapsed)]\Zn" \
-				--progressbox $((MAXROW / 2)) $((MAXCOL - 20))
-	else
-		eval "$cjob" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
-	fi
-
-	lretval="${PIPESTATUS[0]}"
-	evaluate_retval "$lretval" "$erro_fatal"
-	shell='/bin/sh'
-
-	return "$lretval"
-}
-
-sh_chroot_job() {
-	local cmsg="$1"
-	local cjob="$2"
-	local erro_fatal="$3"
-	local level="$4"
-	local lretval=0
-
-	last_msg="$cmsg"
-
-	# CHAMADA DA MSG: Agora com "silent" para não cagar o progressbox abaixo
-	if [[ -n "$level" ]]; then
-		msg "INFO" "$last_msg" "$(log_info_msg_level "$last_msg")" "silent"
-	else
-		msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")" "silent"
-	fi
-
-	if ((grafico)); then
-		read LINES COLUMNS <<<"$(stty size)"
-		clean_logmessage="$(strip_ansi "$logmessage")"
-		# SEU CÓDIGO ORIGINAL ABAIXO
-		chroot "$dir_install" "$shell" -c "$cjob" 2>&1 | tee -i -a "$BOOTLOG" |
-			${DIALOG} \
-				--colors \
-				--backtitle "$ccabec" \
-				--title "\Zb\Z3Step:$ufmt \Z1==>\Zn \Z7[$clean_logmessage]\Zn \Z6[$(sh_time_elapsed)]\Zn" \
-				--progressbox $((MAXROW / 2)) $((MAXCOL - 20))
-	else
-		chroot "$dir_install" "$shell" -c "$cjob" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
-	fi
-
-	lretval="${PIPESTATUS[0]}"
-	evaluate_retval "$lretval" "$erro_fatal" "" "$level"
-	shell='/bin/sh'
-
-	return "$lretval"
-}
-
 sh_make_user() {
 	local user="${AsUser[cuser]}"
 
@@ -3515,7 +3520,7 @@ sh_make_bspwm_conf() {
 	local user="${AsUser[cuser]}"
 	shell='/bin/bash'
 
-	sh_chroot_job "${cmsg_Configurando} Bspwm ${cmsg_Em} $dir_install" "
+	sh_chroot_job "${cmsg_Configurando} Bspwm" "
       mkdir -p /home/$user/.config/{bspwm,polybar,sxhkd} &&
 		cp -R /usr/share/doc/bspwm/examples/* /home/$user/.config/bspwm/ &&
 		cp /usr/share/examples/polybar/config.ini /home/$user/.config/polybar/ &&
@@ -4460,7 +4465,7 @@ sh_choose_mirror() {
 				"\n${BOLD}${CYAN}Location   : $(sh_splitarray "${Amirror[$mirror]}" "$FLD_LOCATION")\n" \
 				"\n${RED}$(gettext "Você também deseja definir/alterar o espelho do host para o escolhido?")${RESET}\n\n"; then
 
-				sh_info_msg "${cmsg_Configurando} ${cmsg_Mirror,,} ${cmsg_Em} $dir_install"
+				sh_info_msg "${cmsg_Configurando} ${cmsg_Mirror,,}"
 				mkdir -p "/etc/xbps.d/"
 				cat >"/etc/xbps.d/00-repository-main.conf" <<-EOF
 					repository=${url_mirror}current
@@ -4951,10 +4956,13 @@ sh_checkdisk() {
 sh_confadduser() {
 	local size
 	local model
+	local chostname
 
+	$LEXTRA && chostname="${AsUser[chostname]}" || chostname="${chostname_base}-${_WM}"
 	sh_setUser
 	size=$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 2)
 	model=$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 4)
+
 	while true; do
 		exec 3>&1
 		usertext=$(${DIALOG} \
@@ -4970,7 +4978,7 @@ sh_confadduser() {
 			"${cmsg_Extra2}: " 2 1 "${AsUser[cuser]}" 2 28 20 0 0 \
 			"${cmsg_Extra3} (${AsUser[cpass]}): " 3 1 "${AsUser[cpass]}" 3 28 20 0 1 \
 			"${cmsg_Extra4} (${AsUser[cpassroot]}): " 4 1 "${AsUser[cpassroot]}" 4 28 20 0 1 \
-			"Hostname: " 5 1 "${AsUser[chostname]}" 5 28 20 0 0 \
+			"Hostname: " 5 1 "${chostname}" 5 28 20 0 0 \
 			"${cmsg_Extra6}: " 6 1 "${AConfDisk[_DEVICE]}" 6 28 20 0 2 \
 			"Tam/Model: " 7 1 "$size/$model" 7 28 20 0 2 \
 			"${cmsg_Teclado}: " 8 1 "${AConfLocale[_KEYMAP]}" 8 28 20 0 2 \
@@ -4992,7 +5000,7 @@ sh_confadduser() {
 			AsUser[chostname]="${aUser[4]}"
 
 			if [[ "${AsUser[cuser]}" == "root" ]]; then
-				if ! conf "$(gettext "=== USUÁRIO ===")" "\n${cmsg_adduser1}"; then
+				if ! conf "$(gettext "=== USUÁRIO ===")" "\n${cmsg_ adduser1}"; then
 					die "$(gettext "=== USUÁRIO === ")" "${cmsg_adduserCancel}"
 					return 1
 				fi
@@ -5117,7 +5125,7 @@ sh_parseconf() {
 	fi
 
 	url_mirror="${AConfMirror[url_mirror]}"
-	[[ -n "${AsUser[cuser]}" && -n "${AsUser[cpass]}" && -n "${AsUser[cpassroot]}" && -n "${AsUser[chostname]}" ]] && LEXTRA=true
+#	[[ -n "${AsUser[cuser]}" && -n "${AsUser[cpass]}" && -n "${AsUser[cpassroot]}" && -n "${AsUser[chostname]}" ]] && LEXTRA=true
 	[[ -n "${AConfLocale[_TIMEZONE]}" ]] && LTIMEZONE=true
 	[[ -n "${AConfLocale[_KEYMAP]}" ]] && LKEYMAP=true
 	[[ -n "${AConfMirror[_MIRROR]}" && -n "$url_mirror" ]] && LMIRROR=true
@@ -5252,7 +5260,7 @@ sh_choose_wm() {
 			LONLY_TTY=true
 			AConfAudio[_AUDIOSERVER]="None"
 			_DISPLAYMANAGER="None"
-			_WM="server"
+			_WM="tty"
 			;;
 		xorg)
 			LONLY_TTY=true
@@ -5707,7 +5715,7 @@ sh_chooseKeymap() {
 sh_chmod_tmp() {
 	local cfile="$dir_install/etc/runit/core-services/03-filesystems.sh"
 
-	sh_info_msg "${cmsg_Ajustando} ${cmsg_Permissoes} ${cmsg_Em} $dir_install"
+	sh_info_msg "${cmsg_Ajustando} ${cmsg_Permissoes}"
 	if [[ -e "$cfile" ]]; then
 		{
 			echo ''
@@ -5918,7 +5926,7 @@ EOF
   "
 
 	if $LBIOS; then
-		sh_chroot_job "${cmsg_Instalando} GRUB $(gettext 'para a plataforma') i386-pc ${cmsg_Em} ${AConfDisk[_BOOTLOADER]}" "
+		sh_chroot_job "${cmsg_Instalando} GRUB $(gettext 'para a plataforma') i386-pc" "
 		   grub-install ${AConfDisk[_BOOTLOADER]} --target=i386-pc --force
 	   "
 	fi
@@ -5926,7 +5934,7 @@ EOF
 	if $LEFI; then
 		# --removable   = garante boot universal via Fallback
 		# --no-nvram    = não mexe na BIOS
-		sh_chroot_job "${cmsg_Instalando} GRUB $(gettext 'para a plataforma') x86_64-efi ${cmsg_Em} ${AConfDisk[_BOOTLOADER]}" "
+		sh_chroot_job "${cmsg_Instalando} GRUB $(gettext 'para a plataforma') x86_64-efi" "
 		   grub-install ${AConfDisk[_BOOTLOADER]} --target=$TARGET_EFI --efi-directory=/boot/efi --boot-directory=/boot --bootloader-id=$cnickefi --removable --no-nvram
 	   "
 		#		sh_mkefiroaming
@@ -5935,7 +5943,7 @@ EOF
 	sh_change_grub
 
 	if ! $LVM; then
-		sh_chroot_job "${cmsg_Gerando} grub.cfg ${cmsg_Em} $dir_install" "
+		sh_chroot_job "${cmsg_Gerando} grub.cfg" "
 		   grub-mkconfig -o /boot/grub/grub.cfg
 	   "
 	fi
@@ -5959,7 +5967,7 @@ confmulti() {
 sh_cp_rootfs() {
 	local lretval
 
-	sh_info_msg "${cmsg_Descompactando} ISO ${cmsg_Em} $dir_install"
+	sh_info_msg "${cmsg_Descompactando} ISO"
 	sh_execcopia
 	lretval="$?"
 	evaluate_retval "$lretval"
@@ -6100,7 +6108,7 @@ sh_install_pkgs_in_chroot() {
 
 	[[ -n "$pkgs" ]] || return 1
 
-	sh_chroot_job "$msg -> $dir_install" \
+	sh_chroot_job "$msg" \
 		"LC_ALL=C ${XBPS_INSTALL_UNPACK_ONLY} $pkgs" \
 		"$err_fatal" \
 		"$err_not_fatal"
@@ -6560,7 +6568,7 @@ sh_install() {
 				fi
 			fi
 
-			sh_chroot_job "$(gettext 'Validando configuração para FINALIZAR em:') $dir_install" "
+			sh_chroot_job "$(gettext 'Validando configuração para FINALIZAR')" "
                 xbps-reconfigure --force glibc-locales
                 xbps-reconfigure --force --all
             "
