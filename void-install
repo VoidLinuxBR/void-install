@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 04 ago 2026 16:57:08 -04
+#  Updated: ter 04 ago 2026 22:50:32 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -3225,9 +3225,10 @@ sh_enlightenment_minimal() {
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
 
-sh_xfce4_minimal() {
-	local DE='Xfce4'
-	local apkgs=(xfce4
+sh_xfce_minimal() {
+	local DE='Xfce'
+	local apkgs=(
+	  xfce4
 		xfce4-plugins
 		xfce4-screenshooter
 		xfce4-dict
@@ -5176,7 +5177,7 @@ sh_choose_wm() {
 	aWm[enlightenment]="Enlightenment"
 	aWm[gnome]="Gnome"
 	aWm[plasma]="Kde Plasma"
-	aWm[xfce4]="Xfce"
+	aWm[xfce]="Xfce 4"
 	aWm[mate]="Mate"
 	aWm[awesome]="Awesome"
 	aWm[blackbox]="Blackbox"
@@ -5233,7 +5234,7 @@ sh_choose_wm() {
 		mango "${aWm[mango]}" "${aFlag[mango]}" \
 		hyprland "${aWm[hyprland]}" "${aFlag[hyprland]}" \
 		river "${aWm[river]}" "${aFlag[river]}" \
-		xfce4 "${aWm[xfce4]}" "${aFlag[xfce4]}" \
+		xfce "${aWm[xfce]}" "${aFlag[xfce]}" \
 		2>&1 >/dev/tty)
 
 	exit_status=$?
@@ -6117,7 +6118,31 @@ sh_get_session_name() {
 
 	for x in "${_WINDOWMANAGER[@]}"; do
 		case "$x" in
-		"xfce4")
+		"i3wm")
+			SESSION_NAME=i3wm
+			break
+			;;
+		"fluxbox")
+			SESSION_NAME=fluxbox
+			break
+			;;
+		"hyprland")
+			SESSION_NAME=hyprland
+			break
+			;;
+		"sway")
+			SESSION_NAME=sway
+			break
+			;;
+		"mango")
+			SESSION_NAME=mango
+			break
+			;;
+		"river")
+			SESSION_NAME=river
+			break
+			;;
+		"xfce")
 			SESSION_NAME=xfce
 			break
 			;;
@@ -6312,7 +6337,7 @@ EOF
 	  cat >"${cfile_state}" <<EOF
 [greeter]
 last-user=$cuser
-last-session=$_WM
+last-session=$SESSION_NAME
 EOF
   fi
 
@@ -6478,7 +6503,7 @@ sh_install() {
 				"tty") : ;;
 				"local")
 					if $LCUSTOM; then
-						sh_xfce4_minimal
+						sh_xfce_minimal
 					fi
 					;;
 				"server") sh_server_minimal ;;
@@ -6493,7 +6518,7 @@ sh_install() {
 				"openbox") sh_openbox_minimal ;;
 				"gnome") sh_gnome_minimal ;;
 				"plasma") sh_plasma_minimal ;;
-				"xfce4") sh_xfce4_minimal ;;
+				"xfce") sh_xfce_minimal ;;
 				"cinnamon") sh_cinnamon_minimal ;;
 				"i3wm") sh_i3_minimal ;;
 				"sway") sh_sway_meta_package ;;
