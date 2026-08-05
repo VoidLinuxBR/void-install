@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 04 ago 2026 22:50:32 -04
+#  Updated: qua 05 ago 2026 03:21:10 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -50,7 +50,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.8.04-20260804'
+readonly _VERSION_='3.8.05-20260805'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -650,7 +650,8 @@ sh_configure_display_manager() {
 		esac
 
 		# aplica config custom somente se LCUSTOM for true
-		if $LCUSTOM && ((${#custom[@]})); then
+		#		if $LCUSTOM && ((${#custom[@]})); then
+		if $LCUSTOM; then
 			aDisplaymanagerConfig=("${custom[@]}")
 		fi
 	fi
@@ -3126,19 +3127,14 @@ sh_X11_minimal() {
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Archivadores')" "${aArchiverX[*]}"
 }
 
-#dom 03 mar 2024 09:35:25 -04
-sh_blackbox_minimal() {
-	local DE='Blackbox'
-	local apkgs=(blackboxwm bbkeys)
-	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
-}
-
-sh_fluxbox_minimal() {
-	local DE='FluxBox'
-	local apkgs=(fluxbox fbmenugen cairo galculator-gtk2 gtk2-engines gtk-engine-murrine)
-	apkgs+=(wicd qt5ct qt5-styleplugins leafpad dconf volumeicon feh viewnior compton ffmpegthumbnailer)
+sh_fluxbox_meta_package() {
+	local DE='fluxbox'
+	local apkgs=(voidbr-fluxbox)
+  apkgs+=(voidbr-base-config)
+	apkgs+=(voidbr-fluxbox-config)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
+
 	if [[ -f "$dir_install/home/${AsUser[cuser]}/.fluxbox/startup" ]]; then
 		sed -e "/xmodmap/s//# xmodmap/" -i "$dir_install/home/${AsUser[cuser]}/.fluxbox/startup" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 		if [[ "${AConfLocale[_KEYMAP]}" = 'br-abnt2' ]]; then
@@ -3228,7 +3224,7 @@ sh_enlightenment_minimal() {
 sh_xfce_minimal() {
 	local DE='Xfce'
 	local apkgs=(
-	  xfce4
+		xfce4
 		xfce4-plugins
 		xfce4-screenshooter
 		xfce4-dict
@@ -5180,7 +5176,6 @@ sh_choose_wm() {
 	aWm[xfce]="Xfce 4"
 	aWm[mate]="Mate"
 	aWm[awesome]="Awesome"
-	aWm[blackbox]="Blackbox"
 	aWm[bspwm]="Bspwm"
 	aWm[dwm]="Dwm"
 	aWm[fluxbox]="Fluxbox"
@@ -5205,7 +5200,6 @@ sh_choose_wm() {
 	#		awesome "${aWm[awesome]}" "${aFlag[awesome]}" \
 	#		bspwm "${aWm[bspwm]}" "${aFlag[bspwm]}" \
 	#		dwm "${aWm[dwm]}" "${aFlag[dwm]}" \
-	#		blackbox "${aWm[blackbox]}" "${aFlag[blackbox]}" \
 	#		lxde "${aWm[lxde]}" "${aFlag[lxde]}" \
 	#		lxqt "${aWm[lxqt]}" "${aFlag[lxqt]}" \
 	#		openbox "${aWm[openbox]}" "${aFlag[openbox]}" \
@@ -6332,14 +6326,14 @@ autologin-user=$auto_user
 autologin-session=$session
 EOF
 
-  if ! $LSERVER && ! $ONLY_TTY; then
-    mkdir -p $cpath_state
-	  cat >"${cfile_state}" <<EOF
+	if ! $LSERVER && ! $ONLY_TTY; then
+		mkdir -p $cpath_state
+		cat >"${cfile_state}" <<EOF
 [greeter]
 last-user=$cuser
 last-session=$SESSION_NAME
 EOF
-  fi
+	fi
 
 }
 
@@ -6443,19 +6437,19 @@ sh_install() {
 			#			sh_checkNet "$url_mirror" || return 1
 
 			# Go install
-#			sh_chroot_job "${cmsg_Atualizando} xbps" "
-#       LC_ALL=C xbps-install --sync --update xbps --yes
-#     "
+			#			sh_chroot_job "${cmsg_Atualizando} xbps" "
+			#       LC_ALL=C xbps-install --sync --update xbps --yes
+			#     "
 			sh_chroot_job "${cmsg_Atualizando} xbps" "
 			  LC_ALL=C xbps-install -Syuf voidbr-xbps
 		  "
-  		sh_copy_keys # ao remover xbps a chave tamém é removida, recolocando!
+			sh_copy_keys # ao remover xbps a chave tamém é removida, recolocando!
 			if [[ "${AConfMirror[_SOURCE]}" = "local" && "${LCUSTOM:-}" = "false" ]]; then
 				#sh_chroot_job "${cmsg_AtualizandoRepositorio}" "LC_ALL=C xbps-install -Syu"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando') GRUB" "${agrub[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Atualizando Pacotes Base')" "${abase[*]}"
 			else
-#				sh_chroot_job "${cmsg_AtualizandoRepositorio}" "LC_ALL=C xbps-install -Syu"
+				#				sh_chroot_job "${cmsg_AtualizandoRepositorio}" "LC_ALL=C xbps-install -Syu"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Kernel')" "${akernel[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando') GRUB" "${agrub[*]}"
 				sh_install_pkgs_in_chroot "$(gettext 'Atualizando Pacotes Base')" "${abase[*]}"
@@ -6510,10 +6504,9 @@ sh_install() {
 				"xorg") sh_xorg_minimal ;;
 				"awesome") sh_awesome_minimal ;;
 				"bspwm") sh_bspwm_minimal ;;
-				"blackbox") sh_blackbox_minimal ;;
 				"dwm") sh_dwm_minimal ;;
 				"enlightenment") sh_enlightenment_minimal ;;
-				"fluxbox") sh_fluxbox_minimal ;;
+				"fluxbox") sh_fluxbox_meta_package ;;
 				"hyprland") sh_hyprland_meta_package ;;
 				"openbox") sh_openbox_minimal ;;
 				"gnome") sh_gnome_minimal ;;
