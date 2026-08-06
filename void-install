@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qua 05 ago 2026 03:21:10 -04
+#  Updated: qui 06 ago 2026 13:10:06 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -50,7 +50,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.8.05-20260805'
+readonly _VERSION_='3.8.06-20260806'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -4072,6 +4072,7 @@ sh_choose_kernel() {
 	local current_kernel="${AConfKernel[_KERNEL]:-linux}"
 
 	array+=("linux" "Linux kernel and modules current default" "$([[ $current_kernel == linux ]] && echo on || echo off)")
+	array+=("linux7.1" "Linux kernel and modules (7.1 series) stable" "$([[ $current_kernel == linux7.1 ]] && echo on || echo off)")
 	array+=("linux7.0" "Linux kernel and modules (7.0 series) stable" "$([[ $current_kernel == linux7.0 ]] && echo on || echo off)")
 	array+=("linux6.19" "Linux kernel and modules (6.19 series) stable" "$([[ $current_kernel == linux6.19 ]] && echo on || echo off)")
 	array+=("linux6.18" "Linux kernel and modules (6.18 series) LTS" "$([[ $current_kernel == linux6.18 ]] && echo on || echo off)")
@@ -5419,6 +5420,7 @@ sh_choose_custom_packages() {
 	fi
 
 	# tty
+	aCustom['timeshift']="$(gettext 'System restore tool')"
 	aCustom['voidbr-distrobox']="$(gettext 'Use any linux distribution inside your terminal')"
 	aCustom['net-snmp']="$(gettext 'Simple Network Management Protocol (SNMP) suite')"
 	aCustom['voidbr-samba']="$(gettext 'SMB/CIFS file, print, and login server for Unix')"
