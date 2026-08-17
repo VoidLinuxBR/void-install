@@ -5104,9 +5104,10 @@ sh_dryrun() {
 	sh_umount_fs
 	sh_mount_fs
 	sh_init_bind
-	sh_hack_hyprland_lib
-	sh_configure_hyprland_audio
 
+  #sh_limineInstall
+	#sh_hack_hyprland_lib
+	#sh_configure_hyprland_audio
 	#sh_update_locale
 	#sh_update_rc_conf
 	#sh_update_rc_local
@@ -5994,6 +5995,10 @@ EOF
 	fi
 }
 
+sh_is_running_hypervisor() {
+  grep -qw hypervisor $dir_install/proc/cpuinfo
+}
+
 sh_limineInstall() {
   sh_chroot_job "${cmsg_Instalando} Limine $(gettext 'para a plataforma') x86_64-efi" "
     mkdir -p /boot/efi/EFI/BOOT
@@ -6012,14 +6017,27 @@ sh_limineInstall() {
 	fi
 
 	if $LEFI; then
+    if ! sh_is_running_hypervisor; then
+  		sh_chroot_job "${cmsg_Instalando} Limine $(gettext 'para a plataforma') x86_64-efi" "
+        efibootmgr -c \
+          -d ${AConfDisk[_BOOTLOADER]} \
+          -p 2 \
+          -L 'Limine' \
+          -l '\EFI\limine\BOOTX64.EFI'
+    	"
+    else
+      vm_user="${SUDO_USER:-$(id -un)}"
+      vm_home=$(getent passwd "$vm_user" | cut -d: -f6)
+      vm_vars="$vm_home/.chili-fr/OVMF_VARS.4m.fd"
+
+      virt-fw-vars \
+        --inplace "$vm_vars" \
+        --append-boot-filepath "$dir_install/boot/efi/EFI/limine/BOOTX64.EFI"
+    fi
+
 		sh_chroot_job "${cmsg_Instalando} Limine $(gettext 'para a plataforma') x86_64-efi" "
-      update-limine
-      efibootmgr -c \
-        -d ${AConfDisk[_BOOTLOADER]} \
-        -p 2 \
-        -L 'Limine' \
-        -l '\EFI\limine\BOOTX64.EFI'
-	  "
+      update-limine || true
+    "
 	fi
 
 }
