@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: seg 17 ago 2026 03:33:04 -04
+#  Updated: ter 18 ago 2026 07:04:49 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -50,7 +50,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.8.17-20260817'
+readonly _VERSION_='3.8.18-20260818'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -4080,6 +4080,7 @@ sh_choose_kernel() {
 	local current_kernel="${AConfKernel[_KERNEL]:-linux}"
 
 	array+=("linux" "Linux kernel and modules current default" "$([[ $current_kernel == linux ]] && echo on || echo off)")
+	array+=("linux7.2" "Linux kernel and modules (7.2 series) stable" "$([[ $current_kernel == linux7.2 ]] && echo on || echo off)")
 	array+=("linux7.1" "Linux kernel and modules (7.1 series) stable" "$([[ $current_kernel == linux7.1 ]] && echo on || echo off)")
 	array+=("linux7.0" "Linux kernel and modules (7.0 series) stable" "$([[ $current_kernel == linux7.0 ]] && echo on || echo off)")
 	array+=("linux6.19" "Linux kernel and modules (6.19 series) stable" "$([[ $current_kernel == linux6.19 ]] && echo on || echo off)")
