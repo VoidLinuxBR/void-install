@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 18 ago 2026 07:04:49 -04
+#  Updated: ter 18 ago 2026 21:58:52 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -6489,7 +6489,7 @@ sh_install() {
   	agrub+=(voidbr-grub-theme)
   else
   	agrub+=(limine)
-  	agrub+=(voidbr-limine-theme)
+  	agrub+=(voidbr-limine-config)
   fi
 
 	if $LVM; then
