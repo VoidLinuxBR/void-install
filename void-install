@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 18 ago 2026 21:58:52 -04
+#  Updated: sáb 22 ago 2026 22:26:54 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -50,7 +50,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.8.18-20260818'
+readonly _VERSION_='3.8.22-20260822'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -6475,12 +6475,13 @@ sh_install() {
 	abase+=(xz)
 	abase+=(sed)
 	abase+=(grep)
+	abase+=(grc)
 	abase+=(socklog)
 	abase+=(socklog-void)
 	abase+=(fastfetch)
 	#
 
-	agrub+=(dracut)
+	agrub+=(dracut plymouth)
   if [[ "${AConfBootLoader[_LOADER]}" == 'grub' ]]; then
   	agrub+=(grub-i386-efi)
   	agrub+=(grub-utils)
