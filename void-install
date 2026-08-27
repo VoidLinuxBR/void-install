@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: dom 23 ago 2026 01:46:25 -04
+#  Updated: qui 27 ago 2026 09:39:29 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -50,7 +50,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.8.23-20260823'
+readonly _VERSION_='3.8.27-20260827'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -4664,6 +4664,18 @@ ${BOLD}MODEL   : ${RESET}${RED}${MODEL_ORIGEM}${RESET}\n" \
 }
 
 sh_getNvme() {
+  local segtype
+  local device="${AConfDisk[_DEVICE]}"
+
+  segtype="$(sudo lvs "$device" -o segtype --noheadings 2>/dev/null | tr -d ' ')"
+
+  case "$segtype" in
+  thin | thin-pool)
+    echo ''
+    return
+    ;;
+  esac
+
 	local tran
 	local name
 
@@ -6482,7 +6494,7 @@ sh_install() {
 	abase+=(fastfetch)
 	#
 
-	agrub+=(dracut plymouth)
+	agrub+=(dracut voidbr-plymouth-theme)
   if [[ "${AConfBootLoader[_LOADER]}" == 'grub' ]]; then
   	agrub+=(grub-i386-efi)
   	agrub+=(grub-utils)
