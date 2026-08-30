@@ -6078,7 +6078,8 @@ sh_checkInstall() {
 
 	if ! sh_check_mirror; then
 		DEFITEM="${cmsg_Mirror}"
-		return 1
+    sh_choose_mirror
+    return 1
 	fi
 
 	display_config
