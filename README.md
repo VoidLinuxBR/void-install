@@ -37,7 +37,7 @@ git clone --depth=1 https://github.com/voidlinuxbr/void-install
 cd void-install
 
 # Executar localmente sem instalar:
-./void-install
+sudo ./void-install
 
 # instalar:
 sudo make install
