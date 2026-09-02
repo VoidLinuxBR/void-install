@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qua 02 set 2026 07:08:30 -04
+#  Updated: qua 02 set 2026 10:49:55 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -50,7 +50,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.8.30-20260830'
+readonly _VERSION_='3.9.02-20260902'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -1003,6 +1003,12 @@ sh_touchConf() {
 		declare -p LKERNEL
 		declare -p LMKPARTED
 		declare -p LFSREVISED
+		# LVM e LFDE faltavam aqui: sem elas, sh_mount_fs (chamada por
+		# sh_dryrun/--chroot numa execução separada) sempre cai no ramo
+		# "não é LVM" e tenta montar a partição LUKS crua como se fosse um
+		# filesystem normal — falha sempre em instalação com LUKS/LVM.
+		declare -p LVM
+		declare -p LFDE
 		#		declare -p _WIFI_NETWORK
 		#		declare -p _WIFI_PASSWORD
 		declare -p _DISPLAYMANAGER
@@ -3067,6 +3073,30 @@ sh_mk_working_dir() {
 	done
 }
 
+# Reabre o container LUKS/ativa o VG se necessário, usando os dados salvos
+# em AConfFde (partição, VG, senha). Cobre o caso de sh_mount_fs ser chamada
+# numa execução separada (--chroot/sh_dryrun) depois que o kernel, por
+# qualquer motivo, tenha fechado a sessão LUKS aberta durante a instalação
+# original (ex: reboot da VM). Idempotente: se já estiver aberto, não faz
+# nada.
+sh_ensure_luks_open() {
+	local mapper="/dev/mapper/${AConfFde[vg]}"
+	local target="/dev/${AConfFde[vg]}/root"
+
+	[[ -e "$target" ]] && return 0
+	[[ -n "${AConfFde[partition]}" && -n "${AConfFde[vg]}" ]] || return 1
+
+	if [[ ! -e "$mapper" ]]; then
+		sh_info_msg "$(gettext 'Reabrindo container LUKS') (${AConfFde[partition]})"
+		printf '%s' "${AConfFde[passphrase]}" | cryptsetup luksOpen "${AConfFde[partition]}" "${AConfFde[vg]}" --key-file=-
+		evaluate_retval "$?"
+	fi
+
+	vgchange -ay "${AConfFde[vg]}" >/dev/null 2>&1
+
+	[[ -e "$target" ]]
+}
+
 sh_mount_fs() {
 	local i
 	local _part
@@ -3086,6 +3116,7 @@ sh_mount_fs() {
 			fi
 		done
 	else
+		sh_ensure_luks_open
 		for i in "${!AmntpointFDE[@]}"; do
 			_part="$i"
 			label="$(sh_splitarray "${AmntpointFDE[$i]}" 1)"
@@ -8853,47 +8884,45 @@ sh_checkUpdatePackages() {
 		if [[ ! -f "$TMP_FILE" ]]; then
 			# Vital em ISOs antigas: bugs já corrigidos numa versão mais nova
 			# do instalador só chegam aqui atualizando. Fluxo: testa internet;
-			# sem rota, oferece configurar Wi-Fi e testa de novo; se mesmo
-			# assim continuar sem internet, orienta o usuário a verificar
-			# cabo/roteador e sair pra tentar de novo depois (não dá pra
-			# seguir sem saber se há atualização disponível).
+			# sem rota, pergunta se quer prosseguir sem internet — sim segue
+			# com a versão atual, não encerra o script.
 			ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1 && haveNet=true
 
 			if ! $haveNet; then
 				if conf "** INTERNET **" \
 					"\n$(gettext 'Não foi detectada conexão com a internet.')\n" \
-					"\n${AMARELO}$(gettext 'Deseja configurar um Wi-Fi agora?')"; then
-					sh_confWifi
+					"\n${AMARELO}$(gettext 'Deseja prosseguir sem internet?')"; then
+					sh_info_msg "$(gettext 'Prosseguindo sem internet, com a versão atual do instalador') (v${_VERSION_})."
+					return 0
+				else
+					die "$(gettext 'Sem conexão com a internet.')"$'\n'"$(gettext 'Verifique o cabo de rede, o roteador/modem, ou configure o Wi-Fi.')"$'\n\n'"$(gettext 'Execute novamente para continuar') : ${GREEN}sudo void-install${RST}"
 				fi
-				ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1 && haveNet=true
 			fi
 
-			if ! $haveNet; then
-				die "$(gettext 'Sem conexão com a internet.')"$'\n'"$(gettext 'Verifique o cabo de rede, o roteador/modem, ou configure o Wi-Fi.')"$'\n\n'"$(gettext 'Execute novamente para continuar') : ${GREEN}sudo void-install${RST}"
-			fi
-
-			# A partir daqui há internet — mas o pacote void-install pode
-			# estar em repositórios diferentes dependendo da ISO/distro
-			# (voidbr.org, voidlinux.com.br, chililinux). Testar só "existe
-			# internet" não garante que ESSE pacote está resolvível.
-			if xbps-query -R "${PackagesToUpdate[0]}" >/dev/null 2>&1; then
-				if conf "** UPDATE - ${APP} **" "É fortemente recomendado sincronizar e atualizar este utilitário antes da instalação. \n\n${AMARELO}Deseja proceder ?"; then
-					if sh_cmd_job_infobox "Aguarde alguns instantes, sincronizando e atualizando..." \
-						"xbps-install -Syuf --ignore-file-conflicts ${PackagesToUpdate[*]}"; then
-						sh_msg_job "Reiniciando o script pela primeira vez..."
-						touch "$TMP_FILE"
-						exec "$0" "$@"
-					else
-						# Update falhou (repositório fora do ar, pacote não
-						# encontrado, etc.) — não finge sucesso, avisa e segue
-						# com a versão atual em vez de reiniciar às cegas.
-						alerta "** UPDATE - ${APP} **" \
-							"${RED}A atualização falhou.${RST}" \
-							"\n${YELLOW}Prosseguindo com a versão atual do instalador (v${_VERSION_}).${RST}"
+			if $haveNet; then
+				# A partir daqui há internet — mas o pacote void-install pode
+				# estar em repositórios diferentes dependendo da ISO/distro
+				# (voidbr.org, voidlinux.com.br, chililinux). Testar só "existe
+				# internet" não garante que ESSE pacote está resolvível.
+				if xbps-query -R "${PackagesToUpdate[0]}" >/dev/null 2>&1; then
+					if conf "** UPDATE - ${APP} **" "É fortemente recomendado sincronizar e atualizar este utilitário antes da instalação. \n\n${AMARELO}Deseja proceder ?"; then
+						if sh_cmd_job_infobox "Aguarde alguns instantes, sincronizando e atualizando..." \
+							"xbps-install -Syuf --ignore-file-conflicts ${PackagesToUpdate[*]}"; then
+							sh_msg_job "Reiniciando o script pela primeira vez..."
+							touch "$TMP_FILE"
+							exec "$0" "$@"
+						else
+							# Update falhou (repositório fora do ar, pacote não
+							# encontrado, etc.) — não finge sucesso, avisa e segue
+							# com a versão atual em vez de reiniciar às cegas.
+							alerta "** UPDATE - ${APP} **" \
+								"${RED}A atualização falhou.${RST}" \
+								"\n${YELLOW}Prosseguindo com a versão atual do instalador (v${_VERSION_}).${RST}"
+						fi
 					fi
+				else
+					sh_info_msg "$(gettext 'Pacote de atualização indisponível nos repositórios configurados — prosseguindo com a versão atual do instalador') (v${_VERSION_})."
 				fi
-			else
-				sh_info_msg "$(gettext 'Pacote de atualização indisponível nos repositórios configurados — prosseguindo com a versão atual do instalador') (v${_VERSION_})."
 			fi
 		fi
 		# verifica dependencias
