@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qua 02 set 2026 01:42:20 -04
+#  Updated: qua 02 set 2026 07:08:30 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -50,7 +50,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.9.02-20260902'
+readonly _VERSION_='3.8.30-20260830'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -107,6 +107,7 @@ declare LWM=true
 declare LDM=true
 declare LAUTO=true
 declare LMKPARTED=false
+declare LUPDATELOCAL=false
 declare LFSREVISED=false
 declare LFS=false
 declare LPARTITION=false
@@ -4176,16 +4177,24 @@ sh_chooseSource() {
 			fi
 			if [[ "$src" = "local" ]]; then
 				if ! sh_getIso; then
-					info "$ccabec" "\n\n$cextra"
+					alerta "=== ${cmsg_Source^^} ===" "\n\n$cextra"
 					continue
 				else
-					alerta "=== ${cmsg_Source^^} ===" \
-						"$(gettext "Ao escolher ${CYAN}local${RESET} e usar a ${YELLOW}ISO oficial do Void${RESET}, \ntenha em mente que a ISO ${RED}tem pacotes desatualizados${RESET}, \ne será necessário atualizar pela internet.\n\nTalvez seja melhor escolher network ou networkfull!\n")"
 					LSOURCE=true
 					AConfMirror[_SOURCE]=$src
 					_WINDOWMANAGER=('tty' 'local')
 					LONLY_TTY=false
-					set_custom_install "=== ${cmsg_Source^^} ==="
+					sh_ask_update_local
+					if $LUPDATELOCAL; then
+						set_custom_install "=== ${cmsg_Source^^} ==="
+					else
+						# 100% offline: customizar exigiria instalar pacotes
+						# extras via rede (a lista inteira de
+						# sh_choose_custom_packages é software que não vem no
+						# squashfs do live), o que quebraria a promessa de não
+						# tocar em rede.
+						LCUSTOM=false
+					fi
 				fi
 			fi
 			;;
@@ -4257,6 +4266,16 @@ sh_choose_audioserver() {
 	local x
 	local caudio
 
+	if [[ "${AConfMirror[_SOURCE]}" = "local" && "${LCUSTOM:-}" = "false" ]]; then
+		# Diferente do Dm (serviço já ativo, gera conflito mesmo com
+		# customizar): áudio não tem esse risco de conflito de serviço — se
+		# customizar (LCUSTOM=true), o servidor escolhido é instalado de
+		# verdade via rede (sh_X11_minimal). Só bloqueia no 100% offline.
+		alerta "=== ${cmsg_DefinirAudioServer^^} ===" "$(gettext 'Instalação escolhida foi via local/ISO, não é necessário alterar nada aqui.')"
+		LAUDIO=true
+		return 0
+	fi
+
 	if ! $LONLY_TTY; then
 		case "${AConfAudio[_AUDIOSERVER]:-Pipewire}" in
 		Pulseaudio)
@@ -4311,6 +4330,16 @@ sh_choose_kernel() {
 	local x
 	local ckernel
 	local current_kernel="${AConfKernel[_KERNEL]:-linux}"
+
+	if [[ "${AConfMirror[_SOURCE]}" = "local" && "${LCUSTOM:-}" = "false" ]]; then
+		# Diferente do Wm: aqui, se customizar (LCUSTOM=true), o kernel
+		# escolhido É instalado de verdade via rede (array akernel). Só
+		# bloqueia quando for 100% offline, onde trocar de kernel aqui não
+		# teria efeito nenhum (nenhuma reinstalação acontece).
+		alerta "=== ${cmsg_descKernel^^} ===" "$(gettext 'Instalação escolhida foi via local/ISO, não é necessário alterar nada aqui.')"
+		LKERNEL=true
+		return 0
+	fi
 
 	array+=("linux" "Linux kernel and modules current default" "$([[ $current_kernel == linux ]] && echo on || echo off)")
 	array+=("linux7.2" "Linux kernel and modules (7.2 series) stable" "$([[ $current_kernel == linux7.2 ]] && echo on || echo off)")
@@ -5896,6 +5925,16 @@ sh_choose_dm() {
 	declare -A aDm
 	local x
 
+	if [[ "${AConfMirror[_SOURCE]}" = "local" ]]; then
+		# Igual sh_choose_wm: numa instalação local, o Display Manager que já
+		# está ativo no sistema live segue ativo (copiado junto pelo rsync).
+		# Deixar escolher outro aqui, sem instalar o pacote via rede, gera
+		# dois DMs "meio configurados" disputando a tela de login.
+		alerta "=== ${cmsg_Dm^^} ===" "$(gettext 'Instalação escolhida foi via local/ISO, não é necessário alterar nada aqui.')"
+		LDM=true
+		return
+	fi
+
 	aDm[lxdm]="Leve e simples, ideal para computadores antigos, Xorg"
 	aDm[sddm]="Display manager moderno, Xorg e Wayland"
 	aDm[gdm]="Moderno, Xorg e Wayland"
@@ -6158,10 +6197,16 @@ sh_checkInstall() {
 		return 1
 	fi
 
-	if ! sh_check_mirror; then
-		DEFITEM="${cmsg_Mirror}"
-    sh_choose_mirror
-    return 1
+	# Em instalação local 100% offline (sem LUPDATELOCAL), o mirror nunca é
+	# usado — checar ele aqui bloquearia a instalação sem necessidade sempre
+	# que não houver internet, mesmo sendo exatamente esse o cenário que
+	# "local" sem atualização deveria suportar.
+	if [[ "${AConfMirror[_SOURCE]}" != "local" ]] || $LUPDATELOCAL; then
+		if ! sh_check_mirror; then
+			DEFITEM="${cmsg_Mirror}"
+	    sh_choose_mirror
+	    return 1
+		fi
 	fi
 
 	display_config
@@ -6262,18 +6307,30 @@ EOF
   "
 
 	if $LBIOS; then
-		sh_chroot_job "${cmsg_Instalando} GRUB $(gettext 'para a plataforma') i386-pc" "
-		   grub-install ${AConfDisk[_BOOTLOADER]} --target=i386-pc --force
-	   "
+		# Checagem defensiva: numa instalação 100% local (sem rede), os
+		# módulos do GRUB só existem se já vieram no squashfs do live. Se
+		# faltar, o grub-install falha com um erro críptico ("modinfo.sh
+		# doesn't exist") — melhor avisar com clareza o motivo real.
+		if [[ -d "$dir_install/usr/lib/grub/i386-pc" || -d "$dir_install/usr/lib64/grub/i386-pc" ]]; then
+			sh_chroot_job "${cmsg_Instalando} GRUB $(gettext 'para a plataforma') i386-pc" "
+			   grub-install ${AConfDisk[_BOOTLOADER]} --target=i386-pc --force
+		   "
+		else
+			die "$(gettext 'Módulos do GRUB (i386-pc) não encontrados no sistema.') $(gettext 'O pacote correspondente não veio no sistema live usado nesta instalação 100% local, e a atualização pela internet não foi liberada.') $(gettext 'Refaça a instalação permitindo atualizar pela internet, ou use uma ISO que já inclua esse pacote.')"
+		fi
 	fi
 
 	if $LEFI; then
 		# --removable   = garante boot universal via Fallback
 		# --no-nvram    = não mexe na BIOS
-		sh_chroot_job "${cmsg_Instalando} GRUB $(gettext 'para a plataforma') x86_64-efi" "
-		   grub-install ${AConfDisk[_BOOTLOADER]} --target=$TARGET_EFI --efi-directory=/boot/efi --boot-directory=/boot --bootloader-id=$cnickefi --removable --no-nvram
-	   "
-		#		sh_mkefiroaming
+		if [[ -d "$dir_install/usr/lib/grub/$TARGET_EFI" || -d "$dir_install/usr/lib64/grub/$TARGET_EFI" ]]; then
+			sh_chroot_job "${cmsg_Instalando} GRUB $(gettext 'para a plataforma') x86_64-efi" "
+			   grub-install ${AConfDisk[_BOOTLOADER]} --target=$TARGET_EFI --efi-directory=/boot/efi --boot-directory=/boot --bootloader-id=$cnickefi --removable --no-nvram
+		   "
+			#		sh_mkefiroaming
+		else
+			die "$(gettext 'Módulos do GRUB') ($TARGET_EFI) $(gettext 'não encontrados no sistema.') $(gettext 'O pacote grub-x86_64-efi não veio no sistema live usado nesta instalação 100% local, e a atualização pela internet não foi liberada. Sem ele, o boot EFI não pode ser configurado.') $(gettext 'Refaça a instalação permitindo atualizar pela internet, ou use uma ISO que já inclua esse pacote.')"
+		fi
 	fi
 
 	sh_change_grub
@@ -6311,15 +6368,19 @@ sh_limineInstall() {
     sh_chroot_job "Regenerando initramfs com suporte a LUKS/LVM" "dracut --force --regenerate-all"
   fi
 
-  sh_chroot_job "${cmsg_Instalando} Limine $(gettext 'para a plataforma') x86_64-efi" "
-    mkdir -p /boot/efi/EFI/BOOT
-    mkdir -p /boot/efi/EFI/limine
-    mkdir -p /boot/efi/limine
-    cp -a /usr/share/limine/BOOTX64.EFI /boot/efi/EFI/BOOT/
-    cp -a /usr/share/limine/BOOTX64.EFI /boot/efi/EFI/limine/
-    cp -a /usr/share/limine/limine-bios.sys /boot/efi/limine/
-    rm -rf /boot/EFI
-  "
+  if [[ -f "$dir_install/usr/share/limine/BOOTX64.EFI" && -f "$dir_install/usr/share/limine/limine-bios.sys" ]]; then
+    sh_chroot_job "${cmsg_Instalando} Limine $(gettext 'para a plataforma') x86_64-efi" "
+      mkdir -p /boot/efi/EFI/BOOT
+      mkdir -p /boot/efi/EFI/limine
+      mkdir -p /boot/efi/limine
+      cp -a /usr/share/limine/BOOTX64.EFI /boot/efi/EFI/BOOT/
+      cp -a /usr/share/limine/BOOTX64.EFI /boot/efi/EFI/limine/
+      cp -a /usr/share/limine/limine-bios.sys /boot/efi/limine/
+      rm -rf /boot/EFI
+    "
+  else
+    die "$(gettext 'Arquivos do Limine não encontrados no sistema.') $(gettext 'O pacote limine não veio no sistema live usado nesta instalação 100% local, e a atualização pela internet não foi liberada.') $(gettext 'Refaça a instalação permitindo atualizar pela internet, ou use uma ISO que já inclua esse pacote.')"
+  fi
 
   if $LBIOS; then
 		sh_chroot_job "${cmsg_Instalando} Limine $(gettext 'para a plataforma') i386-pc" "
@@ -6830,7 +6891,13 @@ sh_install() {
 
 	#	dialog --title $BOOTLOG --begin 1 0 --tailbox "$BOOTLOG" 20 0 &
 	reset
-	sh_checkNet "$url_mirror" || return 1
+	if [[ "${AConfMirror[_SOURCE]}" = "local" ]]; then
+		# LUPDATELOCAL já foi decidido em sh_chooseSource, logo após escolher
+		# "local" — não pergunta de novo aqui, só respeita a resposta.
+		:
+	else
+		sh_checkNet "$url_mirror" || return 1
+	fi
 	if [[ "${AConfMirror[_SOURCE]}" = "network" ]]; then
 		sh_checkTarball
 	fi
@@ -6875,14 +6942,21 @@ sh_install() {
 			#			sh_chroot_job "${cmsg_Atualizando} xbps" "
 			#       LC_ALL=C xbps-install --sync --update xbps --yes
 			#     "
-			sh_chroot_job "${cmsg_Atualizando} xbps" "
-			  LC_ALL=C xbps-install -Syuf voidbr-xbps
-		  "
+			# Em modo local, só mexe em rede se o usuário topou (LUPDATELOCAL).
+			# Fora do modo local, mantém o comportamento de sempre (via rede).
+			if [[ "${AConfMirror[_SOURCE]}" != "local" ]] || $LUPDATELOCAL; then
+				sh_chroot_job "${cmsg_Atualizando} xbps" "
+				  LC_ALL=C xbps-install -Syuf voidbr-xbps
+			  "
+			fi
 			sh_copy_keys # ao remover xbps a chave tamém é removida, recolocando!
 			if [[ "${AConfMirror[_SOURCE]}" = "local" && "${LCUSTOM:-}" = "false" ]]; then
-				#sh_chroot_job "${cmsg_AtualizandoRepositorio}" "LC_ALL=C xbps-install -Syu"
-				sh_install_pkgs_in_chroot "$(gettext 'Instalando') BootLoader" "${agrub[*]}"
-				sh_install_pkgs_in_chroot "$(gettext 'Atualizando Pacotes Base')" "${abase[*]}"
+				if $LUPDATELOCAL; then
+					sh_install_pkgs_in_chroot "$(gettext 'Instalando') BootLoader" "${agrub[*]}"
+					sh_install_pkgs_in_chroot "$(gettext 'Atualizando Pacotes Base')" "${abase[*]}"
+				else
+					sh_info_msg "$(gettext 'Instalação 100% local: usando bootloader/pacotes base já presentes no sistema live, sem acessar a internet.')"
+				fi
 			else
 				#				sh_chroot_job "${cmsg_AtualizandoRepositorio}" "LC_ALL=C xbps-install -Syu"
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando Kernel')" "${akernel[*]}"
@@ -8768,6 +8842,7 @@ sh_check_lock() {
 sh_checkUpdatePackages() {
 	local TMP_FILE="/tmp/$(basename "$0").restarted"
 	local PackagesToUpdate=(void-install)
+	local haveNet=false
 
 	sh_msg_job "Distro detectada : ${CYAN}${DISTRO}${RST}"
 
@@ -8776,12 +8851,49 @@ sh_checkUpdatePackages() {
 		#sh_add_repo
 
 		if [[ ! -f "$TMP_FILE" ]]; then
-			if conf "** UPDATE - ${APP} **" "É fortemente recomendado sincronizar e atualizar este utilitário antes da instalação. \n\n${AMARELO}Deseja proceder ?"; then
-				sh_cmd_job_infobox "Aguarde alguns instantes, sincronizando e atualizando..." \
-					"xbps-install -Syuf --ignore-file-conflicts "${PackagesToUpdate[@]}" &>/dev/null"
-				sh_msg_job "Reiniciando o script pela primeira vez..."
-				touch "$TMP_FILE"
-				exec "$0" "$@"
+			# Vital em ISOs antigas: bugs já corrigidos numa versão mais nova
+			# do instalador só chegam aqui atualizando. Fluxo: testa internet;
+			# sem rota, oferece configurar Wi-Fi e testa de novo; se mesmo
+			# assim continuar sem internet, orienta o usuário a verificar
+			# cabo/roteador e sair pra tentar de novo depois (não dá pra
+			# seguir sem saber se há atualização disponível).
+			ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1 && haveNet=true
+
+			if ! $haveNet; then
+				if conf "** INTERNET **" \
+					"\n$(gettext 'Não foi detectada conexão com a internet.')\n" \
+					"\n${AMARELO}$(gettext 'Deseja configurar um Wi-Fi agora?')"; then
+					sh_confWifi
+				fi
+				ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1 && haveNet=true
+			fi
+
+			if ! $haveNet; then
+				die "$(gettext 'Sem conexão com a internet.')"$'\n'"$(gettext 'Verifique o cabo de rede, o roteador/modem, ou configure o Wi-Fi.')"$'\n\n'"$(gettext 'Execute novamente para continuar') : ${GREEN}sudo void-install${RST}"
+			fi
+
+			# A partir daqui há internet — mas o pacote void-install pode
+			# estar em repositórios diferentes dependendo da ISO/distro
+			# (voidbr.org, voidlinux.com.br, chililinux). Testar só "existe
+			# internet" não garante que ESSE pacote está resolvível.
+			if xbps-query -R "${PackagesToUpdate[0]}" >/dev/null 2>&1; then
+				if conf "** UPDATE - ${APP} **" "É fortemente recomendado sincronizar e atualizar este utilitário antes da instalação. \n\n${AMARELO}Deseja proceder ?"; then
+					if sh_cmd_job_infobox "Aguarde alguns instantes, sincronizando e atualizando..." \
+						"xbps-install -Syuf --ignore-file-conflicts ${PackagesToUpdate[*]}"; then
+						sh_msg_job "Reiniciando o script pela primeira vez..."
+						touch "$TMP_FILE"
+						exec "$0" "$@"
+					else
+						# Update falhou (repositório fora do ar, pacote não
+						# encontrado, etc.) — não finge sucesso, avisa e segue
+						# com a versão atual em vez de reiniciar às cegas.
+						alerta "** UPDATE - ${APP} **" \
+							"${RED}A atualização falhou.${RST}" \
+							"\n${YELLOW}Prosseguindo com a versão atual do instalador (v${_VERSION_}).${RST}"
+					fi
+				fi
+			else
+				sh_info_msg "$(gettext 'Pacote de atualização indisponível nos repositórios configurados — prosseguindo com a versão atual do instalador') (v${_VERSION_})."
 			fi
 		fi
 		# verifica dependencias
@@ -8807,6 +8919,28 @@ sh_check_internet() {
 			return 0
 		fi
 		return 1
+	fi
+}
+
+# Instalação "local" (ISO/pendrive): por padrão não depende de rede nenhuma,
+# usando só o que já foi copiado do sistema live (rsync do squashfs, que já
+# inclui o próprio banco de dados do xbps). Se detectar internet disponível,
+# pergunta se o usuário quer aproveitar pra atualizar bootloader/pacotes base
+# durante a instalação; se não tiver rede, ou responder não, segue 100%
+# offline. Define LUPDATELOCAL, usada mais adiante em sh_install().
+sh_ask_update_local() {
+	LUPDATELOCAL=false
+	if sh_cmd_job "$(gettext 'Verificando conexão com a internet...')" \
+		"ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1" \
+		"$err_not_fatal" "1"; then
+		if conf "=== $(gettext 'ATUALIZAR PACOTES') ===" \
+			"\n${GREEN}$(gettext 'Conexão com a internet detectada.')${RST}\n" \
+			"\n$(gettext 'Os pacotes da ISO podem estar desatualizados. Deseja atualizar o bootloader e os pacotes base pela internet durante a instalação?')\n" \
+			"\n${YELLOW}$(gettext 'Se não, a instalação usa somente o que já vem no sistema live (100% offline).')${RST}"; then
+			LUPDATELOCAL=true
+		fi
+	else
+		sh_info_msg "$(gettext 'Sem conexão com a internet — instalação local seguirá 100% offline.')"
 	fi
 }
 
