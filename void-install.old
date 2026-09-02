@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qua 02 set 2026 01:42:20 -04
+#  Updated: dom 30 ago 2026 04:57:54 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -50,7 +50,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.9.02-20260902'
+readonly _VERSION_='3.8.30-20260830'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -1885,40 +1885,12 @@ is_valid_fs() {
 	return 1
 }
 
-# Pergunta se o usuário quer criptografar o disco (LUKS) antes de particionar.
-# Chamada no início de sh_getPartitionsPercent, pois a resposta muda o layout
-# oferecido na tela seguinte (com LUKS, boot/swap/home não são partições
-# físicas separadas).
-sh_ask_luks() {
-	if conf "=== $(gettext 'CRIPTOGRAFIA DE DISCO') (LUKS) ===" \
-		"\n$(gettext 'Deseja criptografar este disco com LUKS (Full Disk Encryption)?')\n" \
-		"\n${YELLOW}$(gettext 'Se sim, /boot, swap e /home NÃO serão partições separadas: tudo ficará dentro do container criptografado, como volumes lógicos configurados a seguir.')${RST}"; then
-		LFDE=true
-	else
-		LFDE=false
-	fi
-	return 0
-}
-
 sh_getPartitionsPercent() {
 	local -a aPercent=()
 	local percent_text
 	local disk_size="${SIZE_ORIGEM}"
-	local lattr=0
 	AsDiskPercent[_DISKTABLE]="${AConfDisk[_DISKTABLE]}"
 	xtitle="${AConfDisk[_DEVICE]} - $(gettext "Configuração de Partições")"
-
-	sh_ask_luks
-	if $LFDE; then
-		# Com LUKS ativo, tudo (boot/swap/home) vira volume lógico dentro do
-		# container, configurado depois em sh_confLvm — não faz sentido
-		# oferecer essas partições como físicas aqui. root sempre 100%.
-		lattr=2
-		AsDiskPercent[root]=100
-		AsDiskPercent[boot]=0
-		AsDiskPercent[home]=0
-		AsDiskPercent[swap]=0
-	fi
 
 	AsDiskSize[root]="$(sh_get_part_size ${SIZE_ORIGEM} ${AsDiskPercent[root]})G"
 	AsDiskSize[boot]="$(sh_get_part_size ${SIZE_ORIGEM} ${AsDiskPercent[boot]})G"
@@ -1947,16 +1919,16 @@ sh_getPartitionsPercent() {
 				15 100 0 \
 				\
 				"Mode" 1 01 "${AsDiskPercent[_DISKTABLE]}" 1 24 15 15 2 \
-				"root (/) (%)" 2 01 "${AsDiskPercent[root]}" 2 24 05 05 $lattr \
+				"root (/) (%)" 2 01 "${AsDiskPercent[root]}" 2 24 05 05 0 \
 				"" 2 14 "${AsDiskSize[root]}" 2 14 10 10 2 \
 				"FS" 2 32 "${AsFs[root]:-ext4}" 2 37 10 10 0 \
-				"/boot    (%)" 3 01 "${AsDiskPercent[boot]}" 3 24 05 05 $lattr \
+				"/boot    (%)" 3 01 "${AsDiskPercent[boot]}" 3 24 05 05 0 \
 				"" 3 14 "${AsDiskSize[boot]}" 3 14 10 10 2 \
-				"FS" 3 32 "${AsFs[boot]:-ext4}" 3 37 10 10 $lattr \
-				"/home    (%)" 4 01 "${AsDiskPercent[home]}" 4 24 05 05 $lattr \
+				"FS" 3 32 "${AsFs[boot]:-ext4}" 3 37 10 10 0 \
+				"/home    (%)" 4 01 "${AsDiskPercent[home]}" 4 24 05 05 0 \
 				"" 4 14 "${AsDiskSize[home]}" 4 14 10 10 2 \
-				"FS" 4 32 "${AsFs[home]:-ext4}" 4 37 10 10 $lattr \
-				"swap     (%)" 5 01 "${AsDiskPercent[swap]}" 5 24 05 10 $lattr \
+				"FS" 4 32 "${AsFs[home]:-ext4}" 4 37 10 10 0 \
+				"swap     (%)" 5 01 "${AsDiskPercent[swap]}" 5 24 05 10 0 \
 				"" 5 14 "${AsDiskSize[swap]}" 5 14 10 10 2 \
 				"FS" 5 32 "${AsFs[swap]:-swap}" 5 37 10 10 2 \
 				"TOTAL    (%)" 6 01 "${total}" 6 24 05 10 2
@@ -2169,29 +2141,6 @@ sh_checkSpaceToSwap() {
 	return 0
 }
 
-sh_close_stale_crypto() {
-	local device="$1"
-	local mapper name vg backing
-
-	[[ -n "$device" ]] || return 0
-
-	for mapper in /dev/mapper/*; do
-		[[ -e "$mapper" && "$mapper" != "/dev/mapper/control" ]] || continue
-		name=$(basename "$mapper")
-
-		# só interessa mapeamentos crypt (LUKS) cujo dispositivo de origem
-		# seja uma partição do disco alvo (ex: /dev/sda3)
-		backing=$(cryptsetup status "$name" 2>/dev/null | awk -F': ' '/device:/ {print $2}' | tr -d ' ')
-		[[ -n "$backing" && "$backing" == "${device}"* ]] || continue
-
-		# se houver VG em cima desse mapper, desativa primeiro
-		vg=$(pvs --noheadings -o vg_name "$mapper" 2>/dev/null | tr -d ' ')
-		[[ -n "$vg" ]] && vgchange -an "$vg" >/dev/null 2>&1
-
-		cryptsetup luksClose "$name" >/dev/null 2>&1
-	done
-}
-
 sh_mkparted() {
 	local nchoice=false
 	local withboot=true
@@ -2202,13 +2151,6 @@ sh_mkparted() {
 	local cini=''
 	local cnextpart=''
 	local CSCRIPT=''
-	local _p
-
-	# Fecha qualquer LUKS/LVM remanescente de um teste anterior que ainda
-	# esteja ativo em cima de uma partição deste disco (ou deste LV, se o
-	# alvo for um volume lógico), para evitar falha do kernel ao reler a
-	# tabela de partições ("dispositivo ocupado").
-	sh_close_stale_crypto "${AConfDisk[_DEVICE]}"
 
 	sh_info_msg "${cmsg_TestandoDisco} ${AConfDisk[_DEVICE]}"
 	if ! sh_testDisk; then
@@ -2387,16 +2329,6 @@ sh_mkparted() {
 		parted --align=opt --script "${AConfDisk[_DEVICE]}" -- "$CSCRIPT" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 		evaluate_retval "${PIPESTATUS[0]}"
 		parted --align=opt --script "${AConfDisk[_DEVICE]}" -- print 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
-		sync 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
-		partprobe 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
-
-		# Limpa qualquer assinatura antiga (LUKS, ext4, etc.) que possa ter
-		# ficado gravada na mesma região de disco de uma partição anterior,
-		# já que mklabel recria só a tabela, não o conteúdo das partições.
-		for _p in "${!Amntpoint[@]}"; do
-			wipefs -a "$_p" >/dev/null 2>&1
-		done
-
 		Amkfs+=(["vfat"]="mkfs.vfat")
 		Amkfs+=(["swap"]="mkswap")
 		Amkfs+=(["ext4"]="mkfs.ext4")
@@ -3714,9 +3646,7 @@ sh_disk_part_info() {
 		fi
 		if [[ "${TYPE_}" = "part" ]]; then
 			[[ "$FSTYPE_" = "iso9660" ]] && continue
-			# Nunca oferecer uma partição LUKS existente como opção de
-			# mountpoint manual (não é reaproveitável, ver sh_has_luks_remnant).
-			[[ "$FSTYPE_" = "crypto_LUKS" ]] && continue
+			#		[[ "$FSTYPE_" = "crypto_LUKS" ]] && continue
 			#		[[ "$FSTYPE_"  = "LVM2_member" ]] && continue
 			ARRAY_PART_DISKS+=("$NAME_")
 			ARRAY_PART_DEVICES+=("$PATH_")
@@ -3745,8 +3675,7 @@ sh_part_info() {
 	while read -r line; do
 		eval "${line//=/_=}"
 		[[ "$FSTYPE_" = "iso9660" ]] && continue
-		# Mesmo motivo de sh_disk_part_info: LUKS existente não é opção válida.
-		[[ "$FSTYPE_" = "crypto_LUKS" ]] && continue
+		#		[[ "$FSTYPE_" = "crypto_LUKS" ]] && continue
 		[[ "$FSTYPE_" = "LVM2_member" ]] && continue
 		ARRAY_PART_DISKS+=("$NAME_")
 		ARRAY_PART_DEVICES+=("$PATH_")
@@ -4353,7 +4282,7 @@ sh_choose_bootloadernew() {
 	local cloader
 	local current_loader="${AConfBootLoader[_LOADER]:-grub}"
 
-	array+=("grub" "$(gettext 'GRand Unified Bootloader 2 (recomendado)')" "$([[ $current_loader == grub ]] && echo on || echo off)")
+	array+=("grub" "$(gettext 'GRand Unified Bootloader 2 (recomendado')" "$([[ $current_loader == grub ]] && echo on || echo off)")
 	array+=("limine" "$(gettext 'Modern, secure, portable, multiprotocol bootloader and boot manager')" "$([[ $current_loader == limine ]] && echo on || echo off)")
 
 	cloader=$(${DIALOG} \
@@ -4884,15 +4813,6 @@ ${BOLD}MODEL   : ${RESET}${RED}${MODEL_ORIGEM}${RESET}\n" \
 			sh_mkparted
 			grafico=$oldgrafico
 			sh_disk_part_info
-
-			# $LFDE já foi decidido dentro de sh_getPartitionsPercent
-			# (chamada por sh_mkparted). Se o usuário optou por LUKS, encadeia
-			# direto na configuração de senha/VG/LVs, sem precisar que ele
-			# ache o menu "Fde" manualmente depois.
-			if $LFDE; then
-				menu="Fde"
-				sh_confLvm
-			fi
 		fi
 		LAUTO=true
 		return 0
@@ -5054,11 +4974,9 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 			#	    if [[ "$old_device" != "${AConfDisk[_DEVICE]}" || ! $LFSREVISED ]]; then
 			#	    if ! $LFSREVISED; then
 			#     if [[ "${#Amntpoint[@]}" -eq 0 ]]; then
-			# Sempre reconstrói: não confiar em "${AsFs[_DEVICE]}" == mesmo disco,
-			# pois esse valor pode ter sido restaurado de uma execução anterior
-			# (/tmp/void-install.conf) enquanto o disco físico mudou de conteúdo
-			# (ex: já tem um LUKS de um teste anterior).
-			sh_rebuild_amntpoint_for_new_disk
+			if [[ "${AConfDisk[_DEVICE]}" != "${AsFs[_DEVICE]}" ]]; then
+				sh_rebuild_amntpoint_for_new_disk
+			fi
 			AsFs[_DEVICE]="$sd"
 		}
 
@@ -6175,37 +6093,6 @@ sh_checkInstall() {
 	return 1
 }
 
-# Configuração de boot com LUKS comum a qualquer bootloader (GRUB ou Limine):
-# grava /etc/crypttab e, opcionalmente, cria uma chave de desbloqueio
-# automático embutida na initramfs. Cada bootloader, depois de chamar esta
-# função, só precisa escrever o cmdline no seu próprio formato.
-#
-# $1 (usekeyfile, default "true"): se "true", cria /boot/volume.key e
-# configura o crypttab pra abrir sozinho, sem pedir senha na initramfs — só
-# faz sentido quando /boot fica DENTRO do container (GRUB com cryptodisk),
-# já que aí a senha real já foi pedida antes, pelo próprio bootloader, pra
-# ler o /boot. Se "false" (caso do Limine, onde /boot fica FORA do LUKS, numa
-# partição sem proteção nenhuma), a chave NÃO é criada — deixá-la ali seria
-# guardar a chave da porta bem ao lado da porta. Sem keyfile, o crypttab usa
-# "none" e o dracut pede a senha de verdade na initramfs, que é o esperado.
-sh_confLuksBoot() {
-	local usekeyfile="${1:-true}"
-	local xuuidfde
-
-	xuuidfde=$(blkid -o value -s UUID "${AConfFde[partition]}")
-	AConfFde[uuid]="$xuuidfde"
-
-	if [[ "$usekeyfile" == "true" ]]; then
-		sh_chroot_job "Criando chave aleatória" "dd bs=1 count=64 if=/dev/urandom of=/boot/volume.key"
-		sh_chroot_job "Adicionando a chave ao volume cryptografado" "printf ${AConfFde[passphrase]} | cryptsetup luksAddKey ${AConfFde[partition]} /boot/volume.key --key-file=-"
-		sh_chroot_job "Alterando permissões para proteger a chave" "chmod 000 /boot/volume.key; chmod -R g-rwx,o-rwx /boot"
-		echo "${AConfFde[vg]}	UUID=$xuuidfde	/boot/volume.key	luks" >>"$dir_install/etc/crypttab"
-		echo 'install_items+=" /boot/volume.key /etc/crypttab "' >>"$dir_install/etc/dracut.conf.d/10-crypt.conf"
-	else
-		echo "${AConfFde[vg]}	UUID=$xuuidfde	none	luks" >>"$dir_install/etc/crypttab"
-	fi
-}
-
 sh_grubInstall() {
 	local cfile="$dir_install/etc/default/grub"
 	local xuuidfde
@@ -6243,18 +6130,18 @@ EOF
 	fi
 
 	if $LFDE; then
-		sh_confLuksBoot
 		sh_chroot_job "Alterando /etc/default/grub" "sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=/#&/' /etc/default/grub"
+		xuuidfde=$(blkid -o value -s UUID "${AConfFde[partition]}")
 		{
-			echo "GRUB_CMDLINE_LINUX_DEFAULT='splash quiet udev.log_priority=3 libata.noacpi=1 loglevel=4 rd.luks.allow-discards rd.lvm.vg=${AConfFde[vg]} rd.luks.uuid=${AConfFde[uuid]}'"
+			echo "GRUB_CMDLINE_LINUX_DEFAULT='splash quiet udev.log_priority=3 libata.noacpi=1 loglevel=4 rd.luks.allow-discards rd.lvm.vg=${AConfFde[vg]} rd.luks.uuid=$xuuidfde'"
 			echo "GRUB_ENABLE_CRYPTODISK=y"
 		} >>"$dir_install/etc/default/grub"
 
-		# Mesmo motivo do Limine: garantir que a initramfs já tenha suporte a
-		# crypt/lvm agora, sem depender de um hook posterior (xbps-reconfigure)
-		# rodar de fato. O GRUB lê /boot ao vivo, então isso é suficiente aqui
-		# (diferente do Limine, que precisa da cópia feita por update-limine).
-		sh_chroot_job "Regenerando initramfs com suporte a LUKS/LVM" "dracut --force --regenerate-all"
+		sh_chroot_job "Criando chave aleatória" "dd bs=1 count=64 if=/dev/urandom of=/boot/volume.key"
+		sh_chroot_job "Adicionando a chave ao volume cryptografado" "printf ${AConfFde[passphrase]} | cryptsetup luksAddKey ${AConfFde[partition]} /boot/volume.key --key-file=-"
+		sh_chroot_job "Alterando permissões para proteger a chave" "chmod 000 /boot/volume.key; chmod -R g-rwx,o-rwx /boot"
+		echo "${AConfFde[vg]}	UUID=$xuuidfde	/boot/volume.key	luks" >>"$dir_install/etc/crypttab"
+		echo 'install_items+=" /boot/volume.key /etc/crypttab "' >>"$dir_install/etc/dracut.conf.d/10-crypt.conf"
 	fi
 
 	sh_cmd_job "${cmsg_Ajustando} /etc/grub.d/" "
@@ -6278,13 +6165,11 @@ EOF
 
 	sh_change_grub
 
-	# Antes só rodava "if ! $LVM" — mas LFDE sempre implica LVM=true, então
-	# o grub.cfg nunca era gerado aqui em instalações com LUKS, ficando
-	# dependente só de um hook posterior (xbps-reconfigure) rodar por conta
-	# própria. Gerar sempre aqui é seguro e idempotente.
-	sh_chroot_job "${cmsg_Gerando} grub.cfg" "
+	if ! $LVM; then
+		sh_chroot_job "${cmsg_Gerando} grub.cfg" "
 		   grub-mkconfig -o /boot/grub/grub.cfg
 	   "
+	fi
 }
 
 sh_is_running_hypervisor() {
@@ -6292,25 +6177,6 @@ sh_is_running_hypervisor() {
 }
 
 sh_limineInstall() {
-  if $LFDE; then
-    sh_confLuksBoot false
-    # update-limine.sh lê /etc/default/limine (LIMINE_CMDLINE_LINUX_DEFAULT) e
-    # embute isso no cmdline de cada entrada gerada, junto do root=UUID que
-    # ele mesmo descobre via findmnt. Sem isso, a initramfs nunca saberia
-    # qual container destrancar. Sobrevive a updates futuros de kernel,
-    # já que update-limine relê esse arquivo toda vez que roda.
-    sh_chroot_job "Alterando /etc/default/limine" "sed -i 's/^LIMINE_CMDLINE_LINUX_DEFAULT=/#&/' /etc/default/limine 2>/dev/null || true"
-    echo "LIMINE_CMDLINE_LINUX_DEFAULT=\"rw loglevel=4 rd.luks.allow-discards rd.lvm.vg=${AConfFde[vg]} rd.luks.uuid=${AConfFde[uuid]}\"" >>"$dir_install/etc/default/limine"
-
-    # CRÍTICO: update-limine só COPIA a initramfs que já existe em /boot para
-    # o ESP — ele não gera nada. A initramfs original foi criada na instalação
-    # do kernel, ANTES de /etc/crypttab existir, então não tem os módulos de
-    # crypt/lvm embutidos. Sem regenerar agora, o update-limine copiaria essa
-    # initramfs "cega" pro LUKS, e o sistema abriria sem pedir senha nenhuma
-    # (na real, ele simplesmente não teria como montar o root criptografado).
-    sh_chroot_job "Regenerando initramfs com suporte a LUKS/LVM" "dracut --force --regenerate-all"
-  fi
-
   sh_chroot_job "${cmsg_Instalando} Limine $(gettext 'para a plataforma') x86_64-efi" "
     mkdir -p /boot/efi/EFI/BOOT
     mkdir -p /boot/efi/EFI/limine
@@ -6328,20 +6194,6 @@ sh_limineInstall() {
 	fi
 
 	if $LEFI; then
-    # Testes repetidos acumulam entradas "Limine" antigas no NVRAM, apontando
-    # pra GUIDs de disco que não existem mais (cada reparticionamento gera um
-    # GUID novo). O firmware pode acabar bootando uma dessas entradas velhas
-    # em vez da instalação atual — sintoma: boot não pede senha do LUKS,
-    # porque na real é outro sistema (mais antigo) sendo bootado por engano.
-    # Isso vale tanto rodando direto quanto dentro de QEMU/OVMF, já que o
-    # efivarfs do sistema live reflete no mesmo arquivo de NVRAM persistente.
-    sh_chroot_job "Limpando entradas Limine antigas do NVRAM" "
-      for bootnum in \$(efibootmgr 2>/dev/null | awk -F'Boot|[* ]' '/Limine/{print \$2}'); do
-        efibootmgr -b \"\$bootnum\" -B >/dev/null 2>&1
-      done
-      true
-    "
-
     if ! sh_is_running_hypervisor; then
   		sh_chroot_job "${cmsg_Instalando} Limine $(gettext 'para a plataforma') x86_64-efi" "
         efibootmgr -c \
@@ -7306,25 +7158,6 @@ sh_choose_Partition() {
 
 		if ! $LDISK; then
 			info "${cmsg_TitleFileSystem}" "\n\n${RED}$(gettext 'Disco de armazenamento não foi escolhido')${RST}"
-			return 1
-		fi
-
-		# Checagem ao vivo (não usa cache): cobre tanto o caso de o usuário
-		# nunca ter passado por aqui quanto o caso de vir de uma sessão restaurada
-		# (/tmp/void-install.conf) sem ter reescolhido o disco. Se o particionamento
-		# for concluído de fato, sh_mkparted já limpa a assinatura antiga (wipefs)
-		# e essa condição deixa de ser verdadeira na próxima entrada.
-		if sh_has_luks_remnant "${AConfDisk[_DEVICE]}"; then
-			LMKPARTED=false
-			LFSREVISED=false
-			if conf "${RED}${REVERSE}$(gettext '=== CONTAINER LUKS ENCONTRADO ===')" \
-				"\n$(gettext 'Foi encontrada uma partição LUKS de uma instalação anterior neste disco.')" \
-				"\n$(gettext 'Ela não será reaproveitada e não pode ser usada como está.')" \
-				"\n\n${BOLD}${YELLOW}$(gettext 'Deseja ir para o particionamento agora?')${RST}"; then
-				sh_checkdisk "${AConfDisk[_DEVICE]}"
-				sh_menuUtilDisk
-			fi
-			DEFITEM="${cmsg_Disco}"
 			return 1
 		fi
 
@@ -8607,35 +8440,14 @@ sh_rebind_amntpoint_device() {
 	done
 }
 
-# Checagem rápida e ao vivo (sem depender de arrays já populados) se o
-# dispositivo tem alguma partição LUKS de uma instalação anterior. Usada
-# tanto ao escolher disco quanto ao entrar no menu FileSystem.
-sh_has_luks_remnant() {
-	local device="$1"
-	[[ -n "$device" && "$device" != "/dev/sdX" ]] || return 1
-	lsblk -no FSTYPE "$device" 2>/dev/null | grep -qx "crypto_LUKS"
-}
-
-# Aviso padrão (só OK) usado quando a detecção de LUKS remanescente acontece
-# fora de um fluxo interativo de particionamento (ex: sh_rebuild_amntpoint_for_new_disk).
-# Marca o filesystem como inválido para forçar o usuário a reparticionar.
-sh_alert_luks_remnant() {
-	LMKPARTED=false
-	LFSREVISED=false
-	alerta "${RED}${REVERSE}$(gettext '=== CONTAINER LUKS ENCONTRADO ===')" \
-		"$(gettext 'Foi encontrada uma partição LUKS de uma instalação anterior neste disco.')" \
-		"$(gettext 'Ela não será reaproveitada e não pode ser usada como está.')" \
-		"" \
-		"${BOLD}${YELLOW}$(gettext 'É necessário reparticionar o disco do zero para continuar.')${RST}"
-}
-
 sh_rebuild_amntpoint_for_new_disk() {
 	local device="${AConfDisk[_DEVICE]}"
 	local efi_set=false
+	local efi_set=false
 	local swap_set=false
+	local efi_set=false
 	local root_set=false
 	local home_set=false
-	local luks_found=false
 	local fs
 
 	[[ -n "$device" ]] || return 1
@@ -8652,13 +8464,6 @@ sh_rebuild_amntpoint_for_new_disk() {
 
 		# só partições
 		[[ "$TYPE_" == "part" ]] || continue
-
-		# partição já criptografada (LUKS) de instalação anterior: não é reaproveitável,
-		# não entra no mapa de mountpoints. Marca que o disco precisa ser reparticionado do zero.
-		if [[ "$FSTYPE_" == "crypto_LUKS" ]]; then
-			luks_found=true
-			continue
-		fi
 
 		# --- CASO 1: FSTYPE EXISTE ---
 		if [[ -n "$FSTYPE_" ]]; then
@@ -8743,12 +8548,7 @@ sh_rebuild_amntpoint_for_new_disk() {
 			grep -P 'TYPE="(part)"' |
 			sort -k5,5 -k2,2
 	)
-
-	if $luks_found; then
-		sh_alert_luks_remnant
-	else
-		((${#Amntpoint[@]})) && LMKPARTED=true || LMKPARTED=false
-	fi
+	((${#Amntpoint[@]})) && LMKPARTED=true || LMKPARTED=false
 }
 
 sh_check_lock() {
