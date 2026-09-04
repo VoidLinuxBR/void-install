@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: sex 04 set 2026 06:33:56 -04
+#  Updated: sex 04 set 2026 14:49:13 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -5662,74 +5662,70 @@ sh_choose_wm() {
   esac
 
   _WINDOWMANAGER=($(strtoarray "$wm"))
-  _WM="$wm"
   LWM=true
-  LONLY_TTY=true
-  LSERVER=false
-  AConfAudio[_AUDIOSERVER]="None"
-  _DISPLAYMANAGER="None"
 
+  # Se tiver qualquer WM/DE gráfico marcado, ele manda (o último, se mais de
+  # um foi marcado por engano) — tty/xorg/server só valem se nenhum WM de
+  # verdade estiver presente. Não depende de ordem/break de loop (era frágil:
+  # bastava "tty" vir marcado por padrão + o usuário marcar outro WM junto
+  # pra dar resultado errado dependendo da ordem de iteração).
+  LSWAY=false
+  LMANGO=false
+  LHYPRLAND=false
+  LXORG=false
+  LSERVER=false
+
+  local _realwm=""
   for wm in "${_WINDOWMANAGER[@]}"; do
     case "$wm" in
-    tty)
-      LONLY_TTY=true
-      AConfAudio[_AUDIOSERVER]="None"
-      _DISPLAYMANAGER="None"
-      _WM="tty"
-      ;;
-    xorg)
-      LONLY_TTY=true
-      LXORG=true
-      AConfAudio[_AUDIOSERVER]="None"
-      _DISPLAYMANAGER="None"
-      _WM="xorg"
-      break
-      ;;
-    server)
-      LONLY_TTY=true
-      LSERVER=true
-      AConfAudio[_AUDIOSERVER]="None"
-      _DISPLAYMANAGER="None"
-      _WM="server"
-      break
-      ;;
+    tty | xorg | server) : ;;
+    *) _realwm="$wm" ;;
+    esac
+  done
+
+  if [[ -n "$_realwm" ]]; then
+    _WM="$_realwm"
+    LONLY_TTY=false
+    AConfAudio[_AUDIOSERVER]="Pipewire"
+    case "$_realwm" in
     sway)
-      LONLY_TTY=false
-      AConfAudio[_AUDIOSERVER]="Pipewire"
       _DISPLAYMANAGER="sddm"
       LSWAY=true
-      _WM="$wm"
-      break
       ;;
     mango)
-      LONLY_TTY=false
-      AConfAudio[_AUDIOSERVER]="Pipewire"
       _DISPLAYMANAGER="sddm"
       LMANGO=true
-      _WM="$wm"
-      break
       ;;
     hyprland)
-      LONLY_TTY=false
-      AConfAudio[_AUDIOSERVER]="Pipewire"
       _DISPLAYMANAGER="sddm"
       LHYPRLAND=true
-      _WM="$wm"
-      break
       ;;
     *)
-      LONLY_TTY=false
-      AConfAudio[_AUDIOSERVER]="Pipewire"
-      if grep -qi gnome <<<"${_WINDOWMANAGER[@]}"; then
+      if grep -qi gnome <<<"$_realwm"; then
         _DISPLAYMANAGER="gdm"
       else
         _DISPLAYMANAGER="lightdm"
       fi
-      _WM="$wm"
-      break
       ;;
     esac
-  done
+  elif [[ " ${_WINDOWMANAGER[*]} " == *" server "* ]]; then
+    _WM="server"
+    LONLY_TTY=true
+    LSERVER=true
+    AConfAudio[_AUDIOSERVER]="None"
+    _DISPLAYMANAGER="None"
+  elif [[ " ${_WINDOWMANAGER[*]} " == *" xorg "* ]]; then
+    _WM="xorg"
+    LONLY_TTY=true
+    LXORG=true
+    AConfAudio[_AUDIOSERVER]="None"
+    _DISPLAYMANAGER="None"
+  else
+    _WM="tty"
+    LONLY_TTY=true
+    AConfAudio[_AUDIOSERVER]="None"
+    _DISPLAYMANAGER="None"
+  fi
 
   set_custom_install "=== ${cmsg_Wm^^} ==="
 
@@ -6236,6 +6232,12 @@ sh_gethidden-password() {
 sh_checkInstall() {
   local cmdsearch
 
+  if ! sh_getIso; then
+    alerta "=== ${cmsg_Source^^} ===" "\n\n$cmsg_ExtraNotIso"
+    DEFITEM="${cmsg_Source}"
+    return 1
+  fi
+
   if ! $LMIRROR; then
     alerta "${cmsg_Mirror^^}" "${RED}✗ ${cmsg_Mirror} ${cmsg_NotConfDefault}"
     DEFITEM="${cmsg_Mirror}"
@@ -6507,6 +6509,8 @@ sh_limineInstall() {
         --inplace "$vm_vars" \
         --append-boot-filepath "$dir_install/boot/efi/EFI/limine/BOOTX64.EFI"
     fi
+
+    sh_change_limine
 
     sh_chroot_job "${cmsg_Instalando} Limine $(gettext 'para a plataforma') x86_64-efi" "
       update-limine || true
@@ -7787,7 +7791,7 @@ sh_main_menu() {
       DEFITEM="${cmsg_Mirror}"
     fi
 
-    if $LREPO_ONLINE; then
+    if $LHAS_INTERNET; then
       ccabec="${baseccabec}${BLACK}${url_mirror} "
     else
       ccabec="${baseccabec}${RED}OFFLINE ${RST}"
@@ -9121,10 +9125,12 @@ sh_check_internet() {
         return 0
       else
         LHAS_INTERNET=false
+        AConfMirror[_SOURCE]='local'
         return 1
       fi
     fi
     LHAS_INTERNET=false
+    AConfMirror[_SOURCE]='local'
     return 1
   fi
 }
@@ -9155,10 +9161,28 @@ sh_change_grub() {
   local f="${dir_install}/etc/default/grub"
 
   sh_cmd_job "$(gettext 'Aplicando ajustes no GRUB')" "
-    if ! grep '^GRUB_DISTRIBUTOR=' '$f' | grep -Fqi '${_WM^}'; then
-      sed -i 's/^GRUB_DISTRIBUTOR=\"\\(.*\\)\"/GRUB_DISTRIBUTOR=\"\\1 ${_WM^}\"/' '$f'
-    fi
+    sed -i 's/^GRUB_DISTRIBUTOR=.*/GRUB_DISTRIBUTOR=\"VoidBR ${_WM^}\"/' '$f'
     #sed -i 's|^GRUB_CMDLINE_LINUX_DEFAULT=.*|GRUB_CMDLINE_LINUX_DEFAULT="quiet splash plymouth.enable=1 loglevel=4 libata.noacpi=1 acpi=force apm=power-off nowatchdog tsc=nowatchdog cryptomgr.notests no_timer_check rcupdate.rcu_expedited=1 intel_pstate=active amd_pstate=active cpuidle.governor=teo split_lock_detect=off clearcpuid=514 transparent_hugepage=never skew_tick=1 intremap=off nosoftlockup audit=0 nomce systemd.show_status=auto rd.udev.log_level=3 apparmor=1 security=apparmor vconsole.font=Uni2-Fixed16 intel_iommu=on amd_iommu=on tdx=on nvme_load=yes nouveau.modeset=1 i915.modeset=1 amdgpu.modeset=1 radeon.si_support=0 radeon.cik_support=0 amdgpu.si_support=1 amdgpu.cik_support=1 nvidia.modeset=1 nvidia_drm.modeset=1 DEEPIN_GFXMODE="|' /etc/default/grub 1>/dev/null
+  " "$err_not_fatal"
+}
+
+# Equivalente ao sh_change_grub, pro Limine: atualiza LIMINE_DISTRO_NAME em
+# /etc/default/limine (lido pelo update-limine.sh na hora de montar o título
+# de cada entrada do menu, ex: "/VoidBR Xfce (Kernel...)"). O arquivo pode
+# ainda não existir (só é criado hoje quando LFDE=true, pro CMDLINE) — por
+# isso cria se faltar, substitui se já tiver a variável, ou anexa com
+# separador de linha correto se o arquivo existir mas sem essa variável.
+sh_change_limine() {
+  local f="${dir_install}/etc/default/limine"
+
+  sh_cmd_job "$(gettext 'Aplicando ajustes no Limine')" "
+    touch '$f'
+    if grep -q '^LIMINE_DISTRO_NAME=' '$f'; then
+      sed -i 's/^LIMINE_DISTRO_NAME=.*/LIMINE_DISTRO_NAME=\"VoidBR ${_WM^}\"/' '$f'
+    else
+      [ -s '$f' ] && [ -n \"\$(tail -c1 '$f')\" ] && echo >>'$f'
+      echo 'LIMINE_DISTRO_NAME=\"VoidBR ${_WM^}\"' >>'$f'
+    fi
   " "$err_not_fatal"
 }
 
