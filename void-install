@@ -6232,10 +6232,12 @@ sh_gethidden-password() {
 sh_checkInstall() {
   local cmdsearch
 
-  if ! sh_getIso; then
-    alerta "=== ${cmsg_Source^^} ===" "\n\n$cmsg_ExtraNotIso"
-    DEFITEM="${cmsg_Source}"
-    return 1
+  if [[ "${AConfMirror[_SOURCE]}" = "local" ]]; then
+    if ! sh_getIso; then
+      alerta "=== ${cmsg_Source^^} ===" "\n\n$cmsg_ExtraNotIso"
+      DEFITEM="${cmsg_Source}"
+      return 1
+    fi
   fi
 
   if ! $LMIRROR; then
