@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qua 02 set 2026 10:49:55 -04
+#  Updated: sex 04 set 2026 00:48:25 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -50,7 +50,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.9.02-20260902'
+readonly _VERSION_='3.9.04-20260904'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -108,6 +108,8 @@ declare LDM=true
 declare LAUTO=true
 declare LMKPARTED=false
 declare LUPDATELOCAL=false
+declare LHAS_INTERNET=false
+declare LREPO_ONLINE=true
 declare LFSREVISED=false
 declare LFS=false
 declare LPARTITION=false
@@ -822,7 +824,6 @@ sh_choose_common_packages() {
 			declare -ga aDownloader=()
 			#			declare -ga aUtility=(binutils dfc btop parallel bubblewrap cmatrix pfetch bc bat xtools geoip geoipupdate)
 			declare -ga aUtility=(binutils bc)
-			aServicesX+=(bluetoothd)
 		else
 			declare -ga aIconsAndThemes=()
 			declare -ga aTerminal=()
@@ -1636,6 +1637,7 @@ alerta_end() {
 		--title "$1" \
 		--backtitle "$ccabec" \
 		--extra-button --extra-label "$(gettext 'Reboot')" \
+		--yes-label "$(gettext 'Sair')" \
 		--no-label "$(gettext 'Desligar')" \
 		--yesno "\n$2\n$3\n$4\n$5\n$6" \
 		10 81
@@ -1897,12 +1899,16 @@ is_valid_fs() {
 # oferecido na tela seguinte (com LUKS, boot/swap/home não são partições
 # físicas separadas).
 sh_ask_luks() {
-	if conf "=== $(gettext 'CRIPTOGRAFIA DE DISCO') (LUKS) ===" \
+	# notconf: o botão em foco por padrão mostra "Não" (troca de rótulo, não
+	# --defaultno) — retorna 0 quando a pessoa escolhe "Não" (o padrão), e
+	# não-zero quando escolhe "Sim". Por isso a lógica abaixo é invertida em
+	# relação ao conf() normal.
+	if notconf "=== $(gettext 'CRIPTOGRAFIA DE DISCO') (LUKS) ===" \
 		"\n$(gettext 'Deseja criptografar este disco com LUKS (Full Disk Encryption)?')\n" \
 		"\n${YELLOW}$(gettext 'Se sim, /boot, swap e /home NÃO serão partições separadas: tudo ficará dentro do container criptografado, como volumes lógicos configurados a seguir.')${RST}"; then
-		LFDE=true
-	else
 		LFDE=false
+	else
+		LFDE=true
 	fi
 	return 0
 }
@@ -2411,8 +2417,6 @@ sh_mkparted() {
 		LFS=true
 		LPARTITION=true
 		LFSREVISED=true
-		sync 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
-		partprobe 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 		sh_check_disk_health "${AConfDisk[_DEVICE]}"
 	else
 		die "${cmsg_InstalacaoAbortada}..."
@@ -2737,6 +2741,27 @@ strip_ansi() {
     '
 }
 
+# Remove os mesmos arquivos (ex: .desktop) em vários diretórios do sistema
+# de destino ($dir_install). Não falha se algo não existir (rm -f).
+# Uso: sh_remove_files_in_dirs files_array[@] dirs_array[@]
+#   local files=(a.desktop b.desktop)
+#   local dirs=(/usr/share/applications /usr/share/xsessions)
+#   sh_remove_files_in_dirs files dirs
+sh_remove_files_in_dirs() {
+	local -n _files="$1"
+	local -n _dirs="$2"
+	local f d
+	local cmd=""
+
+	for d in "${_dirs[@]}"; do
+		for f in "${_files[@]}"; do
+			cmd+="rm -f \"${dir_install}${d}/${f}\""$'\n'
+		done
+	done
+
+	sh_cmd_job "$(gettext 'Removendo arquivos')" "$cmd" "$err_not_fatal"
+}
+
 sh_make_user() {
 	local user="${AsUser[cuser]}"
 
@@ -2763,8 +2788,17 @@ sh_make_user() {
 	sh_cmd_job "$(gettext 'Removendo link do instalador')" "
         rm -f $dir_install/home/$user/'Área de trabalho'/void-install.desktop
         rm -f $dir_install/home/$user/Área\ de\ trabalho/void-install.desktop
-        rm -f $dir_install//usr/share/applications/void-install.desktop
+        rm -f $dir_install/home/$user/'Área de trabalho'/voidbr-install.desktop
+        rm -f $dir_install/home/$user/Área\ de\ trabalho/voidbr-install.desktop
    " $err_not_fatal
+
+	local _installer_shortcut=(void-install.desktop)
+	local _applications_only=(/usr/share/applications)
+	sh_remove_files_in_dirs _installer_shortcut _applications_only
+
+	local _desktop_files=(voidbr-install.desktop weston.desktop labwc.desktop)
+	local _desktop_dirs=(/usr/share/applications /usr/share/xsessions /usr/share/wayland-sessions)
+	sh_remove_files_in_dirs _desktop_files _desktop_dirs
 
 	sh_update_sudoers
 }
@@ -2880,7 +2914,7 @@ sh_activating_services() {
 	aServicesTTY+=(dbus sshd chronyd udevd uuidd dmeventd socklog-unix)
 	aServicesX+=()
 
-	if ! $LSERVER && ! $ONLY_TTY; then aServicesX+=(bluetoothd); fi
+	if ! $LSERVER && ! $LONLY_TTY; then aServicesX+=(bluetoothd); fi
 
 	for x in "${aDE[@]}"; do
 		case $x in
@@ -4164,6 +4198,18 @@ sh_chooseSource() {
 	cextra="${cmsg_ExtraNotIso}"
 
 	_src=${AConfMirror[_SOURCE]}
+	if ! $LHAS_INTERNET; then
+		# Sem internet ao entrar na tela: não dá pra deixar network/networkFull
+		# desativados de verdade (dialog radiolist não suporta isso), mas dá
+		# pra pelo menos vir com "local" pré-marcado, já que é a única opção
+		# que realmente funciona nesse caso. Usa a flag já calculada
+		# (arranque, ou pela última vez que o item "Wifi" foi configurado),
+		# sem pingar de novo aqui.
+		_src="local"
+		alerta "=== ${cmsg_Source^^} ===" \
+			"\n${BOLD}$(gettext 'Sem conexão com a internet no momento.')" \
+			"\n$(gettext 'Somente a instalação local (via ISO) será possível.')"
+	fi
 	for x in "${!Asource[@]}"; do
 		if [[ $_src = $x ]]; then
 			Aflag[$x]='on'
@@ -4184,7 +4230,7 @@ sh_chooseSource() {
 
 	while true; do
 		src=$(${DIALOG} --title "=== ${cmsg_Source^^} ===" \
-			--default-item "${AConfMirror[_SOURCE]}" \
+			--default-item "$_src" \
 			--stdout \
 			--colors \
 			--cancel-label "${cmsg_ButtonBack}" \
@@ -4199,6 +4245,13 @@ sh_chooseSource() {
 			;;
 		"$D_OK")
 			#dom 03 mar 2024 17:00:23 -04
+			if [[ "$src" = "network" || "$src" = "networkFull" ]]; then
+				if ! $LHAS_INTERNET; then
+					alerta "=== ${cmsg_Source^^} ===" \
+						"\n${BOLD}$(gettext 'Sem conexão com a internet. Escolha "local" ou configure a rede primeiro.')"
+					continue
+				fi
+			fi
 			if [[ "$src" = "networkFull" ]]; then
 				if ! sh_checkcommand "${XBPS_INSTALL_CMD}"; then
 					alerta "=== ${cmsg_Source^^} ===" \
@@ -6233,7 +6286,10 @@ sh_checkInstall() {
 	# que não houver internet, mesmo sendo exatamente esse o cenário que
 	# "local" sem atualização deveria suportar.
 	if [[ "${AConfMirror[_SOURCE]}" != "local" ]] || $LUPDATELOCAL; then
-		if ! sh_check_mirror; then
+		if ! sh_has_repo_online; then
+			alerta "=== ${cmsg_Mirror^^} ===" \
+				"\n${BOLD}$(gettext 'Os repositórios do VoidBR parecem estar fora do ar no momento.')" \
+				"\n$(gettext 'Escolha outro mirror manualmente, ou tente novamente mais tarde.')"
 			DEFITEM="${cmsg_Mirror}"
 	    sh_choose_mirror
 	    return 1
@@ -6844,7 +6900,7 @@ autologin-user=$auto_user
 autologin-session=$session
 EOF
 
-	if ! $LSERVER && ! $ONLY_TTY; then
+	if ! $LSERVER && ! $LONLY_TTY; then
 		mkdir -p $cpath_state
 		cat >"${cfile_state}" <<EOF
 [greeter]
@@ -7106,7 +7162,7 @@ sh_install() {
 			fi
 
 			sh_chroot_job "$(gettext 'Validando configuração para FINALIZAR')" "
-                xbps-reconfigure --force glibc-locales
+                #xbps-reconfigure --force glibc-locales
                 xbps-reconfigure --force --all
             "
 			sh_chroot_job "${cmsg_RemovendoPacotesAntigosObseletos}" "
@@ -7723,7 +7779,11 @@ sh_main_menu() {
 			DEFITEM="${cmsg_Mirror}"
 		fi
 
-		ccabec="${baseccabec}${BLACK}${url_mirror} "
+		if $LREPO_ONLINE; then
+			ccabec="${baseccabec}${BLACK}${url_mirror} "
+		else
+			ccabec="${baseccabec}${RED}OFFLINE ${RST}"
+		fi
 		$LMIRROR && MENU_MIRROR="${cOK}[${AConfMirror[_MIRROR]}]${RST} ● " ||
 		            MENU_MIRROR="${cNOK}"
 		$LSOURCE && MENU_SOURCE="${cOK}[${AConfMirror[_SOURCE]}]${RST} ● " ||
@@ -7828,7 +7888,12 @@ sh_main_menu() {
 		"Fde") sh_confLvm && [ -n "$LFDE" ] && DEFITEM="${cmsg_Instalar}" ;;
 		"Lvm") sh_confLvm && [ -n "$LVM" ] && DEFITEM="${cmsg_Instalar}" ;;
 		"Vg") sh_chooseVg ;;
-		"Wifi") sh_run_binary 'voidbr-wifi-setup' && DEFITEM="${cmsg_Instalar}" ;;
+		"Wifi")
+			sh_run_binary 'voidbr-wifi-setup' && {
+				sh_check_internet && LHAS_INTERNET=true || LHAS_INTERNET=false
+				DEFITEM="${cmsg_Instalar}"
+			}
+			;;
 		"Prompt") bash "$@" && [ -n "$LWIFI" ] && DEFITEM="Prompt" ;;
 		"${cmsg_Sair}") die "${cmsg_InstalacaoAbortada}..." ;;
 		*)
@@ -8873,7 +8938,6 @@ sh_check_lock() {
 sh_checkUpdatePackages() {
 	local TMP_FILE="/tmp/$(basename "$0").restarted"
 	local PackagesToUpdate=(void-install)
-	local haveNet=false
 
 	sh_msg_job "Distro detectada : ${CYAN}${DISTRO}${RST}"
 
@@ -8883,46 +8947,30 @@ sh_checkUpdatePackages() {
 
 		if [[ ! -f "$TMP_FILE" ]]; then
 			# Vital em ISOs antigas: bugs já corrigidos numa versão mais nova
-			# do instalador só chegam aqui atualizando. Fluxo: testa internet;
-			# sem rota, pergunta se quer prosseguir sem internet — sim segue
-			# com a versão atual, não encerra o script.
-			ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1 && haveNet=true
-
-			if ! $haveNet; then
-				if conf "** INTERNET **" \
-					"\n$(gettext 'Não foi detectada conexão com a internet.')\n" \
-					"\n${AMARELO}$(gettext 'Deseja prosseguir sem internet?')"; then
-					sh_info_msg "$(gettext 'Prosseguindo sem internet, com a versão atual do instalador') (v${_VERSION_})."
-					return 0
-				else
-					die "$(gettext 'Sem conexão com a internet.')"$'\n'"$(gettext 'Verifique o cabo de rede, o roteador/modem, ou configure o Wi-Fi.')"$'\n\n'"$(gettext 'Execute novamente para continuar') : ${GREEN}sudo void-install${RST}"
-				fi
-			fi
-
-			if $haveNet; then
-				# A partir daqui há internet — mas o pacote void-install pode
-				# estar em repositórios diferentes dependendo da ISO/distro
-				# (voidbr.org, voidlinux.com.br, chililinux). Testar só "existe
-				# internet" não garante que ESSE pacote está resolvível.
-				if xbps-query -R "${PackagesToUpdate[0]}" >/dev/null 2>&1; then
-					if conf "** UPDATE - ${APP} **" "É fortemente recomendado sincronizar e atualizar este utilitário antes da instalação. \n\n${AMARELO}Deseja proceder ?"; then
-						if sh_cmd_job_infobox "Aguarde alguns instantes, sincronizando e atualizando..." \
-							"xbps-install -Syuf --ignore-file-conflicts ${PackagesToUpdate[*]}"; then
-							sh_msg_job "Reiniciando o script pela primeira vez..."
-							touch "$TMP_FILE"
-							exec "$0" "$@"
-						else
-							# Update falhou (repositório fora do ar, pacote não
-							# encontrado, etc.) — não finge sucesso, avisa e segue
-							# com a versão atual em vez de reiniciar às cegas.
-							alerta "** UPDATE - ${APP} **" \
-								"${RED}A atualização falhou.${RST}" \
-								"\n${YELLOW}Prosseguindo com a versão atual do instalador (v${_VERSION_}).${RST}"
-						fi
+			# do instalador só chegam aqui atualizando. Só é chamada quando
+			# há internet (sh_without_chroot já garante isso) — mas o pacote
+			# void-install pode estar em repositórios diferentes dependendo
+			# da ISO/distro (voidbr.org, voidlinux.com.br, chililinux).
+			# Testar só "existe internet" não garante que ESSE pacote está
+			# resolvível.
+			if xbps-query -R "${PackagesToUpdate[0]}" >/dev/null 2>&1; then
+				if conf "** UPDATE - ${APP} **" "É fortemente recomendado sincronizar e atualizar este utilitário antes da instalação. \n\n${AMARELO}Deseja proceder ?"; then
+					if sh_cmd_job_infobox "Aguarde alguns instantes, sincronizando e atualizando..." \
+						"xbps-install -Syuf --ignore-file-conflicts ${PackagesToUpdate[*]}"; then
+						sh_msg_job "Reiniciando o script pela primeira vez..."
+						touch "$TMP_FILE"
+						exec "$0" "$@"
+					else
+						# Update falhou (repositório fora do ar, pacote não
+						# encontrado, etc.) — não finge sucesso, avisa e segue
+						# com a versão atual em vez de reiniciar às cegas.
+						alerta "** UPDATE - ${APP} **" \
+							"${RED}A atualização falhou.${RST}" \
+							"\n${YELLOW}Prosseguindo com a versão atual do instalador (v${_VERSION_}).${RST}"
 					fi
-				else
-					sh_info_msg "$(gettext 'Pacote de atualização indisponível nos repositórios configurados — prosseguindo com a versão atual do instalador') (v${_VERSION_})."
 				fi
+			else
+				sh_info_msg "$(gettext 'Pacote de atualização indisponível nos repositórios configurados — prosseguindo com a versão atual do instalador') (v${_VERSION_})."
 			fi
 		fi
 		# verifica dependencias
@@ -8932,21 +8980,74 @@ sh_checkUpdatePackages() {
 	fi
 }
 
+# Teste puro de conectividade, sem efeito colateral nenhum (não mostra
+# diálogo, não oferece configurar Wi-Fi). Ao vivo — nunca usa estado salvo
+# (LHAS_INTERNET pode estar desatualizado se o usuário conectou depois via
+# o menu "Wifi"). Genérica: usar em qualquer parte do script que precise
+# saber o estado atual da rede.
+sh_has_internet() {
+	ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1
+}
+
+# Testa os repositórios conhecidos do Void, em ordem de precedência, e para
+# no primeiro que responder (não testa os outros à toa). Ter internet não
+# garante que ESSES repositórios especificamente estão no ar. Se algum
+# responder, já deixa configurado em url_mirror/AConfMirror[_MIRROR] — as
+# mesmas variáveis usadas pelo resto do script (chaves iguais às de
+# Amirror, pra ficar consistente com a tela de Mirror).
+sh_has_repo_online() {
+	local -A _repos=(
+		['void.voidbr.org']='https://void.voidbr.org/voidlinux/'
+		['void.voidlinux.com.br']='https://void.voidlinux.com.br/voidlinux/'
+		['void.chililinux.com']='https://void.chililinux.com/voidlinux/'
+	)
+	local key
+
+	sh_info_msg "$(gettext 'Testando repositórios do VoidBR...')"
+
+	# Sem internet nenhuma, nem vale a pena testar os repositórios um por
+	# um (cada tentativa pode levar até 5s de timeout).
+	if ! sh_has_internet; then
+		LREPO_ONLINE=false
+		return 1
+	fi
+
+	for key in void.voidbr.org void.voidlinux.com.br void.chililinux.com; do
+		sh_info_msg "$(gettext 'Testando repositório'): ${CYAN}${key}${RST}"
+		if [[ "$(curl -o /dev/null -s -w '%{http_code}\n' --max-time 5 "${_repos[$key]}")" = "200" ]]; then
+			AConfMirror[_MIRROR]="$key"
+			url_mirror="${_repos[$key]}"
+			LREPO_ONLINE=true
+			sh_info_msg "${GREEN}$(gettext 'Repositório online'): ${key}${RST}"
+			return 0
+		fi
+	done
+	LREPO_ONLINE=false
+	sh_info_msg "${RED}$(gettext 'Nenhum repositório respondeu')${RST}"
+	return 1
+}
+
 sh_check_internet() {
-	local url="8.8.8.8" # Servidor DNS do Google, sempre online
-	local timeout=2     # Tempo limite reduzido para resposta rápida
 	local pipe_test="1"
 
 	if sh_cmd_job "$(gettext 'Testando conexão com a internet...')" \
-		"ping -c 1 -W $timeout $url >/dev/null 2>&1" \
+		"sh_has_internet" \
 		"$err_not_fatal" "$pipe_test"; then
+		LHAS_INTERNET=true
 		return 0
 	else
 		if conf "** INTERNET **" \
 			"$(gettext 'Parece que não há uma rota disponível para a internet.') \n\n${AMARELO}$(gettext 'Deseja configurar um Wi-Fi?')"; then
-			sh_confWifi
-			return 0
+			sh_run_binary 'voidbr-wifi-setup'
+			if sh_has_internet; then
+				LHAS_INTERNET=true
+				return 0
+			else
+				LHAS_INTERNET=false
+				return 1
+			fi
 		fi
+		LHAS_INTERNET=false
 		return 1
 	fi
 }
@@ -8960,7 +9061,7 @@ sh_check_internet() {
 sh_ask_update_local() {
 	LUPDATELOCAL=false
 	if sh_cmd_job "$(gettext 'Verificando conexão com a internet...')" \
-		"ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1" \
+		"sh_has_internet" \
 		"$err_not_fatal" "1"; then
 		if conf "=== $(gettext 'ATUALIZAR PACOTES') ===" \
 			"\n${GREEN}$(gettext 'Conexão com a internet detectada.')${RST}\n" \
@@ -9003,9 +9104,13 @@ sh_setLogPrefix
 
 sh_without_chroot() {
 	sh_checkDisplay
-	sh_check_internet
+	sh_check_internet && LHAS_INTERNET=true || LHAS_INTERNET=false
 	check_dependencies
-	sh_checkUpdatePackages
+	# Sem internet nenhuma, nem vale chamar — a função inteira gira em torno
+	# de checar/atualizar um pacote via xbps-query/xbps-install.
+	if $LHAS_INTERNET; then
+		sh_checkUpdatePackages
+	fi
 }
 
 sh_with_all() {
