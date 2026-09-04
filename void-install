@@ -2792,11 +2792,7 @@ sh_make_user() {
         rm -f $dir_install/home/$user/Área\ de\ trabalho/voidbr-install.desktop
    " $err_not_fatal
 
-  local _installer_shortcut=(void-install.desktop)
-  local _applications_only=(/usr/share/applications)
-  sh_remove_files_in_dirs _installer_shortcut _applications_only
-
-  local _desktop_files=(voidbr-install.desktop weston.desktop labwc.desktop)
+  local _desktop_files=(void-install voidbr-install.desktop weston.desktop labwc.desktop)
   local _desktop_dirs=(/usr/share/applications /usr/share/xsessions /usr/share/wayland-sessions)
   sh_remove_files_in_dirs _desktop_files _desktop_dirs
 
