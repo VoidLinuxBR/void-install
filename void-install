@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: sex 04 set 2026 00:48:25 -04
+#  Updated: sex 04 set 2026 06:33:56 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -159,10 +159,10 @@ declare -gA AConfFde=(
   [vg]='voidvm'
   [passphrase]='voidlinux'
   [verifypassphrase]='voidlinux'
-  [lvroot]='25%'
-  [lvswap]='2%'
+  [lvroot]='100%'
+  [lvswap]=''
   [lvvar]=''
-  [lvhome]='100%'
+  [lvhome]=''
 )
 declare -gA AConfDisk=(
   [_DEVICE]='/dev/sdX'
@@ -219,12 +219,12 @@ declare -gA Alocale=(
   [5]=it_IT
 )
 declare -gA AsDhcp=(
-  AsDhcp [IFACE]="${Asdhcp[IFACE]:-eth0}"
-  AsDhcp [IP]="${AsDhcp[IP]:-192.168.1.100}"
-  AsDhcp [CIDR]="${AsDhcp[CIDR]:-24}"
-  AsDhcp [GATEWAY]="${AsDhcp[GATEWAY]:-192.168.1.1}"
-  AsDhcp [DNS1]="${AsDhcp[DNS1]:-1.1.1.1}"
-  AsDhcp [DNS2]="${AsDhcp[DNS2]:-8.8.8.8}"
+  ['IFACE']="eth0"
+  ['IP']="192.168.1.100"
+  ['CIDR']="24"
+  ['GATEWAY']="192.168.1.1"
+  ['DNS1']="1.1.1.1"
+  ['DNS2']="8.8.8.8"
 )
 declare -gA AsDiskPercent=(
   [_DISKTABLE]="EFI"
@@ -434,7 +434,7 @@ sh_enablePrintk() {
 }
 
 get_option() {
-  echo $(grep -E "^${1}.*" $app_conf | sed -e "s|${1}||")
+  grep -E "^${1}.*" "$app_conf" | sed -e "s|${1}||"
 }
 
 die() {
@@ -537,7 +537,7 @@ sh_cmd_job() {
   msg "INFO" "$last_msg" "$(log_info_msg "$last_msg")"
 
   if ((grafico)); then
-    read LINES COLUMNS <<<"$(stty size)"
+    read -r LINES COLUMNS <<<"$(stty size)"
     cmsg=$(strip_ansi "$cmsg")
     eval "$cjob" 2>&1 | tee -i -a "$BOOTLOG" |
       ${DIALOG} \
@@ -575,7 +575,7 @@ sh_chroot_job() {
   fi
 
   if ((grafico)); then
-    read LINES COLUMNS <<<"$(stty size)"
+    read -r LINES COLUMNS <<<"$(stty size)"
     clean_logmessage="$(strip_ansi "$logmessage")"
     # SEU CÓDIGO ORIGINAL ABAIXO
     chroot "$dir_install" "$shell" -c "$cjob" 2>&1 | tee -i -a "$BOOTLOG" |
@@ -1031,6 +1031,7 @@ sh_touchConf() {
     declare -p AConfFde
     declare -p LCUSTOM
     declare -p LAUTOLOGIN
+    declare -p LHYPRLAND
     #	declare -p AARRAY_DSK_DEVICES
     #	declare -p AARRAY_PART_DEVICES
     #	} | sed 's/declare -/&g/' >>"$app_conf"
@@ -2919,7 +2920,7 @@ sh_activating_services() {
     case $x in
     tty | server) continue ;;
     *)
-      aServicesX+=($_DISPLAYMANAGER)
+      aServicesX+=("$_DISPLAYMANAGER")
       break
       ;;
     esac
@@ -4210,7 +4211,7 @@ sh_chooseSource() {
       "\n$(gettext 'Somente a instalação local (via ISO) será possível.')"
   fi
   for x in "${!Asource[@]}"; do
-    if [[ $_src = $x ]]; then
+    if [[ "$_src" = "$x" ]]; then
       Aflag[$x]='on'
     else
       Aflag[$x]='off'
@@ -7128,7 +7129,7 @@ sh_install() {
       sh_update_hostname
       sh_update_rc_local
 
-      if ! $SERVER; then
+      if ! $LSERVER; then
         sh_update_sshd
       fi
 
@@ -7679,6 +7680,14 @@ sh_chooseperfumery() {
 sh_toBytes() {
   local ent mut num fra sai
 
+  # "%" não é unidade de byte — não dá pra converter (depende do disco).
+  # Sem essa proteção, a conta de expoente negativo abaixo quebra e devolve
+  # vazio (silenciosamente), mascarando validações que dependem do valor.
+  [[ "$1" == *%* ]] && {
+    echo 0
+    return 0
+  }
+
   ent=${1^^}
   [[ ${ent} = "" ]] && ent=0B
   mut=${ent//[^BKMGT]/}
@@ -8067,6 +8076,17 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SERIAL"
     return 1
   fi
 
+  ${DIALOG} \
+    --colors \
+    --clear \
+    --no-collapse \
+    --no-cr-wrap \
+    --title "=== $ctitlemenu ===" \
+    --backtitle "$ccabec" \
+    --ok-label "${cmsg_ok}" \
+    --msgbox "\n${BOLD}$(gettext 'Como preencher os percentuais dos volumes lógicos:')${RST}\n$(gettext 'Cada percentual é relativo ao TOTAL do espaço reservado — não precisa se preocupar com "o que sobra", o script calcula isso por você.')\n\n${YELLOW}$(gettext 'A SOMA de tudo que você preencher precisa fechar exatamente 100%.')${RST}\n$(gettext 'Exemplo: root=25%, swap=2%, home=73% (soma=100) cria os três volumes nesses tamanhos exatos.')\n\n${YELLOW}$(gettext 'Padrão: root=100%, swap/var/home em branco')${RST} — $(gettext 'tudo fica dentro de uma única partição; swap, var e home continuam existindo como pastas normais dentro de /, sem volume lógico separado.')\n\n$(gettext 'Deixe em branco (ou "0") o campo que não quiser como volume separado.')" \
+    0 0
+
   while true; do
     exec 3>&1
     FdeText=$(${DIALOG} \
@@ -8110,6 +8130,64 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SERIAL"
       AConfFde[lvvar]="${arr[11]}"
       AConfFde[lvhome]="${arr[12]}"
       AConfFde[partition]="$_part"
+
+      # "0" ou "0%" equivale a deixar em branco (sem volume separado) — o
+      # código de criação dos volumes só olha se está vazio ou não, então
+      # normaliza aqui pra não tentar criar um volume de tamanho zero.
+      # (a explicação de como preencher já foi mostrada na entrada da tela)
+      local _lvfield _lvval
+      for _lvfield in lvswap lvvar lvhome; do
+        _lvval="${AConfFde[$_lvfield]}"
+        if [[ "$_lvval" == "0" || "$_lvval" == "0%" ]]; then
+          AConfFde[$_lvfield]=''
+        fi
+      done
+
+      # O usuário digita percentual pensando em "% do disco total" (ex:
+      # root=25% = 1/4 do disco) — mas o lvcreate usa "%FREE" (% do que
+      # ainda está livre naquele momento da criação, root->swap->var->home,
+      # nessa ordem fixa). Se todos os campos preenchidos forem percentuais,
+      # valida que a soma fecha 100% e converte cada um pro %FREE certo.
+      # Se sum=100%, o último campo preenchido sempre resulta em 100%FREE
+      # automaticamente (pega o que sobrou) — não precisa de caso especial.
+      local _lvseq=(lvroot lvswap lvvar lvhome)
+      local _f _v _pct _free _allpercent=true _sum=0 _remaining=100
+      for _f in "${_lvseq[@]}"; do
+        _v="${AConfFde[$_f]}"
+        [[ -z "$_v" ]] && continue
+        if [[ "$_v" != *% ]]; then
+          _allpercent=false
+          break
+        fi
+      done
+
+      if $_allpercent; then
+        for _f in "${_lvseq[@]}"; do
+          _v="${AConfFde[$_f]}"
+          [[ -z "$_v" ]] && continue
+          _pct="${_v%\%}"
+          ((_sum += _pct))
+        done
+
+        if [[ "$_sum" -ne 100 ]]; then
+          if ! conf "=== FDE/LVM - $(gettext "Percentuais") === " \
+            "\n$(gettext "A soma dos percentuais preenchidos deu") ${_sum}%, $(gettext "mas precisa fechar exatamente 100%.")\n$(gettext "Ajuste os valores (ou deixe algum campo em branco) até a soma bater 100%.")\n\n${BOLD}${WHITE}$(gettext "Novamente?")\n\n"; then
+            LFDE=false
+            LVM=false
+            return 1
+          fi
+          continue
+        fi
+
+        for _f in "${_lvseq[@]}"; do
+          _v="${AConfFde[$_f]}"
+          [[ -z "$_v" ]] && continue
+          _pct="${_v%\%}"
+          _free=$(awk -v p="$_pct" -v r="$_remaining" 'BEGIN{printf "%.0f", (p/r)*100}')
+          AConfFde[$_f]="${_free}%"
+          _remaining=$(awk -v r="$_remaining" -v p="$_pct" 'BEGIN{printf "%.6f", r-p}')
+        done
+      fi
 
       lvunitroot="${AConfFde[lvroot]: -1}"
       lvsizeroot="${AConfFde[lvroot]%$lvunitroot}"
