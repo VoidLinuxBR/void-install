@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: dom 06 set 2026 07:16:21 -04
+#  Updated: dom 06 set 2026 09:11:30 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -130,9 +130,9 @@ declare LEXTRA=false
 declare LLOCALE=true
 declare LXORG=false
 declare LSWAY=false
-declare LXFCE=false
 declare LMANGO=false
 declare LHYPRLAND=false
+declare LXFCE=false
 #
 declare DEFITEM
 #
@@ -805,10 +805,6 @@ sh_choose_common_packages() {
   aPackageDaemons+=(NetworkManager dhcpcd)
   aServicesTTY+=(NetworkManager)
 
-  if $LXFCE; then
-    return
-  fi
-
   if $LSWAY; then
     return
   fi
@@ -818,6 +814,10 @@ sh_choose_common_packages() {
   fi
 
   if $LHYPRLAND; then
+    return
+  fi
+
+  if $LXFCE; then
     return
   fi
 
@@ -1013,10 +1013,10 @@ sh_touchConf() {
     declare -p LEXTRA
     declare -p aCustomPackages
     declare -p LONLY_TTY
-    declare -p LXFCE
     declare -p LSWAY
     declare -p LMANGO
     declare -p LHYPRLAND
+    declare -p LXFCE
     declare -p LDHCP
     declare -p LCUSTOM
     declare -p LCUSTOM
@@ -3500,15 +3500,6 @@ sh_enlightenment_minimal() {
   sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
 
-sh_xfce_meta_package() {
-  local DE='Xfce'
-  local apkgs=(voidbr-xfce)
-  apkgs+=(voidbr-base-config)
-  apkgs+=(voidbr-xfce-config)
-
-  sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
-}
-
 sh_xfce_minimal() {
   local DE='Xfce'
   local apkgs=(
@@ -3534,6 +3525,15 @@ sh_xfce_minimal() {
 
     sh_common_theme
   fi
+
+  sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
+}
+
+sh_xfce_meta_package() {
+  local DE='Xfce'
+  local apkgs=(voidbr-xfce)
+  apkgs+=(voidbr-base-config)
+  apkgs+=(voidbr-xfce-config)
 
   sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -5841,10 +5841,10 @@ sh_choose_wm() {
   # verdade estiver presente. Não depende de ordem/break de loop (era frágil:
   # bastava "tty" vir marcado por padrão + o usuário marcar outro WM junto
   # pra dar resultado errado dependendo da ordem de iteração).
-  LXFCE=false
   LSWAY=false
   LMANGO=false
   LHYPRLAND=false
+  LXFCE=false
   LXORG=false
   LSERVER=false
 
@@ -5861,10 +5861,6 @@ sh_choose_wm() {
     LONLY_TTY=false
     AConfAudio[_AUDIOSERVER]="Pipewire"
     case "$_realwm" in
-    xfce)
-      _DISPLAYMANAGER="sddm"
-      LXFCE=true
-      ;;
     sway)
       _DISPLAYMANAGER="sddm"
       LSWAY=true
@@ -5876,6 +5872,10 @@ sh_choose_wm() {
     hyprland)
       _DISPLAYMANAGER="sddm"
       LHYPRLAND=true
+      ;;
+    xfce)
+      LXFCE=true
+      _DISPLAYMANAGER="lightdm"
       ;;
     *)
       if grep -qi gnome <<<"$_realwm"; then
@@ -6227,7 +6227,7 @@ sh_choose_dm() {
   LDM=true
   _DISPLAYMANAGER="$dm"
 
-  if $LHYPRLAND || $LSWAY || $LMANGO || $LXFCE; then
+  if $LHYPRLAND || $LSWAY || $LMANGO; then
     if [[ "$dm" != "None" && "$dm" != "sddm" ]]; then
       if conf "=== ${cmsg_Dm^^} ===" \
         "\n${BOLD}${CYAN}$(gettext "É aconselhável escolhar sddm para compatibilidade")" \
@@ -7005,7 +7005,7 @@ User=$user
 Session=$session
 EOF
 
-  if $LHYPRLAND || $LSWAY || $LMANGO ; then
+  if $LHYPRLAND || $LSWAY || $LMANGO; then
     sed -i '/^\[General\]/,/^\[/{
     /^\[/!b
     /^\[General\]/!i\
@@ -7345,10 +7345,6 @@ sh_install() {
         sh_update_Xkeymap
         if [[ "${AConfMirror[_SOURCE]}" = "local" && "${LCUSTOM:-}" = "false" ]]; then
           :
-        elif $LXFCE; then
-          sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
-          sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM Config')" "${aDisplaymanagerConfig[*]}"
-          :
         elif $LSWAY; then
           sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
           sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM Config')" "${aDisplaymanagerConfig[*]}"
@@ -7358,6 +7354,10 @@ sh_install() {
           sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM Config')" "${aDisplaymanagerConfig[*]}"
           :
         elif $LHYPRLAND; then
+          sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
+          sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM Config')" "${aDisplaymanagerConfig[*]}"
+          :
+        elif $LXFCE; then
           sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
           sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM Config')" "${aDisplaymanagerConfig[*]}"
           :
@@ -7387,7 +7387,6 @@ sh_install() {
         "openbox") sh_openbox_minimal ;;
         "gnome") sh_gnome_minimal ;;
         "plasma") sh_plasma_minimal ;;
-#       "xfce") sh_xfce_minimal ;;
         "xfce") sh_xfce_meta_package ;;
         "cinnamon") sh_cinnamon_minimal ;;
         "i3wm") sh_i3_minimal ;;
