@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: dom 06 set 2026 02:52:56 -04
+#  Updated: dom 06 set 2026 07:16:21 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -32,6 +32,7 @@
 export LANGUAGE="${LANGUAGE:-pt_BR}"
 export TEXTDOMAINDIR=/usr/share/locale
 export TEXTDOMAIN=void-install
+export VOIDBR_INSTALLER=true
 
 #todo
 #usermod -a -G bluetooth $USER
@@ -107,6 +108,7 @@ declare LWM=true
 declare LDM=true
 declare LAUTO=true
 declare LMKPARTED=false
+declare LMKPARTED_DEVICE=''
 declare LUPDATELOCAL=false
 declare LHAS_INTERNET=false
 declare LREPO_ONLINE=true
@@ -128,6 +130,7 @@ declare LEXTRA=false
 declare LLOCALE=true
 declare LXORG=false
 declare LSWAY=false
+declare LXFCE=false
 declare LMANGO=false
 declare LHYPRLAND=false
 #
@@ -802,6 +805,10 @@ sh_choose_common_packages() {
   aPackageDaemons+=(NetworkManager dhcpcd)
   aServicesTTY+=(NetworkManager)
 
+  if $LXFCE; then
+    return
+  fi
+
   if $LSWAY; then
     return
   fi
@@ -1006,6 +1013,7 @@ sh_touchConf() {
     declare -p LEXTRA
     declare -p aCustomPackages
     declare -p LONLY_TTY
+    declare -p LXFCE
     declare -p LSWAY
     declare -p LMANGO
     declare -p LHYPRLAND
@@ -1020,6 +1028,7 @@ sh_touchConf() {
     declare -p LBIOS
     declare -p LKERNEL
     declare -p LMKPARTED
+    declare -p LMKPARTED_DEVICE
     declare -p LFSREVISED
     # LVM e LFDE faltavam aqui: sem elas, sh_mount_fs (chamada por
     # sh_dryrun/--chroot numa execução separada) sempre cai no ramo
@@ -2322,23 +2331,25 @@ sh_mkparted() {
   sh_close_stale_crypto "${AConfDisk[_DEVICE]}"
   sh_close_stale_lvm "${AConfDisk[_DEVICE]}"
 
-  sh_info_msg "${cmsg_TestandoDisco} ${AConfDisk[_DEVICE]}"
-  if ! sh_testDisk; then
-    die "${cmsg_ErroLeituraDisco}: ${AConfDisk[_DEVICE]}."
-  fi
-
-  if ! ((grafico)); then
-    if ! ((quiet)); then
-      replicate "=" "$COLUMNS"
-      if ! fdisk -l "${AConfDisk[_DEVICE]}"; then
-        die "${cmsg_ErroLeituraDisco}: ${AConfDisk[_DEVICE]}."
-      fi
-      replicate "=" "$COLUMNS"
-      if ! $LMKPARTED; then
-        echo "${yellow}${cwarning} ${red}${cmsg_todos_os_dados_serao_perdidos}${reset}"
-      fi
-    fi
-  fi
+  # Comentado a pedido — todo o bloco, inclusive o fdisk -l (lento) e o
+  # aviso associado. Talvez volte a ser usado no futuro.
+  # sh_info_msg "${cmsg_TestandoDisco} ${AConfDisk[_DEVICE]}"
+  # if ! sh_testDisk; then
+  #   die "${cmsg_ErroLeituraDisco}: ${AConfDisk[_DEVICE]}."
+  # fi
+  #
+  # if ! ((grafico)); then
+  #   if ! ((quiet)); then
+  #     replicate "=" "$COLUMNS"
+  #     if ! fdisk -l "${AConfDisk[_DEVICE]}"; then
+  #       die "${cmsg_ErroLeituraDisco}: ${AConfDisk[_DEVICE]}."
+  #     fi
+  #     replicate "=" "$COLUMNS"
+  #     if ! $LMKPARTED; then
+  #       echo "${yellow}${cwarning} ${red}${cmsg_todos_os_dados_serao_perdidos}${reset}"
+  #     fi
+  #   fi
+  # fi
 
   #	if $LMKPARTED; then
   #		return 0
@@ -2526,6 +2537,7 @@ sh_mkparted() {
     Amkfs+=(["swap"]="mkswap")
     Amkfs+=(["ext4"]="mkfs.ext4")
     LMKPARTED=true
+    LMKPARTED_DEVICE="${AConfDisk[_DEVICE]}"
     LFS=true
     LPARTITION=true
     LFSREVISED=true
@@ -2732,11 +2744,6 @@ sh_make_fs() {
 
     if [[ "$format" = "1" ]]; then
       sh_cmd_job "${cmsg_FormatandoParticao} ${_PART} FS ${fstype,,}" "
-   			echo '--- diagnóstico antes do wipefs (${_PART}) ---'
-   			fuser -vm '${_PART}' 2>&1
-   			lsof '${_PART}' 2>&1
-   			dmsetup info \$(basename '${_PART}') 2>&1
-   			mount | grep '${_PART}'
    			if [[ "$fstype" = "swap" ]]; then
 	   			wipefs -a "${_PART}"
 		   		mkswap "${_PART}"
@@ -3489,6 +3496,15 @@ sh_enlightenment_minimal() {
     sh_common_theme
 
   fi
+
+  sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
+}
+
+sh_xfce_meta_package() {
+  local DE='Xfce'
+  local apkgs=(voidbr-xfce)
+  apkgs+=(voidbr-base-config)
+  apkgs+=(voidbr-xfce-config)
 
   sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -5825,6 +5841,7 @@ sh_choose_wm() {
   # verdade estiver presente. Não depende de ordem/break de loop (era frágil:
   # bastava "tty" vir marcado por padrão + o usuário marcar outro WM junto
   # pra dar resultado errado dependendo da ordem de iteração).
+  LXFCE=false
   LSWAY=false
   LMANGO=false
   LHYPRLAND=false
@@ -5844,6 +5861,10 @@ sh_choose_wm() {
     LONLY_TTY=false
     AConfAudio[_AUDIOSERVER]="Pipewire"
     case "$_realwm" in
+    xfce)
+      _DISPLAYMANAGER="sddm"
+      LXFCE=true
+      ;;
     sway)
       _DISPLAYMANAGER="sddm"
       LSWAY=true
@@ -6206,7 +6227,7 @@ sh_choose_dm() {
   LDM=true
   _DISPLAYMANAGER="$dm"
 
-  if $LHYPRLAND || $LSWAY || $LMANGO; then
+  if $LHYPRLAND || $LSWAY || $LMANGO || $LXFCE; then
     if [[ "$dm" != "None" && "$dm" != "sddm" ]]; then
       if conf "=== ${cmsg_Dm^^} ===" \
         "\n${BOLD}${CYAN}$(gettext "É aconselhável escolhar sddm para compatibilidade")" \
@@ -6984,7 +7005,7 @@ User=$user
 Session=$session
 EOF
 
-  if $LHYPRLAND || $LSWAY || $LMANGO; then
+  if $LHYPRLAND || $LSWAY || $LMANGO ; then
     sed -i '/^\[General\]/,/^\[/{
     /^\[/!b
     /^\[General\]/!i\
@@ -7090,6 +7111,9 @@ sh_install() {
   local abase=()
   local agrub=()
   local _vg_pv
+  local _pvs_output
+  local _old_vg
+  local _vg_a_remover
 
   aPackageDaemons+=(dbus)
   akernel+=("${AConfKernel[_KERNEL]:-linux}")
@@ -7157,18 +7181,27 @@ sh_install() {
   if $LFDE || $LVM; then
     sh_umount_fs
 
-    # Antes de mexer em qualquer coisa: se já existe um VG com esse nome,
-    # mas em OUTRO disco (não no que está sendo instalado agora), não
-    # remove — só um alerta claro e manda reconfigurar o nome. Só remove
-    # de forma silenciosa quando o VG está no próprio disco alvo (o
-    # cenário normal de reinstalação no mesmo disco).
-    #
-    # pvs/vgs (sem escanear antes) confirmado não confiável em log real —
-    # a saída verbose do próprio vgscan é a fonte de verdade: ele lê o
-    # metadado de cada dispositivo diretamente ("Found metadata summary
-    # on <dispositivo> ... for VG <nome>"), sem depender de nenhum cache
-    # separado que possa estar desatualizado.
-    _vg_pv=$(vgscan -vvv 2>&1 | grep "for VG ${AConfFde[vg]}$" | sed -E 's#.*Found metadata summary on (\S+) at.*#\1#' | head -1)
+    # Ajusta scan_lvs ANTES de qualquer checagem de VG — sem isso, pvs/vgs
+    # comuns não são confiáveis num disco aninhado (ver sh_fix_scan_lvs).
+    sh_fix_scan_lvs
+
+    # Uma consulta só, usada pras duas coisas abaixo:
+    _pvs_output=$(pvs --noheadings -o pv_name,vg_name 2>/dev/null)
+
+    # 1) Descobre o VG que JÁ está na partição alvo, seja lá qual for o
+    # nome dele — o usuário pode ter digitado um nome NOVO ("xfce") pra
+    # um VG antigo diferente ("voidbrvm") que sobrou de um teste anterior
+    # na mesma partição. Limpar pelo nome NOVO não acha nada (ainda não
+    # existe) e deixa o antigo intocado e ativo — foi exatamente isso que
+    # aconteceu em teste real, travando o pvcreate/vgcreate seguinte
+    # tentando forçar por cima de um VG que ainda estava de pé.
+    _old_vg=$(awk -v part="${AConfFde[partition]}" '$1==part{print $2}' <<<"$_pvs_output")
+
+    # 2) Se já existe um VG com o nome NOVO configurado, mas em OUTRO
+    # disco (não no que está sendo instalado agora), não remove — só um
+    # alerta claro e manda reconfigurar o nome. Prefere avisar aqui a
+    # deixar o vgcreate/pvcreate falhar no meio da instalação.
+    _vg_pv=$(awk -v vg="${AConfFde[vg]}" '$2==vg{print $1}' <<<"$_pvs_output")
     if [[ -n "$_vg_pv" && "$_vg_pv" != "${AConfDisk[_DEVICE]}"* ]]; then
       alerta "=== $(gettext 'VOLUME GROUP') ===" \
         "\n${RED}$(gettext 'Já existe um Volume Group chamado') '${AConfFde[vg]}' $(gettext 'em outro disco') (${_vg_pv}), $(gettext 'fora do disco que está sendo instalado agora.')${RST}" \
@@ -7178,15 +7211,14 @@ sh_install() {
       return 1
     fi
 
-    # sh_mkparted (chamada abaixo) tenta limpar resíduo via sh_close_stale_lvm,
-    # mas essa função DESCOBRE o VG através do pvs — e o pvs já mostrou o
-    # dia inteiro que pode "não ver" um VG que existe de verdade (cache).
-    # Aqui já SABEMOS os nomes exatos (VG, e o mapper LUKS por baixo dele,
-    # se for FDE), então remove a cascata inteira direto por nome, sem
-    # depender de descoberta nenhuma: VG (que carrega as LVs por dentro)
-    # → LUKS por baixo do VG (se FDE) → assinatura do PV.
-    vgchange -an "${AConfFde[vg]}" >/dev/null 2>&1
-    vgremove -ff "${AConfFde[vg]}" >/dev/null 2>&1
+    # Remove o VG antigo (nome REAL descoberto acima, não o nome novo
+    # digitado) e, por garantia, também tenta pelo nome novo — cobre o
+    # caso normal de reinstalar reaproveitando o mesmo nome de sempre.
+    for _vg_a_remover in "$_old_vg" "${AConfFde[vg]}"; do
+      [[ -z "$_vg_a_remover" ]] && continue
+      vgchange -an "$_vg_a_remover" >/dev/null 2>&1
+      vgremove -ff "$_vg_a_remover" >/dev/null 2>&1
+    done
     if $LFDE; then
       # cryptsetup luksOpen usa o nome do VG como nome do mapper LUKS
       # (ver sh_make_fsFde) — mesmo nome, camada de baixo.
@@ -7195,15 +7227,24 @@ sh_install() {
       pvremove -ff "${AConfFde[partition]}" >/dev/null 2>&1
     fi
 
-    # Disco aninhado (LV do Proxmox, não um disco bruto) — mais camadas de
-    # device-mapper significam mais chance do kernel ainda não ter
-    # assentado essa remoção antes do sh_mkparted tentar reler a tabela
-    # de partição logo a seguir (mesmo padrão de corrida visto o dia
-    # inteiro nessa mesma pilha aninhada).
-    udevadm settle 2>/dev/null
-    sleep 1
+    # Só reparticiona se ESSE disco específico ainda não tiver sido
+    # particionado nessa sessão (sh_mkparted interativo, ao configurar
+    # LVM/FDE, já faz isso — chamar de novo aqui é redundante e nem
+    # existia no script original). Continua reparticionando se o disco
+    # mudou depois (LMKPARTED_DEVICE não bate) ou se veio de instalação
+    # silenciosa via .conf sem passar pela tela de partição nessa sessão
+    # (LMKPARTED ainda false).
+    if ! $LMKPARTED || [[ "$LMKPARTED_DEVICE" != "${AConfDisk[_DEVICE]}" ]]; then
+      # Disco aninhado (LV do Proxmox, não um disco bruto) — mais camadas
+      # de device-mapper significam mais chance do kernel ainda não ter
+      # assentado essa remoção antes do sh_mkparted tentar reler a tabela
+      # de partição logo a seguir (mesmo padrão de corrida visto o dia
+      # inteiro nessa mesma pilha aninhada).
+      udevadm settle 2>/dev/null
+      sleep 1
 
-    sh_mkparted true || return 1
+      sh_mkparted true || return 1
+    fi
   fi
 
   #	dialog --title $BOOTLOG --begin 1 0 --tailbox "$BOOTLOG" 20 0 &
@@ -7304,6 +7345,10 @@ sh_install() {
         sh_update_Xkeymap
         if [[ "${AConfMirror[_SOURCE]}" = "local" && "${LCUSTOM:-}" = "false" ]]; then
           :
+        elif $LXFCE; then
+          sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
+          sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM Config')" "${aDisplaymanagerConfig[*]}"
+          :
         elif $LSWAY; then
           sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
           sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM Config')" "${aDisplaymanagerConfig[*]}"
@@ -7342,7 +7387,8 @@ sh_install() {
         "openbox") sh_openbox_minimal ;;
         "gnome") sh_gnome_minimal ;;
         "plasma") sh_plasma_minimal ;;
-        "xfce") sh_xfce_minimal ;;
+#       "xfce") sh_xfce_minimal ;;
+        "xfce") sh_xfce_meta_package ;;
         "cinnamon") sh_cinnamon_minimal ;;
         "i3wm") sh_i3_minimal ;;
         "sway") sh_sway_meta_package ;;
@@ -8251,6 +8297,7 @@ sh_confLvm() {
   local VGs
   local PVs
   local _vg_pv
+  local _old_vg
 
   if [[ "$menu" = "Fde" ]]; then
     ctitlemenu='FDE CONFIG'
@@ -8432,19 +8479,21 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SERIAL"
       AConfFde[lvhome]="${arr[$idx_lvhome]}"
       AConfFde[partition]="$_part"
 
-      # Nome de VG precisa ser único no sistema — mas só é um problema de
-      # verdade se estiver em OUTRO disco (não no que está sendo
-      # configurado agora). Reinstalar no mesmo disco naturalmente bate
-      # com o nome de uma tentativa anterior — a limpeza de sh_install já
-      # trata isso, não precisa bloquear aqui. pvs/vgs simples confirmado
-      # não confiável em log real — a saída verbose do vgscan é a fonte
-      # de verdade (lê o metadado direto de cada dispositivo).
-      _vg_pv=$(vgscan -vvv 2>&1 | grep "for VG ${AConfFde[vg]}$" | sed -E 's#.*Found metadata summary on (\S+) at.*#\1#' | head -1)
-      if [[ -n "$_vg_pv" && "$_vg_pv" != "${AConfDisk[_DEVICE]}"* ]]; then
-        alerta "=== $ctitlemenu ===" \
-          "\n${RED}$(gettext 'Já existe um Volume Group chamado') '${AConfFde[vg]}' $(gettext 'em outro disco') (${_vg_pv}), $(gettext 'fora do disco que está sendo instalado agora.')${RST}" \
-          "\n$(gettext 'Escolha outro nome, ou remova o VG existente manualmente antes de continuar.')"
-        continue
+      # Descobre se a PARTIÇÃO ALVO já faz parte de algum VG — não importa
+      # o nome. Digitar um nome novo ("xfce") pra uma partição que já tem
+      # um VG antigo ("voidbrvm") faz a limpeza por nome não achar nada
+      # (o nome novo ainda não existe), deixando o antigo intocado e
+      # ativo — confirmado travando o pvcreate/vgcreate mais adiante numa
+      # tentativa real. Pergunta antes de qualquer coisa, deixando claro
+      # o que vai acontecer.
+      sh_fix_scan_lvs
+      _old_vg=$(pvs --noheadings -o pv_name,vg_name 2>/dev/null | awk -v part="${AConfFde[partition]}" '$1==part{print $2}')
+      if [[ -n "$_old_vg" && "$_old_vg" != "${AConfFde[vg]}" ]]; then
+        if ! conf "=== $ctitlemenu ===" \
+          "\n${YELLOW}$(gettext 'Já existe um Volume Group') '$_old_vg' $(gettext 'associado a esse disco.')${RST}" \
+          "\n\n${BOLD}${WHITE}$(gettext 'Deseja prosseguir e recriar?')\n\n"; then
+          continue
+        fi
       fi
 
       # "0" ou "0%" equivale a deixar em branco (sem volume separado) — o
@@ -8646,6 +8695,23 @@ sh_make_fsFde() {
   evaluate_retval "${PIPESTATUS[1]}"
 }
 
+# Só é preciso ajustar quando o disco ALVO da instalação é ele mesmo uma
+# LV (ex: instalando dentro de um LV do Proxmox no host, disco aninhado)
+# — dentro de uma VM normal, o disco é bruto (/dev/sda, /dev/vda), sem
+# aninhamento nenhum, e essa configuração não faz diferença. Causa raiz
+# confirmada manualmente: com scan_lvs=0 (padrão da maioria das
+# distros), o LVM não rastreia de forma confiável PVs/VGs que moram
+# DENTRO de outra LV — vgscan até encontra, mas vgs/lvcreate/vgchange
+# normais "perdem" a referência logo depois. Idempotente — chamar mais
+# de uma vez não tem efeito colateral (só reajusta se ainda estiver 0).
+sh_fix_scan_lvs() {
+  if [[ "$(lsblk -no TYPE "${AConfDisk[_DEVICE]}" 2>/dev/null)" = "lvm" ]]; then
+    if grep -qE '^\s*#?\s*scan_lvs\s*=\s*0' /etc/lvm/lvm.conf 2>/dev/null; then
+      sed -i -E 's/^\s*#?\s*scan_lvs\s*=\s*0/\tscan_lvs = 1/' /etc/lvm/lvm.conf
+    fi
+  fi
+}
+
 sh_make_fsLvm() {
   local i
   local _part
@@ -8657,20 +8723,9 @@ sh_make_fsLvm() {
   local lvunit
   local aLVs=()
 
-  # Só é preciso ajustar quando o disco ALVO da instalação é ele mesmo
-  # uma LV (ex: instalando dentro de um LV do Proxmox no host, disco
-  # aninhado) — dentro de uma VM normal, o disco é bruto (/dev/sda,
-  # /dev/vda), sem aninhamento nenhum, e essa configuração não faz
-  # diferença. Causa raiz confirmada manualmente: com scan_lvs=0 (padrão
-  # da maioria das distros), o LVM não rastreia de forma confiável PVs/
-  # VGs que moram DENTRO de outra LV — vgscan até encontra, mas vgs/
-  # lvcreate/vgchange normais "perdem" a referência logo depois. Ajusta
-  # uma vez aqui, antes de qualquer pvcreate/vgcreate/lvcreate.
-  if [[ "$(lsblk -no TYPE "${AConfDisk[_DEVICE]}" 2>/dev/null)" = "lvm" ]]; then
-    if grep -qE '^\s*#?\s*scan_lvs\s*=\s*0' /etc/lvm/lvm.conf 2>/dev/null; then
-      sed -i -E 's/^\s*#?\s*scan_lvs\s*=\s*0/\tscan_lvs = 1/' /etc/lvm/lvm.conf
-    fi
-  fi
+  # Ajusta scan_lvs (ver comentário em sh_fix_scan_lvs, logo acima) —
+  # idempotente, não tem problema já ter sido ajustado antes em sh_install.
+  sh_fix_scan_lvs
 
   # Cobre instalação anterior abortada sem limpar: VG/LVM (ou LUKS) que
   # ficou pendurado no mesmo dispositivo, travando o pvcreate/vgcreate a
