@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: sex 04 set 2026 14:49:13 -04
+#  Updated: dom 06 set 2026 02:52:56 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -50,7 +50,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.9.04-20260904'
+readonly _VERSION_='3.9.05-20260905'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
   chroot blkid fdisk parted lsblk curl xz tee
   mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -156,10 +156,11 @@ declare -gA AsUser=(
 #
 declare -gA AConfFde=(
   [partition]=''
-  [vg]='voidvm'
+  [vg]=''
   [passphrase]='voidlinux'
   [verifypassphrase]='voidlinux'
   [lvroot]='100%'
+  [lvboot]=''
   [lvswap]=''
   [lvvar]=''
   [lvhome]=''
@@ -438,34 +439,50 @@ get_option() {
 }
 
 die() {
-  local msg=$1
+  local msg
   local erros
-  local tmp
+  local logsection
+  local l
 
   if test $# -ge 2; then
     evaluate_retval 1
   fi
 
-  #  mapfile -t erros < <(
-  #    tail -n 30 "$BOOTLOG" | grep -Ei 'ERRO:|ERROR:|FAIL|FAILED'
-  #  )
-  #  if [[ "${#erros[@]}" -eq 0 ]]; then
-  #    mapfile -t erros < <(
-  #      tail -n 20 "$BOOTLOG"
-  #    )
-  #  fi
+  # Antes só usava "$1" — se a chamada passasse um 2º argumento (ex: título
+  # + motivo do erro), o motivo era descartado silenciosamente e o usuário
+  # nunca via por que a instalação parou.
+  msg="$(printf '%s\n' "$@")"
 
-  tmp="$(mktemp)"
-  # tail -n 40 "$BOOTLOG" | grep -Ei 'ERRO:|ERROR:|FAIL|FAILED' > "$tmp"
-  tail -n 13 "$BOOTLOG" >"$tmp"
-  printf '\n%s\n' "$msg" >>"$tmp"
+  # Tenta achar o bloco da falha de verdade (a linha "[ FAIL ]" e o que veio
+  # logo antes dela, onde fica a saída real do comando que falhou). Se não
+  # achar nenhum "[ FAIL ]" (ex: die chamado por escolha do usuário, sem
+  # comando ter falhado), cai no fallback de mostrar as últimas linhas.
+  mapfile -t erros < <(grep -B 20 -F '[ FAIL ]' "$BOOTLOG" | tail -n 30)
+  if [[ "${#erros[@]}" -eq 0 ]]; then
+    mapfile -t erros < <(tail -n 20 "$BOOTLOG")
+  fi
 
-  shift
+  # Testado à exaustão: nem --textbox nem --programbox interpretam "\Z"
+  # nem ANSI real vindo de arquivo/pipe — só texto passado direto como
+  # argumento (--msgbox) aceita cor de verdade. O motivo de termos saído
+  # do --msgbox antes era ele cortar conteúdo maior que a caixa — mas com
+  # a altura generosa (bem acima do teto de ~30 linhas do mapfile acima),
+  # testado e confirmado: cabe tudo, nada fica escondido, e sai colorido
+  # de verdade. Cada linha ganha cor conforme o tipo, pra não ficar tudo
+  # vermelho: FAIL é o que realmente importa, o resto é contexto.
+  logsection=""
+  for l in "${erros[@]}"; do
+    case "$l" in
+    *"[ FAIL ]"*) logsection+="${RED}${l}${RST}\n" ;;
+    *"[  OK  ]"*) logsection+="${GREEN}${l}${RST}\n" ;;
+    *"[ INFO ]"*) logsection+="${CYAN}${l}${RST}\n" ;;
+    "####"*) logsection+="${l}\n" ;;
+    *) logsection+="${YELLOW}${l}${RST}\n" ;;
+    esac
+  done
 
   if has_command dialog; then
-    #alerta_die "DIE" "\n${BOLD}${RED}$msg${RST}" erros
-    ${DIALOG} --title "ERRO - $msg" --textbox "$tmp" 20 120
-    rm -f "$tmp"
+    ${DIALOG} --title "ERRO" --colors --msgbox "\n${BOLD}${RED}${msg}${RST}\n\n--- $(gettext 'Últimas linhas registradas') ---\n${logsection}" 40 150
   else
     printf "%-75s\n" "$(DOT)${bold}${red}$msg${reset}" >&2
   fi
@@ -1898,19 +1915,57 @@ is_valid_fs() {
 # Chamada no início de sh_getPartitionsPercent, pois a resposta muda o layout
 # oferecido na tela seguinte (com LUKS, boot/swap/home não são partições
 # físicas separadas).
-sh_ask_luks() {
-  # notconf: o botão em foco por padrão mostra "Não" (troca de rótulo, não
-  # --defaultno) — retorna 0 quando a pessoa escolhe "Não" (o padrão), e
-  # não-zero quando escolhe "Sim". Por isso a lógica abaixo é invertida em
-  # relação ao conf() normal.
-  if notconf "=== $(gettext 'CRIPTOGRAFIA DE DISCO') (LUKS) ===" \
-    "\n$(gettext 'Deseja criptografar este disco com LUKS (Full Disk Encryption)?')\n" \
-    "\n${YELLOW}$(gettext 'Se sim, /boot, swap e /home NÃO serão partições separadas: tudo ficará dentro do container criptografado, como volumes lógicos configurados a seguir.')${RST}"; then
-    LFDE=false
-  else
-    LFDE=true
-  fi
-  return 0
+sh_ask_partition_mode() {
+  local choice
+
+  while true; do
+    choice=$(${DIALOG} --stdout --colors \
+      --backtitle "$ccabec" \
+      --title "=== $(gettext 'MODO DE PARTICIONAMENTO') ===" \
+      --ok-label "${cmsg_Aceitar}" \
+      --radiolist "\n$(gettext 'Como deseja particionar o disco?')" \
+      14 70 3 \
+      "normal" "$(gettext 'Normal - Partições físicas tradicionais (root/boot/swap/home)')" "on" \
+      "lvm" "$(gettext 'LVM - Usar gerenciador de volumes lógicos (sem criptografia)')" "off" \
+      "fde" "$(gettext 'FDE - Encriptar o disco (LUKS) com LVM')" "off")
+
+    case "$choice" in
+    normal)
+      LFDE=false
+      LVM=false
+      return 0
+      ;;
+    lvm)
+      # Já escolheu "lvm" no menu — o padrão aqui é "Sim" (conf, não
+      # notconf), só confirma; ainda dá pra desistir escolhendo "Não".
+      if conf "=== $(gettext 'LVM') ===" \
+        "\n$(gettext 'Deseja usar LVM (Logical Volume Manager) para este disco?')\n" \
+        "\n${YELLOW}$(gettext 'Se sim, /boot, swap e /home NÃO serão partições separadas: tudo ficará dentro do grupo de volumes, como volumes lógicos configurados a seguir.')${RST}"; then
+        LFDE=false
+        LVM=true
+        return 0
+      else
+        continue # respondeu "Não" -> volta pro menu de 3 opções
+      fi
+      ;;
+    fde)
+      # Já escolheu "fde" no menu — o padrão aqui é "Sim" (conf, não
+      # notconf), só confirma; ainda dá pra desistir escolhendo "Não".
+      if conf "=== $(gettext 'CRIPTOGRAFIA DE DISCO') (LUKS) ===" \
+        "\n$(gettext 'Deseja criptografar este disco com LUKS (Full Disk Encryption)?')\n" \
+        "\n${YELLOW}$(gettext 'Se sim, /boot, swap e /home NÃO serão partições separadas: tudo ficará dentro do container criptografado, como volumes lógicos configurados a seguir.')${RST}"; then
+        LFDE=true
+        LVM=true
+        return 0
+      else
+        continue # respondeu "Não" -> volta pro menu de 3 opções
+      fi
+      ;;
+    *)
+      return 1 # ESC/Cancelar
+      ;;
+    esac
+  done
 }
 
 sh_getPartitionsPercent() {
@@ -1921,11 +1976,11 @@ sh_getPartitionsPercent() {
   AsDiskPercent[_DISKTABLE]="${AConfDisk[_DISKTABLE]}"
   xtitle="${AConfDisk[_DEVICE]} - $(gettext "Configuração de Partições")"
 
-  sh_ask_luks
-  if $LFDE; then
-    # Com LUKS ativo, tudo (boot/swap/home) vira volume lógico dentro do
-    # container, configurado depois em sh_confLvm — não faz sentido
-    # oferecer essas partições como físicas aqui. root sempre 100%.
+  sh_ask_partition_mode
+  if $LFDE || $LVM; then
+    # Com LUKS e/ou LVM ativo, tudo (boot/swap/home) vira volume lógico
+    # dentro do container/VG, configurado depois em sh_confLvm — não faz
+    # sentido oferecer essas partições como físicas aqui. root sempre 100%.
     lattr=2
     AsDiskPercent[root]=100
     AsDiskPercent[boot]=0
@@ -2188,6 +2243,15 @@ sh_close_stale_crypto() {
 
   [[ -n "$device" ]] || return 0
 
+  # Sem isso, pvs/vgs às vezes enxergam um cache desatualizado do LVM (visto
+  # em testes: vgs/vgchange diziam "not found" pra um VG que o vgremove
+  # logo depois conseguia remover normalmente) — força releitura real do
+  # disco antes de checar. vgscan atualiza o cache tradicional; pvscan
+  # --cache reconstrói especificamente o cache de "hints" do LVM, que foi
+  # a causa raiz confirmada de "skip hint hash but found label" nos logs.
+  vgscan >/dev/null 2>&1
+  pvscan --cache >/dev/null 2>&1
+
   for mapper in /dev/mapper/*; do
     [[ -e "$mapper" && "$mapper" != "/dev/mapper/control" ]] || continue
     name=$(basename "$mapper")
@@ -2205,7 +2269,38 @@ sh_close_stale_crypto() {
   done
 }
 
+# Complementa sh_close_stale_crypto pro caso sem LUKS: se o dispositivo alvo
+# já pertence a um VG ativo (ex: instalação anterior abortada sem limpar,
+# deixando o VG/LVM pendurado), desativa e remove esse VG antes de tentar
+# criar um novo em cima do mesmo dispositivo.
+sh_close_stale_lvm() {
+  local device="$1"
+  local pv vg
+
+  [[ -n "$device" ]] || return 0
+
+  # Mesmo motivo do sh_close_stale_crypto: sem forçar releitura, pvs pode
+  # reportar "nada encontrado" mesmo com um VG de verdade ativo no disco.
+  vgscan >/dev/null 2>&1
+  pvscan --cache >/dev/null 2>&1
+
+  while read -r pv vg; do
+    [[ -n "$pv" && "$pv" == "${device}"* ]] || continue
+    [[ -n "$vg" ]] || continue
+    vgchange -an "$vg" >/dev/null 2>&1
+    vgremove -ff "$vg" >/dev/null 2>&1
+
+    # vgremove só desregistra o VG da visão ativa do LVM — a assinatura
+    # em si pode continuar gravada no disco, e um vgscan completo mais
+    # tarde "redescobre" esse mesmo VG como se nunca tivesse sido
+    # removido. Apaga a assinatura de verdade, nos dois níveis.
+    pvremove -ff -y "$pv" >/dev/null 2>&1
+    wipefs -a "$pv" >/dev/null 2>&1
+  done < <(pvs --noheadings -o pv_name,vg_name 2>/dev/null)
+}
+
 sh_mkparted() {
+  local silent="${1:-false}"
   local nchoice=false
   local withboot=true
   local withhome=true
@@ -2220,8 +2315,12 @@ sh_mkparted() {
   # Fecha qualquer LUKS/LVM remanescente de um teste anterior que ainda
   # esteja ativo em cima de uma partição deste disco (ou deste LV, se o
   # alvo for um volume lógico), para evitar falha do kernel ao reler a
-  # tabela de partições ("dispositivo ocupado").
+  # tabela de partições ("dispositivo ocupado"). Cobre tanto container
+  # LUKS quanto VG puro (sem criptografia) — usa correspondência por
+  # prefixo, então funciona passando o disco inteiro (pega qualquer
+  # partição dele que esteja com resíduo).
   sh_close_stale_crypto "${AConfDisk[_DEVICE]}"
+  sh_close_stale_lvm "${AConfDisk[_DEVICE]}"
 
   sh_info_msg "${cmsg_TestandoDisco} ${AConfDisk[_DEVICE]}"
   if ! sh_testDisk; then
@@ -2266,7 +2365,20 @@ sh_mkparted() {
     #		fi
 
     #   sh_checkSpaceToSwap
-    if ! sh_getPartitionsPercent; then
+    if $silent; then
+      # Chamado de dentro de sh_install com LVM/FDE já decidido — força os
+      # valores direto (não confia em AsDiskPercent estar correto nesse
+      # ponto por algum motivo ainda não identificado; já vimos esse
+      # array aparentemente certo e mesmo assim o cálculo falhar). Pra
+      # LFDE/LVM o layout é sempre o mesmo: tudo em root, resto zero.
+      AsDiskPercent[root]=100
+      AsDiskPercent[boot]=0
+      AsDiskPercent[swap]=0
+      AsDiskPercent[home]=0
+      withboot=false
+      withswap=false
+      withhome=false
+    elif ! sh_getPartitionsPercent; then
       info "${AConfDisk[_DEVICE]} - ${cmsg_Disco^^} - AUTOMATIC" \
         "\n$(gettext '✗ Particionamento e formatação automatica cancelado pelo usuário')"
       return 1
@@ -2417,7 +2529,7 @@ sh_mkparted() {
     LFS=true
     LPARTITION=true
     LFSREVISED=true
-    sh_check_disk_health "${AConfDisk[_DEVICE]}"
+    # sh_check_disk_health "${AConfDisk[_DEVICE]}"
   else
     die "${cmsg_InstalacaoAbortada}..."
   fi
@@ -2620,6 +2732,11 @@ sh_make_fs() {
 
     if [[ "$format" = "1" ]]; then
       sh_cmd_job "${cmsg_FormatandoParticao} ${_PART} FS ${fstype,,}" "
+   			echo '--- diagnóstico antes do wipefs (${_PART}) ---'
+   			fuser -vm '${_PART}' 2>&1
+   			lsof '${_PART}' 2>&1
+   			dmsetup info \$(basename '${_PART}') 2>&1
+   			mount | grep '${_PART}'
    			if [[ "$fstype" = "swap" ]]; then
 	   			wipefs -a "${_PART}"
 		   		mkswap "${_PART}"
@@ -2792,7 +2909,11 @@ sh_make_user() {
         rm -f $dir_install/home/$user/Área\ de\ trabalho/voidbr-install.desktop
    " $err_not_fatal
 
-  local _desktop_files=(void-install voidbr-install.desktop weston.desktop labwc.desktop)
+  local _installer_shortcut=(void-install.desktop)
+  local _applications_only=(/usr/share/applications)
+  sh_remove_files_in_dirs _installer_shortcut _applications_only
+
+  local _desktop_files=(voidbr-install.desktop weston.desktop labwc.desktop)
   local _desktop_dirs=(/usr/share/applications /usr/share/xsessions /usr/share/wayland-sessions)
   sh_remove_files_in_dirs _desktop_files _desktop_dirs
 
@@ -2869,6 +2990,25 @@ sh_make_fstab() {
     #		evaluate_retval "$?"
   else
     sh_info_msb "${cmsg_Gerando} fstab pass1"
+    for i in "${!AmntpointFDE[@]}"; do
+      _part="$i"
+      label="$(sh_splitarray "${AmntpointFDE[$i]}" 1)"
+      fstype="$(sh_splitarray "${AmntpointFDE[$i]}" 2)"
+      format="$(sh_splitarray "${AmntpointFDE[$i]}" 3)"
+      size="$(sh_splitarray "${AmntpointFDE[$i]}" 4)"
+      mntpoint="$(sh_splitarray "${AmntpointFDE[$i]}" 5)"
+      #			echo "UUID=$(blkid -o value -s UUID "${_part}") $mntpoint ${fstype,,} defaults 0 0" >>"$dir_install/etc/fstab"
+      echo "UUID=$(blkid -o value -s UUID "${_part}") $mntpoint ${fstype,,} defaults,noatime,discard,lazytime 0 0" >>"$dir_install/etc/fstab"
+    done
+
+    # /boot/efi precisa vir DEPOIS das entradas acima no arquivo — se
+    # existir uma LV separada pra /boot (campo novo), o boot real monta
+    # seguindo a ordem do fstab, e /boot/efi mora DENTRO de /boot. Se a
+    # linha de /boot/efi viesse antes, o boot tentava montar ali sem
+    # /boot ainda existir como filesystem (confirmado em log real:
+    # "mount point does not exist"). No chroot da instalação isso nunca
+    # apareceu porque sh_mount_fs (função separada) já monta na ordem
+    # certa por conta própria — só a ordem GRAVADA no arquivo importava.
     for i in "${!Amntpoint[@]}"; do
       _part="$i"
       mntpoint="$(sh_splitarray "${Amntpoint[$i]}" 1)"
@@ -2879,17 +3019,6 @@ sh_make_fstab() {
         echo "UUID=$(blkid -o value -s UUID "${_part}") ${mntpoint} ${fstype,,} defaults 0 $fsorder" >>"$dir_install/etc/fstab"
         break
       fi
-    done
-
-    for i in "${!AmntpointFDE[@]}"; do
-      _part="$i"
-      label="$(sh_splitarray "${AmntpointFDE[$i]}" 1)"
-      fstype="$(sh_splitarray "${AmntpointFDE[$i]}" 2)"
-      format="$(sh_splitarray "${AmntpointFDE[$i]}" 3)"
-      size="$(sh_splitarray "${AmntpointFDE[$i]}" 4)"
-      mntpoint="$(sh_splitarray "${AmntpointFDE[$i]}" 5)"
-      #			echo "UUID=$(blkid -o value -s UUID "${_part}") $mntpoint ${fstype,,} defaults 0 0" >>"$dir_install/etc/fstab"
-      echo "UUID=$(blkid -o value -s UUID "${_part}") $mntpoint ${fstype,,} defaults,noatime,discard,lazytime 0 0" >>"$dir_install/etc/fstab"
     done
     #		evaluate_retval "$?"
   fi
@@ -3719,49 +3848,76 @@ sh_vg_info() {
   done < <(vgs --noheadings --units G -o vg_name,vg_size,vg_free,vg_attr | awk '/^ *[[:alnum:]]+ / {print "NAME=\"" $1 "\"", "SIZE=\"" $2 "\"", "FREE=\"" $3 "\"", "ATTR=\"" $4 "\""}' | sort -k1,1 -k2,2)
 }
 
-sh_disk_info() {
-  unset ARRAY_DSK_{DISKS,DEVICES,SIZE,TRAN,MODEL,LABEL,SERIAL,PTTYPE,FSTYPE}
-  local {TYPE,NAME,PATH,SIZE,TRAN,MODEL,LABEL,SERIAL,PTTYPE,FSTYPE}_
-
-  mensagem "$(gettext "=== DISCO ===")" "\n\n${BOLD}${WHITE}$(gettext 'Aguarde... coletando informações')"
-
-  AARRAY_DSK_DEVICES=()
-
+# Constrói o mapa completo (todo dispositivo, sem filtro) de tipo e pai —
+# usado por sh_is_nested_lvm pra descobrir se uma LV está aninhada dentro
+# de outra (ex: uma LV que mora numa partição que por sua vez é parte de
+# outra LV — resultado de instalação anterior em cascata).
+declare -gA _kname_type=()
+declare -gA _kname_pkname=()
+sh_populate_nested_lvm_map() {
+  local _kn _tp _pk
+  _kname_type=()
+  _kname_pkname=()
   while IFS= read -r line; do
-    unset TYPE_ NAME_ PATH_ SIZE_ TRAN_ MODEL_ LABEL_ SERIAL_ PTTYPE_ FSTYPE_
+    unset _kn _tp _pk
+    eval "$line"
+    _kname_type["$_kn"]="$_tp"
+    _kname_pkname["$_kn"]="$_pk"
+  done < <(lsblk -Po KNAME,TYPE,PKNAME | sed -E 's/KNAME=/_kn=/; s/TYPE=/_tp=/; s/PKNAME=/_pk=/')
+}
 
-    eval "${line//=/_=}"
-
-    ARRAY_DSK_DISKS+=("$NAME_")
-    ARRAY_DSK_DEVICES+=("$PATH_")
-    ARRAY_DSK_SIZE+=("$SIZE_")
-    ARRAY_DSK_TRAN+=("${TRAN_:-${TYPE_}}")
-    ARRAY_DSK_MODEL+=("${MODEL_:-${TYPE_} device}")
-    ARRAY_DSK_LABEL+=("${LABEL_:-""}")
-    ARRAY_DSK_SERIAL+=("${SERIAL_:-""}")
-    ARRAY_DSK_PTTYPE+=("${PTTYPE_:-""}")
-    ARRAY_DSK_FSTYPE+=("${FSTYPE_:-none}")
-    AARRAY_DSK_DEVICES["$PATH_"]="$NAME_|$SIZE_|${TRAN_:-${TYPE_}}|${MODEL_:-unknown}|${LABEL_:-""}|${SERIAL_:-""}|${PTTYPE_:-""}|${FSTYPE_:-none}"
-  done < <(
-    lsblk -PAo TYPE,NAME,PATH,SIZE,TRAN,MODEL,LABEL,SERIAL,PTTYPE |
-      grep -P 'TYPE="(disk|loop|lvm)"' |
-      grep -Pv 'NAME=".*(_tdata|-data|_tmeta|-tpool)"' |
-      awk -F'"' '!seen[$6]++'
-  )
-  #	done < <(lsblk -PAo TYPE,NAME,PATH,SIZE,TRAN,MODEL,LABEL,SERIAL,PTTYPE | grep -P 'TYPE="(disk|loop|lvm)"' | sort -k5,5 -k2,2)
+# Sobe a cadeia de pais (até 6 níveis) procurando o padrão específico:
+# LV cujo pai é uma PARTIÇÃO, e essa partição pertence a OUTRA LV — isso
+# sim é aninhamento de instalação anterior (ex: voidbrvm-root dentro de
+# uma partição de pve-lvm). Não confundir com LV sendo filha direta de
+# outra LV (ex: pool thin) — isso é arquitetura normal do LVM, comum a
+# praticamente toda LV do sistema, não deve ser filtrado.
+#
+# ATENÇÃO — bug real já cometido aqui: uma primeira versão marcava como
+# "aninhado" qualquer LV com UM ancestral LVM em qualquer nível acima,
+# sem checar se havia uma partição no meio. Isso filtrava incorretamente
+# TODAS as LVs de um mesmo pool thin (ex: pve-lvm, pve-evili,
+# pve-voidbr--*), já que elas compartilham o mesmo pool (dm-2) como
+# ancestral — sumindo com discos válidos da lista. A checagem precisa
+# ser exatamente "pai é partição E avô é LV", não "algum ancestral é LV".
+#
+# Outro bug real já cometido: essa lógica ficou presa dentro de
+# sh_disk_info, que não é chamada em lugar nenhum (código morto) — a
+# tela de escolha de disco de verdade usa sh_disk_part_info. Por isso
+# virou função independente, reaproveitável pelas duas.
+sh_is_nested_lvm() {
+  local kname="$1"
+  local parent="${_kname_pkname[$kname]}"
+  local grandparent
+  local depth=0
+  while [[ -n "$parent" && $depth -lt 6 ]]; do
+    if [[ "${_kname_type[$parent]}" = "part" ]]; then
+      grandparent="${_kname_pkname[$parent]}"
+      [[ "${_kname_type[$grandparent]}" = "lvm" ]] && return 0
+    fi
+    parent="${_kname_pkname[$parent]}"
+    ((depth++))
+  done
+  return 1
 }
 
 sh_disk_part_info() {
   unset ARRAY_DSK_{DISKS,DEVICES,SIZE,TRAN,MODEL,LABEL,SERIAL,PTTYPE,FSTYPE}
   unset ARRAY_PART_{DISKS,DEVICES,SIZE,TRAN,MODEL,LABEL,SERIAL,FSTYPE,PARTTYPENAME}
-  local {NAME,PATH,SIZE,TRAN,MODEL,LABEL,SERIAL,PTTYPE,FSTYPE,PARTTYPENAME}_
+  local {NAME,PATH,SIZE,TRAN,MODEL,LABEL,SERIAL,PTTYPE,FSTYPE,PARTTYPENAME,KNAME}_
 
   mensagem "$(gettext "=== DISCO/PARTIÇÃO ===")" "\n\n${BOLD}${WHITE}$(gettext "Aguarde... coletando informações")"
   AARRAY_DSK_DEVICES=()
   AARRAY_PART_DEVICES=()
+  sh_populate_nested_lvm_map
   while read -r line; do
     eval "${line//=/_=}"
     if [[ "${TYPE_}" != "part" ]]; then
+      # Uma LV que mora dentro de uma partição de outra LV é resultado de
+      # instalação anterior em cascata, não um disco de verdade pra
+      # oferecer como opção aqui (ver sh_is_nested_lvm acima).
+      [[ "${TYPE_}" = "lvm" ]] && sh_is_nested_lvm "$KNAME_" && continue
+
       ARRAY_DSK_DISKS+=("$NAME_")
       ARRAY_DSK_DEVICES+=("$PATH_")
       ARRAY_DSK_SIZE+=("$SIZE_")
@@ -3791,7 +3947,7 @@ sh_disk_part_info() {
       ARRAY_PART_PARTTYPENAME+=("${PARTTYPENAME_:-none}")
       AARRAY_PART_DEVICES+=(["$PATH_"]="$NAME_|$SIZE_|${TRAN_:-${TYPE_}}|${MODEL_:-unknown}|${LABEL_:-""}|${SERIAL_:-""}|${FSTYPE_:-"none"}|${PARTTYPENAME_:-none}")
     fi
-  done < <(lsblk -PAo TYPE,NAME,PATH,SIZE,TRAN,MODEL,LABEL,SERIAL,PTTYPE,FSTYPE,PARTTYPENAME |
+  done < <(lsblk -PAo TYPE,NAME,PATH,SIZE,TRAN,MODEL,LABEL,SERIAL,PTTYPE,FSTYPE,PARTTYPENAME,KNAME |
     grep -P 'TYPE="(disk|loop|lvm|part)"' |
     grep -Pv 'NAME=".*(_tdata|-data|_tmeta|-tpool)"' |
     sort -u -t'"' -k6,6)
@@ -4994,12 +5150,16 @@ ${BOLD}MODEL   : ${RESET}${RED}${MODEL_ORIGEM}${RESET}\n" \
       grafico=$oldgrafico
       sh_disk_part_info
 
-      # $LFDE já foi decidido dentro de sh_getPartitionsPercent
-      # (chamada por sh_mkparted). Se o usuário optou por LUKS, encadeia
-      # direto na configuração de senha/VG/LVs, sem precisar que ele
-      # ache o menu "Fde" manualmente depois.
+      # $LFDE/$LVM já foram decididos dentro de sh_getPartitionsPercent
+      # (chamada por sh_mkparted, via sh_ask_partition_mode). Se o usuário
+      # optou por LUKS ou LVM, encadeia direto na configuração de VG/LVs
+      # (senha também, se for LUKS), sem precisar que ele ache o menu
+      # "Fde"/"Lvm" manualmente depois.
       if $LFDE; then
         menu="Fde"
+        sh_confLvm
+      elif $LVM; then
+        menu="Lvm"
         sh_confLvm
       fi
     fi
@@ -6179,14 +6339,16 @@ sh_getinfoFde() {
   local str
   local _vg
   str="$(sh_getyes "$lfde")"
-  _vg="${AConfFde[vg]}"
 
   case $lfde in
-  1)
-    str+="|$_vg|${AConfFde[partition]}|/$_vg/root=${AConfFde[lvroot]}"
-    [[ -n "${AConfFde[lvswap]}" ]] && str+="|/$_vg/swap=${AConfFde[lvswap]}"
-    [[ -n "${AConfFde[lvvar]}" ]] && str+="|/$_vg/var=${AConfFde[lvvar]}"
-    [[ -n "${AConfFde[lvhome]}" ]] && str+="|/$_vg/home=${AConfFde[lvhome]}"
+  1 | true)
+    _vg="${AConfFde[vg]}"
+    str+=" - VG:$_vg"
+    str+=" - LV root:${AConfFde[lvroot]}"
+    str+=" - LV boot:${AConfFde[lvboot]}"
+    str+=" - LV swap:${AConfFde[lvswap]}"
+    str+=" - LV var:${AConfFde[lvvar]}"
+    str+=" - LV home:${AConfFde[lvhome]}"
     ;;
   esac
   echo "$str"
@@ -6227,14 +6389,6 @@ sh_gethidden-password() {
 
 sh_checkInstall() {
   local cmdsearch
-
-  if [[ "${AConfMirror[_SOURCE]}" = "local" ]]; then
-    if ! sh_getIso; then
-      alerta "=== ${cmsg_Source^^} ===" "\n\n$cmsg_ExtraNotIso"
-      DEFITEM="${cmsg_Source}"
-      return 1
-    fi
-  fi
 
   if ! $LMIRROR; then
     alerta "${cmsg_Mirror^^}" "${RED}✗ ${cmsg_Mirror} ${cmsg_NotConfDefault}"
@@ -6288,10 +6442,24 @@ sh_checkInstall() {
   if [[ "${AConfMirror[_SOURCE]}" != "local" ]] || $LUPDATELOCAL; then
     if ! sh_has_repo_online; then
       alerta "=== ${cmsg_Mirror^^} ===" \
-        "\n${BOLD}$(gettext 'Os repositórios do VoidBR parecem estar fora do ar no momento.')" \
-        "\n$(gettext 'Escolha outro mirror manualmente, ou tente novamente mais tarde.')"
+        "\n${BOLD}$(gettext 'Os repositórios do VoidBR parecem estar fora do ar no momento (voidbr.org, voidlinux.com.br e chililinux.com não responderam).')" \
+        "\n$(gettext 'Escolha outro mirror manualmente na tela de Mirror, ou tente novamente mais tarde.')"
       DEFITEM="${cmsg_Mirror}"
       sh_choose_mirror
+      return 1
+    fi
+  fi
+
+  # _SOURCE pode ter virado "local" automaticamente (sh_check_internet, sem
+  # internet), sem o usuário nunca ter passado pela tela de Source — onde
+  # essa mesma checagem de ISO já existe. Sem isso, dava pra tentar instalar
+  # com _SOURCE=local sem ISO nenhuma disponível.
+  if [[ "${AConfMirror[_SOURCE]}" = "local" ]]; then
+    if ! sh_getIso; then
+      alerta "=== ${cmsg_Source^^} ===" \
+        "\n${BOLD}$(gettext 'Fonte "local" foi selecionada automaticamente (sem internet disponível), mas nenhuma ISO foi detectada no sistema para usar como fonte de pacotes.')" \
+        "\n$(gettext 'Conecte a internet (menu Wifi) e escolha network/networkFull na tela de Source, ou verifique se a ISO/pendrive está conectada corretamente.')"
+      DEFITEM="${cmsg_Source}"
       return 1
     fi
   fi
@@ -6921,6 +7089,7 @@ sh_install() {
   local afirmware=()
   local abase=()
   local agrub=()
+  local _vg_pv
 
   aPackageDaemons+=(dbus)
   akernel+=("${AConfKernel[_KERNEL]:-linux}")
@@ -6977,6 +7146,65 @@ sh_install() {
 
   ncounter=0
   sh_checkInstall || return 1
+
+  # Se LVM/FDE está ativo, reparticiona do zero antes de seguir — em vez
+  # de tentar limpar cirurgicamente resíduo de VG/LUKS de testes
+  # anteriores (não confiável, cache do LVM já mostrou inconsistência
+  # várias vezes), recriar a tabela de partição inteira garante disco
+  # limpo de verdade. Desmonta antes: se sobrou algo montado de uma
+  # sessão anterior (ex: instalação abortada), o kernel recusa atualizar
+  # a tabela de partição enquanto a partição antiga estiver em uso.
+  if $LFDE || $LVM; then
+    sh_umount_fs
+
+    # Antes de mexer em qualquer coisa: se já existe um VG com esse nome,
+    # mas em OUTRO disco (não no que está sendo instalado agora), não
+    # remove — só um alerta claro e manda reconfigurar o nome. Só remove
+    # de forma silenciosa quando o VG está no próprio disco alvo (o
+    # cenário normal de reinstalação no mesmo disco).
+    #
+    # pvs/vgs (sem escanear antes) confirmado não confiável em log real —
+    # a saída verbose do próprio vgscan é a fonte de verdade: ele lê o
+    # metadado de cada dispositivo diretamente ("Found metadata summary
+    # on <dispositivo> ... for VG <nome>"), sem depender de nenhum cache
+    # separado que possa estar desatualizado.
+    _vg_pv=$(vgscan -vvv 2>&1 | grep "for VG ${AConfFde[vg]}$" | sed -E 's#.*Found metadata summary on (\S+) at.*#\1#' | head -1)
+    if [[ -n "$_vg_pv" && "$_vg_pv" != "${AConfDisk[_DEVICE]}"* ]]; then
+      alerta "=== $(gettext 'VOLUME GROUP') ===" \
+        "\n${RED}$(gettext 'Já existe um Volume Group chamado') '${AConfFde[vg]}' $(gettext 'em outro disco') (${_vg_pv}), $(gettext 'fora do disco que está sendo instalado agora.')${RST}" \
+        "\n$(gettext 'Escolha outro nome de Volume Group para continuar.')"
+      if $LFDE; then menu="Fde"; else menu="Lvm"; fi
+      sh_confLvm
+      return 1
+    fi
+
+    # sh_mkparted (chamada abaixo) tenta limpar resíduo via sh_close_stale_lvm,
+    # mas essa função DESCOBRE o VG através do pvs — e o pvs já mostrou o
+    # dia inteiro que pode "não ver" um VG que existe de verdade (cache).
+    # Aqui já SABEMOS os nomes exatos (VG, e o mapper LUKS por baixo dele,
+    # se for FDE), então remove a cascata inteira direto por nome, sem
+    # depender de descoberta nenhuma: VG (que carrega as LVs por dentro)
+    # → LUKS por baixo do VG (se FDE) → assinatura do PV.
+    vgchange -an "${AConfFde[vg]}" >/dev/null 2>&1
+    vgremove -ff "${AConfFde[vg]}" >/dev/null 2>&1
+    if $LFDE; then
+      # cryptsetup luksOpen usa o nome do VG como nome do mapper LUKS
+      # (ver sh_make_fsFde) — mesmo nome, camada de baixo.
+      cryptsetup luksClose "${AConfFde[vg]}" >/dev/null 2>&1
+    else
+      pvremove -ff "${AConfFde[partition]}" >/dev/null 2>&1
+    fi
+
+    # Disco aninhado (LV do Proxmox, não um disco bruto) — mais camadas de
+    # device-mapper significam mais chance do kernel ainda não ter
+    # assentado essa remoção antes do sh_mkparted tentar reler a tabela
+    # de partição logo a seguir (mesmo padrão de corrida visto o dia
+    # inteiro nessa mesma pilha aninhada).
+    udevadm settle 2>/dev/null
+    sleep 1
+
+    sh_mkparted true || return 1
+  fi
 
   #	dialog --title $BOOTLOG --begin 1 0 --tailbox "$BOOTLOG" 20 0 &
   reset
@@ -8022,6 +8250,7 @@ sh_confLvm() {
   local ctitlemenu
   local VGs
   local PVs
+  local _vg_pv
 
   if [[ "$menu" = "Fde" ]]; then
     ctitlemenu='FDE CONFIG'
@@ -8042,10 +8271,6 @@ sh_confLvm() {
   fi
 
   sh_disk_part_info
-  mensagem "=== VGs ===" "\n\n${BOLD}${WHITE}$(gettext "Aguarde... coletando informações sobre VGs")"
-  VGs="$(vgs --noheadings)"
-  mensagem "=== PVs ===" "\n\n${BOLD}${WHITE}$(gettext "Aguarde... coletando informações sobre PVs")"
-  PVs="$(pvs --noheadings)"
   disk="${AConfDisk[_BOOTLOADER]}|\
 $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_TRAN")|\
 $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SIZE")|\
@@ -8078,45 +8303,116 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SERIAL"
     return 1
   fi
 
-  ${DIALOG} \
-    --colors \
-    --clear \
-    --no-collapse \
-    --no-cr-wrap \
-    --title "=== $ctitlemenu ===" \
-    --backtitle "$ccabec" \
-    --ok-label "${cmsg_ok}" \
-    --msgbox "\n${BOLD}$(gettext 'Como preencher os percentuais dos volumes lógicos:')${RST}\n$(gettext 'Cada percentual é relativo ao TOTAL do espaço reservado — não precisa se preocupar com "o que sobra", o script calcula isso por você.')\n\n${YELLOW}$(gettext 'A SOMA de tudo que você preencher precisa fechar exatamente 100%.')${RST}\n$(gettext 'Exemplo: root=25%, swap=2%, home=73% (soma=100) cria os três volumes nesses tamanhos exatos.')\n\n${YELLOW}$(gettext 'Padrão: root=100%, swap/var/home em branco')${RST} — $(gettext 'tudo fica dentro de uma única partição; swap, var e home continuam existindo como pastas normais dentro de /, sem volume lógico separado.')\n\n$(gettext 'Deixe em branco (ou "0") o campo que não quiser como volume separado.')" \
-    0 0
+  # Sugere um nome de VG baseado no disco (ex: /dev/mapper/pve-lvm ->
+  # voidbrlvm, /dev/sda -> voidbrsda) sempre que o campo estiver vazio —
+  # vazio é o sinal de "nunca foi definido" (nem pelo usuário, nem vindo
+  # do .conf). Se já tiver algo ali (customizado ou carregado), preserva.
+  if [[ -z "${AConfFde[vg]}" ]]; then
+    local _vg_suffix="${AConfDisk[_DEVICE]##*/}"
+    _vg_suffix="${_vg_suffix##*-}"
+    AConfFde[vg]="voidbr${_vg_suffix}"
+  fi
+
+  # Mostra a tela de instrução só na primeira vez — se já teve um
+  # preenchimento bem-sucedido antes (LFDE ou LVM já true), o usuário já
+  # sabe como funciona; ao reabrir só pra editar, pula direto pro
+  # formulário, sem repetir a explicação.
+  if ! $LFDE && ! $LVM; then
+    ${DIALOG} \
+      --colors \
+      --clear \
+      --no-collapse \
+      --no-cr-wrap \
+      --title "=== $ctitlemenu ===" \
+      --backtitle "$ccabec" \
+      --ok-label "${cmsg_ok}" \
+      --msgbox "\n${BOLD}$(gettext 'Como preencher os percentuais dos volumes lógicos:')${RST}\n$(gettext 'Cada percentual é relativo ao que AINDA ESTÁ LIVRE no momento da criação de cada volume — não ao total do disco.')\n\n${YELLOW}$(gettext 'A ordem de criação é sempre root, depois swap, depois var, depois home.')${RST}\n$(gettext 'Exemplo: root=25 usa 25% do total (nada foi criado ainda). Se depois var=25, isso é 25% do que SOBROU após o root (não 25% do total).')\n\n${YELLOW}$(gettext 'Padrão: root=100, swap/var/home em branco')${RST} — $(gettext 'tudo fica dentro de uma única partição; swap, var e home continuam existindo como pastas normais dentro de /, sem volume lógico separado.')\n\n$(gettext 'Deixe em branco (ou \"0\") o campo que não quiser como volume separado.')\n\n$(gettext 'Também aceita tamanho absoluto em vez de percentual (ex: 10G, 500M).')" \
+      0 0
+  fi
 
   while true; do
     exec 3>&1
+
+    # Monta os campos dinamicamente: Passphrase/Verify Passphrase só fazem
+    # sentido no modo Fde (LUKS). No modo Lvm puro, sem criptografia, não
+    # há motivo pra pedir senha nenhuma — os campos nem aparecem.
+    local -a formargs=()
+    local nextrow=1
+    local idx=0
+    local idx_vg idx_pass=-1 idx_verify=-1 idx_lvroot idx_lvboot idx_lvswap idx_lvvar idx_lvhome
+
+    formargs+=("Disk: " "$nextrow" 1 "$disk" "$nextrow" 42 40 0 2)
+    ((idx++, nextrow++))
+    formargs+=("Partition: " "$nextrow" 1 "$_part" "$nextrow" 42 40 0 2)
+    ((idx++, nextrow++))
+    formargs+=("Size: " "$nextrow" 1 "$size" "$nextrow" 42 40 0 2)
+    ((idx++, nextrow++))
+    formargs+=("Old FS: " "$nextrow" 1 "$oldfstype" "$nextrow" 42 40 0 2)
+    ((idx++, nextrow++))
+    formargs+=("New FS: " "$nextrow" 1 "$fstype" "$nextrow" 42 40 0 2)
+    ((idx++, nextrow++))
+    formargs+=("Flag: " "$nextrow" 1 "$flag" "$nextrow" 42 40 0 2)
+    ((idx++, nextrow++))
+    formargs+=("Volume Group: " "$nextrow" 1 "${AConfFde[vg]}" "$nextrow" 42 25 0 0)
+    idx_vg=$idx
+    ((idx++, nextrow++))
+
+    if [[ "$menu" = "Fde" ]]; then
+      formargs+=("Passphrase: " "$nextrow" 1 "${AConfFde[passphrase]}" "$nextrow" 42 20 0 1)
+      idx_pass=$idx
+      ((idx++, nextrow++))
+      formargs+=("Verify Passphrase: " "$nextrow" 1 "${AConfFde[verifypassphrase]}" "$nextrow" 42 20 0 1)
+      idx_verify=$idx
+      ((idx++, nextrow++))
+    fi
+
+    formargs+=("Logical volume (/): " "$nextrow" 1 "${AConfFde[lvroot]}" "$nextrow" 42 15 0 0)
+    idx_lvroot=$idx
+    ((idx++, nextrow++))
+    formargs+=("Logical volume (/boot) (empty to none): " "$nextrow" 1 "${AConfFde[lvboot]}" "$nextrow" 42 15 0 0)
+    idx_lvboot=$idx
+    ((idx++, nextrow++))
+    formargs+=("Logical volume (/swap) (empty to none): " "$nextrow" 1 "${AConfFde[lvswap]}" "$nextrow" 42 15 0 0)
+    idx_lvswap=$idx
+    ((idx++, nextrow++))
+    formargs+=("Logical volume (/var)  (empty to none): " "$nextrow" 1 "${AConfFde[lvvar]}" "$nextrow" 42 15 0 0)
+    idx_lvvar=$idx
+    ((idx++, nextrow++))
+    formargs+=("Logical volume (/home) (empty to none): " "$nextrow" 1 "${AConfFde[lvhome]}" "$nextrow" 42 15 0 0)
+    idx_lvhome=$idx
+    ((idx++, nextrow++))
+
     FdeText=$(${DIALOG} \
       --title "=== $ctitlemenu ===" \
       --colors \
       --ok-label "${cmsg_Aceitar}" \
       --cancel-label "${cmsg_ButtonBack}" \
+      --extra-button \
+      --extra-label "$(gettext 'Reset')" \
       --backtitle "$ccabec" \
       --insecure "$@" \
       --mixedform "${cmsg_MENU}\n\n$(gettext "O tamanho das partições é uma questão de preferência pessoal.")" \
       0 0 0 \
-      "Disk: " 1 1 "$disk" 1 42 40 0 2 \
-      "Partition: " 2 1 "$_part" 2 42 40 0 2 \
-      "Size: " 3 1 "$size" 3 42 40 0 2 \
-      "Old FS: " 4 1 "$oldfstype" 4 42 40 0 2 \
-      "New FS: " 5 1 "$fstype" 5 42 40 0 2 \
-      "Flag: " 6 1 "$flag" 6 42 40 0 2 \
-      "Volume Group: " 7 1 "${AConfFde[vg]}" 7 42 25 0 0 \
-      "Passphrase: " 8 1 "${AConfFde[passphrase]}" 8 42 20 0 1 \
-      "Verify Passphrase: " 9 1 "${AConfFde[verifypassphrase]}" 9 42 20 0 1 \
-      "Logical volume (/): " 10 1 "${AConfFde[lvroot]}" 10 42 15 0 0 \
-      "Logical volume (/swap) (empty to none): " 11 1 "${AConfFde[lvswap]}" 11 42 15 0 0 \
-      "Logical volume (/var)  (empty to none): " 12 1 "${AConfFde[lvvar]}" 12 42 15 0 0 \
-      "Logical volume (/home) (empty to none): " 13 1 "${AConfFde[lvhome]}" 13 42 15 0 0 \
+      "${formargs[@]}" \
       2>&1 1>&3)
 
     exit_status=$?
     case $exit_status in
+    "$D_EXTRA")
+      # "Reset": volta tudo pro estado inicial, como se nada tivesse
+      # sido configurado ainda — não confirma nem cancela, só limpa.
+      AConfFde[vg]=''
+      AConfFde[passphrase]='voidlinux'
+      AConfFde[verifypassphrase]='voidlinux'
+      AConfFde[lvroot]='100%'
+      AConfFde[lvboot]=''
+      AConfFde[lvswap]=''
+      AConfFde[lvvar]=''
+      AConfFde[lvhome]=''
+      LFDE=false
+      LVM=false
+      return 1
+      ;;
     "$D_ESC" | "$D_CANCEL")
       LFDE=false
       LVM=false
@@ -8124,75 +8420,81 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SERIAL"
       ;;
     "$D_OK")
       mapfile -t arr <<<"$FdeText"
-      AConfFde[vg]="${arr[6]}"
-      AConfFde[passphrase]="${arr[7]}"
-      AConfFde[verifypassphrase]="${arr[8]}"
-      AConfFde[lvroot]="${arr[9]}"
-      AConfFde[lvswap]="${arr[10]}"
-      AConfFde[lvvar]="${arr[11]}"
-      AConfFde[lvhome]="${arr[12]}"
+      AConfFde[vg]="${arr[$idx_vg]}"
+      if [[ "$idx_pass" -ge 0 ]]; then
+        AConfFde[passphrase]="${arr[$idx_pass]}"
+        AConfFde[verifypassphrase]="${arr[$idx_verify]}"
+      fi
+      AConfFde[lvroot]="${arr[$idx_lvroot]}"
+      AConfFde[lvboot]="${arr[$idx_lvboot]}"
+      AConfFde[lvswap]="${arr[$idx_lvswap]}"
+      AConfFde[lvvar]="${arr[$idx_lvvar]}"
+      AConfFde[lvhome]="${arr[$idx_lvhome]}"
       AConfFde[partition]="$_part"
+
+      # Nome de VG precisa ser único no sistema — mas só é um problema de
+      # verdade se estiver em OUTRO disco (não no que está sendo
+      # configurado agora). Reinstalar no mesmo disco naturalmente bate
+      # com o nome de uma tentativa anterior — a limpeza de sh_install já
+      # trata isso, não precisa bloquear aqui. pvs/vgs simples confirmado
+      # não confiável em log real — a saída verbose do vgscan é a fonte
+      # de verdade (lê o metadado direto de cada dispositivo).
+      _vg_pv=$(vgscan -vvv 2>&1 | grep "for VG ${AConfFde[vg]}$" | sed -E 's#.*Found metadata summary on (\S+) at.*#\1#' | head -1)
+      if [[ -n "$_vg_pv" && "$_vg_pv" != "${AConfDisk[_DEVICE]}"* ]]; then
+        alerta "=== $ctitlemenu ===" \
+          "\n${RED}$(gettext 'Já existe um Volume Group chamado') '${AConfFde[vg]}' $(gettext 'em outro disco') (${_vg_pv}), $(gettext 'fora do disco que está sendo instalado agora.')${RST}" \
+          "\n$(gettext 'Escolha outro nome, ou remova o VG existente manualmente antes de continuar.')"
+        continue
+      fi
 
       # "0" ou "0%" equivale a deixar em branco (sem volume separado) — o
       # código de criação dos volumes só olha se está vazio ou não, então
       # normaliza aqui pra não tentar criar um volume de tamanho zero.
       # (a explicação de como preencher já foi mostrada na entrada da tela)
       local _lvfield _lvval
-      for _lvfield in lvswap lvvar lvhome; do
+      for _lvfield in lvboot lvswap lvvar lvhome; do
         _lvval="${AConfFde[$_lvfield]}"
         if [[ "$_lvval" == "0" || "$_lvval" == "0%" ]]; then
           AConfFde[$_lvfield]=''
         fi
       done
 
-      # O usuário digita percentual pensando em "% do disco total" (ex:
-      # root=25% = 1/4 do disco) — mas o lvcreate usa "%FREE" (% do que
-      # ainda está livre naquele momento da criação, root->swap->var->home,
-      # nessa ordem fixa). Se todos os campos preenchidos forem percentuais,
-      # valida que a soma fecha 100% e converte cada um pro %FREE certo.
-      # Se sum=100%, o último campo preenchido sempre resulta em 100%FREE
-      # automaticamente (pega o que sobrou) — não precisa de caso especial.
-      local _lvseq=(lvroot lvswap lvvar lvhome)
-      local _f _v _pct _free _allpercent=true _sum=0 _remaining=100
-      for _f in "${_lvseq[@]}"; do
-        _v="${AConfFde[$_f]}"
-        [[ -z "$_v" ]] && continue
-        if [[ "$_v" != *% ]]; then
-          _allpercent=false
-          break
+      # Aceita digitar só o número (ex: "25"), sem precisar do "%" no
+      # final — completa automaticamente aqui, só na hora de usar de
+      # verdade. Não mexe em quem já digitou "%" ou tamanho absoluto
+      # (ex: "10G").
+      for _lvfield in lvroot lvboot lvswap lvvar lvhome; do
+        _lvval="${AConfFde[$_lvfield]}"
+        if [[ -n "$_lvval" && "$_lvval" =~ ^[0-9]+$ ]]; then
+          AConfFde[$_lvfield]="${_lvval}%"
         fi
       done
 
-      if $_allpercent; then
-        for _f in "${_lvseq[@]}"; do
-          _v="${AConfFde[$_f]}"
-          [[ -z "$_v" ]] && continue
-          _pct="${_v%\%}"
-          ((_sum += _pct))
-        done
+      # Mostra um resumo do que foi preenchido e confirma antes de seguir
+      # pra criação de verdade — se recusar, volta pro formulário com os
+      # valores exatamente como foram digitados.
+      local _line_vg _line_root _line_boot _line_swap _line_var _line_home
+      printf -v _line_vg '%-13s %s' 'Volume Group:' "${AConfFde[vg]}"
+      printf -v _line_root '%-13s %s' 'root:' "${AConfFde[lvroot]}"
+      printf -v _line_boot '%-13s %s' 'boot:' "${AConfFde[lvboot]:-$(gettext '(nenhum)')}"
+      printf -v _line_swap '%-13s %s' 'swap:' "${AConfFde[lvswap]:-$(gettext '(nenhum)')}"
+      printf -v _line_var '%-13s %s' 'var:' "${AConfFde[lvvar]:-$(gettext '(nenhum)')}"
+      printf -v _line_home '%-13s %s' 'home:' "${AConfFde[lvhome]:-$(gettext '(nenhum)')}"
 
-        if [[ "$_sum" -ne 100 ]]; then
-          if ! conf "=== FDE/LVM - $(gettext "Percentuais") === " \
-            "\n$(gettext "A soma dos percentuais preenchidos deu") ${_sum}%, $(gettext "mas precisa fechar exatamente 100%.")\n$(gettext "Ajuste os valores (ou deixe algum campo em branco) até a soma bater 100%.")\n\n${BOLD}${WHITE}$(gettext "Novamente?")\n\n"; then
-            LFDE=false
-            LVM=false
-            return 1
-          fi
-          continue
-        fi
-
-        for _f in "${_lvseq[@]}"; do
-          _v="${AConfFde[$_f]}"
-          [[ -z "$_v" ]] && continue
-          _pct="${_v%\%}"
-          _free=$(awk -v p="$_pct" -v r="$_remaining" 'BEGIN{printf "%.0f", (p/r)*100}')
-          AConfFde[$_f]="${_free}%"
-          _remaining=$(awk -v r="$_remaining" -v p="$_pct" 'BEGIN{printf "%.6f", r-p}')
-        done
+      if ! conf "=== $ctitlemenu - $(gettext 'Confirmação') ===" \
+        "\n$(gettext 'Confira antes de prosseguir:')\n" \
+        "\n${CYAN}${_line_vg}${RST}" \
+        "\n${CYAN}${_line_root}${RST}\n${CYAN}${_line_boot}${RST}\n${CYAN}${_line_swap}${RST}\n${CYAN}${_line_var}${RST}\n${CYAN}${_line_home}${RST}" \
+        "\n\n${BOLD}${WHITE}$(gettext 'Deseja prosseguir com essa configuração?')\n\n"; then
+        continue
       fi
+
+      local _origroot="${AConfFde[lvroot]}" _origboot="${AConfFde[lvboot]}" _origswap="${AConfFde[lvswap]}" _origvar="${AConfFde[lvvar]}" _orighome="${AConfFde[lvhome]}"
 
       lvunitroot="${AConfFde[lvroot]: -1}"
       lvsizeroot="${AConfFde[lvroot]%$lvunitroot}"
+      lvunitboot="${AConfFde[lvboot]: -1}"
+      lvsizeboot="${AConfFde[lvboot]%$lvunitboot}"
       lvunitswap="${AConfFde[lvswap]: -1}"
       lvsizeswap="${AConfFde[lvswap]%$lvunitswap}"
       lvunitvar="${AConfFde[lvvar]: -1}"
@@ -8201,27 +8503,18 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SERIAL"
       lvsizehome="${AConfFde[lvhome]%$lvunithome}"
       maxbytespartition="$(sh_toBytes "$size")"
       byteslvroot="$(sh_toBytes "${AConfFde[lvroot]}")"
+      byteslvboot="$(sh_toBytes "${AConfFde[lvboot]}")"
       byteslvswap="$(sh_toBytes "${AConfFde[lvswap]}")"
       byteslvvar="$(sh_toBytes "${AConfFde[lvvar]}")"
       byteslvhome="$(sh_toBytes "${AConfFde[lvhome]}")"
 
-      if grep -o -q "$_part " <<<"$PVs"; then
-        if ! conf "=== FDE/LVM - $(gettext "Partição") === " \
-          "\n$(gettext "Partição") : '$_part'\n$(gettext "Aparentemente,") $(gettext "a partição escolhida já está atribuída como PV no sistema.")\n\n${BOLD}${WHITE}$(gettext "Continuar de qualquer maneira?")\n\n"; then
-          LFDE=false
-          LVM=false
-          continue
-        fi
-      fi
+      # (partição já ser PV é esperado ao reinstalar no mesmo disco — a
+      # limpeza em sh_make_fsLvm/sh_install já trata isso de verdade,
+      # sem precisar perguntar algo assustador aqui no meio do formulário)
 
-      if grep -o -q "${AConfFde[vg]} " <<<"$VGs"; then
-        if ! conf "=== FDE/LVM - $(gettext "Grupo de Volume") === " \
-          "\n$(gettext "Group de Volume") : '${AConfFde[vg]}'\n$(gettext "Aparentemente,") $(gettext "o VG existe no sistema.")\n\n${BOLD}${WHITE}$(gettext "Continuar mesmo assim?")\n\n"; then
-          LFDE=false
-          LVM=false
-          continue
-        fi
-      fi
+      # (a checagem de VG duplicado já foi feita antes da confirmação,
+      # usando vgscan -vvv e sabendo distinguir mesmo disco de disco
+      # diferente — não precisa repetir aqui com um snapshot velho)
 
       if [[ -z "${AConfFde[vg]}" ]]; then
         if ! conf "=== FDE/LVM - $(gettext "Grupo de Volume") === " \
@@ -8230,16 +8523,18 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SERIAL"
           LVM=false
           return 1
         fi
+        AConfFde[lvroot]="$_origroot"; AConfFde[lvboot]="$_origboot"; AConfFde[lvswap]="$_origswap"; AConfFde[lvvar]="$_origvar"; AConfFde[lvhome]="$_orighome"
         continue
       fi
 
-      if [[ $maxbytespartition -lt $((byteslvroot + byteslvswap + byteslvhome + byteslvvar)) ]]; then
+      if [[ $maxbytespartition -lt $((byteslvroot + byteslvboot + byteslvswap + byteslvhome + byteslvvar)) ]]; then
         if ! conf "=== FDE/LVM - $(gettext "Volumes lógicos") === " \
           "\n$(gettext "A soma das partições excede o tamanho total do disco.")\n\n${BOLD}${WHITE}$(gettext "Novamente?")\n\n"; then
           LFDE=false
           LVM=false
           return 1
         fi
+        AConfFde[lvroot]="$_origroot"; AConfFde[lvboot]="$_origboot"; AConfFde[lvswap]="$_origswap"; AConfFde[lvvar]="$_origvar"; AConfFde[lvhome]="$_orighome"
         continue
       fi
 
@@ -8250,6 +8545,18 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SERIAL"
           LVM=false
           return 1
         fi
+        AConfFde[lvroot]="$_origroot"; AConfFde[lvboot]="$_origboot"; AConfFde[lvswap]="$_origswap"; AConfFde[lvvar]="$_origvar"; AConfFde[lvhome]="$_orighome"
+        continue
+      fi
+
+      if [[ -n "$lvunitboot" && "$lvunitboot" != @(K|M|G|T|%) ]]; then
+        if ! conf "=== FDE/LVM - $(gettext "Volume lógico") boot === " \
+          "\nThe logical volume boot cannot be minuscule in size and/or units out of scope (K|M|G|T|%)\nex: 25% [1-100]% or 10G [1-n](K|M|G|T).\n\n${BOLD}${WHITE}$(gettext "Novamente?")\n\n"; then
+          LFDE=false
+          LVM=false
+          return 1
+        fi
+        AConfFde[lvroot]="$_origroot"; AConfFde[lvboot]="$_origboot"; AConfFde[lvswap]="$_origswap"; AConfFde[lvvar]="$_origvar"; AConfFde[lvhome]="$_orighome"
         continue
       fi
 
@@ -8260,6 +8567,7 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SERIAL"
           LVM=false
           return 1
         fi
+        AConfFde[lvroot]="$_origroot"; AConfFde[lvboot]="$_origboot"; AConfFde[lvswap]="$_origswap"; AConfFde[lvvar]="$_origvar"; AConfFde[lvhome]="$_orighome"
         continue
       fi
 
@@ -8270,6 +8578,7 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SERIAL"
           LVM=false
           return 1
         fi
+        AConfFde[lvroot]="$_origroot"; AConfFde[lvboot]="$_origboot"; AConfFde[lvswap]="$_origswap"; AConfFde[lvvar]="$_origvar"; AConfFde[lvhome]="$_orighome"
         continue
       fi
 
@@ -8280,6 +8589,7 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SERIAL"
           LVM=false
           return 1
         fi
+        AConfFde[lvroot]="$_origroot"; AConfFde[lvboot]="$_origboot"; AConfFde[lvswap]="$_origswap"; AConfFde[lvvar]="$_origvar"; AConfFde[lvhome]="$_orighome"
         continue
       fi
 
@@ -8290,14 +8600,13 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SERIAL"
           LVM=false
           return 1
         fi
+        AConfFde[lvroot]="$_origroot"; AConfFde[lvboot]="$_origboot"; AConfFde[lvswap]="$_origswap"; AConfFde[lvvar]="$_origvar"; AConfFde[lvhome]="$_orighome"
         continue
       fi
 
       AmntpointFDE=()
       AmntpointFDE+=(["/dev/${AConfFde[vg]}/root"]="root|$fstype|1|${AConfFde[lvroot]}|/")
-      #					[[ -n "${AConfFde[lvswap]}" && "$(sh_toBytes "${AConfFde[lvswap]}")" -gt 0 ]] &&	AmntpointFDE+=(["/dev/${AConfFde[vg]}/swap"]="swap|swap|1|${AConfFde[lvswap]}|swap")
-      #					[[ -n "${AConfFde[lvvar]}"  && "$(sh_toBytes "${AConfFde[lvvar]}")"  -gt 0 ]]	&&	AmntpointFDE+=(["/dev/${AConfFde[vg]}/var"]="var|$fstype|1|${AConfFde[lvvar]}|/var")
-      #					[[ -n "${AConfFde[lvhome]}" && "$(sh_toBytes "${AConfFde[lvhome]}")" -gt 0 ]]	&&	AmntpointFDE+=(["/dev/${AConfFde[vg]}/home"]="home|$fstype|1|${AConfFde[lvhome]}|/home")
+      [[ -n "${AConfFde[lvboot]}" ]] && AmntpointFDE+=(["/dev/${AConfFde[vg]}/boot"]="boot|$fstype|1|${AConfFde[lvboot]}|/boot")
       [[ -n "${AConfFde[lvswap]}" ]] && AmntpointFDE+=(["/dev/${AConfFde[vg]}/swap"]="swap|swap|1|${AConfFde[lvswap]}|swap")
       [[ -n "${AConfFde[lvvar]}" ]] && AmntpointFDE+=(["/dev/${AConfFde[vg]}/var"]="var|$fstype|1|${AConfFde[lvvar]}|/var")
       [[ -n "${AConfFde[lvhome]}" ]] && AmntpointFDE+=(["/dev/${AConfFde[vg]}/home"]="home|$fstype|1|${AConfFde[lvhome]}|/home")
@@ -8322,8 +8631,14 @@ sh_make_fsFde() {
   local _part
   local label
 
+  # Cobre o caso de reaproveitar uma tabela de partições de um teste
+  # anterior sem reparticionar (sh_close_stale_crypto só rodava ligada ao
+  # sh_mkparted) — sem isso, um LUKS/VG remanescente ainda ativo em cima
+  # dessa mesma partição faz o luksFormat falhar com "dispositivo em uso".
+  sh_close_stale_crypto "${AConfFde[partition]}"
+
   sh_info_msg "Formatando e cryptografando a unidade : ${AConfFde[partition]}"
-  printf "${AConfFde[passphrase]}" | cryptsetup luksFormat --type luks1 "${AConfFde[partition]}" --key-file=- -v 2>&1 | tee -i -a "$BOOTLOG" >"$LOGGER"
+  printf "${AConfFde[passphrase]}" | cryptsetup luksFormat --type luks1 --batch-mode "${AConfFde[partition]}" --key-file=- -v 2>&1 | tee -i -a "$BOOTLOG" >"$LOGGER"
   evaluate_retval "${PIPESTATUS[1]}"
 
   sh_info_msg "Abrindo a unidade cryptografada: ${AConfFde[partition]}"
@@ -8341,6 +8656,38 @@ sh_make_fsLvm() {
   local mntpoint
   local lvunit
   local aLVs=()
+
+  # Só é preciso ajustar quando o disco ALVO da instalação é ele mesmo
+  # uma LV (ex: instalando dentro de um LV do Proxmox no host, disco
+  # aninhado) — dentro de uma VM normal, o disco é bruto (/dev/sda,
+  # /dev/vda), sem aninhamento nenhum, e essa configuração não faz
+  # diferença. Causa raiz confirmada manualmente: com scan_lvs=0 (padrão
+  # da maioria das distros), o LVM não rastreia de forma confiável PVs/
+  # VGs que moram DENTRO de outra LV — vgscan até encontra, mas vgs/
+  # lvcreate/vgchange normais "perdem" a referência logo depois. Ajusta
+  # uma vez aqui, antes de qualquer pvcreate/vgcreate/lvcreate.
+  if [[ "$(lsblk -no TYPE "${AConfDisk[_DEVICE]}" 2>/dev/null)" = "lvm" ]]; then
+    if grep -qE '^\s*#?\s*scan_lvs\s*=\s*0' /etc/lvm/lvm.conf 2>/dev/null; then
+      sed -i -E 's/^\s*#?\s*scan_lvs\s*=\s*0/\tscan_lvs = 1/' /etc/lvm/lvm.conf
+    fi
+  fi
+
+  # Cobre instalação anterior abortada sem limpar: VG/LVM (ou LUKS) que
+  # ficou pendurado no mesmo dispositivo, travando o pvcreate/vgcreate a
+  # seguir com "dispositivo ocupado". Roda pros dois casos (com ou sem
+  # LFDE), já que sh_close_stale_crypto (chamada dentro de sh_make_fsFde)
+  # só cobre o caminho com LUKS.
+  sh_close_stale_crypto "${AConfFde[partition]}"
+  sh_close_stale_lvm "${AConfFde[partition]}"
+
+  # pvs/vgs às vezes "não enxergam" um VG que existe de verdade (cache
+  # desatualizado, visto repetidamente em testes) — por isso sh_close_stale_lvm
+  # (que depende de pvs pra descobrir o VG) pode não achar nada pra limpar.
+  # vgremove -ff direto pelo nome esperado se mostrou confiável mesmo
+  # nesses casos — tenta incondicionalmente, sem depender de descoberta
+  # prévia (remover algo que não existe é inofensivo, só falha e segue).
+  vgchange -an "${AConfFde[vg]}" >/dev/null 2>&1
+  vgremove -ff "${AConfFde[vg]}" >/dev/null 2>&1
 
   if $LFDE; then
     sh_make_fsFde
@@ -8363,18 +8710,18 @@ sh_make_fsLvm() {
   evaluate_retval "${PIPESTATUS[0]}"
 
   #order required for creation due to issue of 100%
-  aLVs=("/dev/${AConfFde[vg]}/root" "/dev/${AConfFde[vg]}/swap" "/dev/${AConfFde[vg]}/var" "/dev/${AConfFde[vg]}/home")
+  aLVs=("/dev/${AConfFde[vg]}/root" "/dev/${AConfFde[vg]}/boot" "/dev/${AConfFde[vg]}/swap" "/dev/${AConfFde[vg]}/var" "/dev/${AConfFde[vg]}/home")
+
+  # Duas passadas: primeiro cria todos os LVs, só depois formata cada um
+  # — mais organizado que intercalar criação e formatação item a item.
   for i in "${aLVs[@]}"; do
     _part="$i"
-    label="$(sh_splitarray "${AmntpointFDE[$i]}" 1)"
-    fstype="$(sh_splitarray "${AmntpointFDE[$i]}" 2)"
-    format="$(sh_splitarray "${AmntpointFDE[$i]}" 3)"
     size="$(sh_splitarray "${AmntpointFDE[$i]}" 4)"
-    mntpoint="$(sh_splitarray "${AmntpointFDE[$i]}" 5)"
     lvunit="${size: -1}"
 
     [[ -z "$size" ]] && continue
 
+    label="$(sh_splitarray "${AmntpointFDE[$i]}" 1)"
     sh_info_msg "Criando o volume lógico: $label"
     if [[ "$lvunit" = "%" ]]; then
       lvcreate --yes --name "$label" -l "${size}FREE" "${AConfFde[vg]}" 2>&1 | tee -i -a "$BOOTLOG" >"$LOGGER"
@@ -8382,6 +8729,17 @@ sh_make_fsLvm() {
       lvcreate --yes --name "$label" -L "${size}" "${AConfFde[vg]}" 2>&1 | tee -i -a "$BOOTLOG" >"$LOGGER"
     fi
     evaluate_retval "${PIPESTATUS[0]}"
+  done
+
+  for i in "${aLVs[@]}"; do
+    _part="$i"
+    label="$(sh_splitarray "${AmntpointFDE[$i]}" 1)"
+    fstype="$(sh_splitarray "${AmntpointFDE[$i]}" 2)"
+    format="$(sh_splitarray "${AmntpointFDE[$i]}" 3)"
+    size="$(sh_splitarray "${AmntpointFDE[$i]}" 4)"
+    mntpoint="$(sh_splitarray "${AmntpointFDE[$i]}" 5)"
+
+    [[ -z "$size" ]] && continue
 
     if [[ "$format" = "1" ]]; then
       sh_info_msg "${cmsg_FormatandoParticao} ${_part} FS ${fstype,,}"
@@ -8403,6 +8761,7 @@ sh_make_fsLvm() {
       fi
       evaluate_retval "${PIPESTATUS[0]}"
     fi
+
   done
   _arch=$(xbps-uhelper arch)
   export XBPS_ARCH=${_arch}
@@ -8411,15 +8770,16 @@ sh_make_fsLvm() {
 
 sh_clearVg() {
   local _vg="$1"
-  local alogical=()
-  local alogical=("/dev/$_vg/root" "/dev/$_vg/swap" "/dev/$_vg/home" "/dev/$_vg/var")
-  local afs=("/dev/mapper/$_vg-root" "/dev/mapper/$_vg-swap" "/dev/mapper/$_vg-home" "/dev/mapper/$_vg-var")
   local i
 
   sh_umount_fs
-  sh_info_msg "$(gettext 'Removendo LVs (Volumes Lógicos')"
-  lvremove -ff /dev/"$_vg"/* 2>&1 | tee -i -a "$BOOTLOG" >"$LOGGER"
-  evaluate_retval "${PIPESTATUS[0]}" "$err_not_fatal"
+
+  # vgremove -ff já remove as LVs de dentro do VG sozinho — um lvremove
+  # separado antes dele é redundante e, na prática, batia no mesmo
+  # problema de cache do LVM que motivou essa função (relatava "VG not
+  # found" mesmo com o VG existindo de verdade, gerando um [ FAIL ]
+  # confuso no log por nada).
+  vgchange -an "$_vg" >/dev/null 2>&1
 
   sh_info_msg "$(gettext 'Removendo VG (Volume Group)')"
   vgremove -ff "$_vg" 2>&1 | tee -i -a "$BOOTLOG" >"$LOGGER"
@@ -8921,6 +9281,12 @@ sh_rebuild_amntpoint_for_new_disk() {
         Amntpoint["$PATH_"]="none|swap|1"
         swap_set=true
         continue
+        ;;
+      LVM2_member)
+        # Resíduo de LVM de uma instalação anterior nessa partição — não
+        # é um filesystem de verdade (não existe "mkfs.LVM2_member"),
+        # trata como ext4 reaproveitável, igual uma partição comum.
+        fs="ext4"
         ;;
       *)
         fs="$FSTYPE_"
