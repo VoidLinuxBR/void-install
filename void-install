@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: dom 06 set 2026 09:11:30 -04
+#  Updated: dom 06 set 2026 13:38:51 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -133,6 +133,8 @@ declare LSWAY=false
 declare LMANGO=false
 declare LHYPRLAND=false
 declare LXFCE=false
+declare LGNOME=false
+declare LPLASMA=false
 #
 declare DEFITEM
 #
@@ -821,6 +823,14 @@ sh_choose_common_packages() {
     return
   fi
 
+  if $LGNOME; then
+    return
+  fi
+
+  if $LPLASMA; then
+    return
+  fi
+
   if $LXORG; then
     return
   fi
@@ -1017,6 +1027,8 @@ sh_touchConf() {
     declare -p LMANGO
     declare -p LHYPRLAND
     declare -p LXFCE
+    declare -p LGNOME
+    declare -p LPLASMA
     declare -p LDHCP
     declare -p LCUSTOM
     declare -p LCUSTOM
@@ -2916,11 +2928,7 @@ sh_make_user() {
         rm -f $dir_install/home/$user/Área\ de\ trabalho/voidbr-install.desktop
    " $err_not_fatal
 
-  local _installer_shortcut=(void-install.desktop)
-  local _applications_only=(/usr/share/applications)
-  sh_remove_files_in_dirs _installer_shortcut _applications_only
-
-  local _desktop_files=(voidbr-install.desktop weston.desktop labwc.desktop)
+  local _desktop_files=(voidbr-install.desktop void-install.desktop weston.desktop labwc.desktop)
   local _desktop_dirs=(/usr/share/applications /usr/share/xsessions /usr/share/wayland-sessions)
   sh_remove_files_in_dirs _desktop_files _desktop_dirs
 
@@ -3462,6 +3470,15 @@ sh_plasma_minimal() {
   sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
 
+sh_plasma_meta_package() {
+  local DE='Plasma Desktop'
+  local apkgs=(voidbr-plasma)
+  apkgs+=(voidbr-base-config)
+  apkgs+=(voidbr-plasma-config)
+
+  sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
+}
+
 sh_cinnamon_minimal() {
   local DE='cinnamon'
   local apkgs=(cinnamon cinnamon-all)
@@ -3611,6 +3628,15 @@ sh_gnome_minimal() {
 
     sh_common_theme
   fi
+
+  sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
+}
+
+sh_gnome_meta_package() {
+  local DE='Gnome'
+  local apkgs=(voidbr-gnome)
+  apkgs+=(voidbr-base-config)
+  apkgs+=(voidbr-gnome-config)
 
   sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -5845,6 +5871,8 @@ sh_choose_wm() {
   LMANGO=false
   LHYPRLAND=false
   LXFCE=false
+  LGNOME=false
+  LPLASMA=false
   LXORG=false
   LSERVER=false
 
@@ -5876,6 +5904,14 @@ sh_choose_wm() {
     xfce)
       LXFCE=true
       _DISPLAYMANAGER="lightdm"
+      ;;
+    gnome)
+      LGNOME=true
+      _DISPLAYMANAGER="sddm"
+      ;;
+    plasma)
+      LPLASMA=true
+      _DISPLAYMANAGER="sddm"
       ;;
     *)
       if grep -qi gnome <<<"$_realwm"; then
@@ -7361,6 +7397,14 @@ sh_install() {
           sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
           sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM Config')" "${aDisplaymanagerConfig[*]}"
           :
+        elif $LGNOME; then
+          sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
+          sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM Config')" "${aDisplaymanagerConfig[*]}"
+          :
+        elif $LPLASMA; then
+          sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
+          sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM Config')" "${aDisplaymanagerConfig[*]}"
+          :
         else
           sh_X11_minimal
         fi
@@ -7385,8 +7429,8 @@ sh_install() {
         "fluxbox") sh_fluxbox_meta_package ;;
         "hyprland") sh_hyprland_meta_package ;;
         "openbox") sh_openbox_minimal ;;
-        "gnome") sh_gnome_minimal ;;
-        "plasma") sh_plasma_minimal ;;
+        "gnome") sh_gnome_meta_package ;;
+        "plasma") sh_plasma_meta_package ;;
         "xfce") sh_xfce_meta_package ;;
         "cinnamon") sh_cinnamon_minimal ;;
         "i3wm") sh_i3_minimal ;;
@@ -7978,6 +8022,20 @@ sh_toBytes() {
   echo ${sai:0:$ent}
 }
 
+# sh_toBytes sozinha não sabe converter percentual (não conhece o total do
+# disco) — sempre devolve 0 pra qualquer valor com "%". Esse helper resolve
+# os dois casos: percentual do total (usa $2 como referência) ou tamanho
+# absoluto (delega pra sh_toBytes normalmente).
+sh_toBytesPercent() {
+  local v="$1" total="$2" pct
+  if [[ "$v" == *% ]]; then
+    pct="${v%\%}"
+    echo $(((total * pct) / 100))
+  else
+    sh_toBytes "$v"
+  fi
+}
+
 sh_ternario() {
   local retval="$1"
   [[ "$retval" -eq 0 ]] && {
@@ -8372,7 +8430,7 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SERIAL"
       --title "=== $ctitlemenu ===" \
       --backtitle "$ccabec" \
       --ok-label "${cmsg_ok}" \
-      --msgbox "\n${BOLD}$(gettext 'Como preencher os percentuais dos volumes lógicos:')${RST}\n$(gettext 'Cada percentual é relativo ao que AINDA ESTÁ LIVRE no momento da criação de cada volume — não ao total do disco.')\n\n${YELLOW}$(gettext 'A ordem de criação é sempre root, depois swap, depois var, depois home.')${RST}\n$(gettext 'Exemplo: root=25 usa 25% do total (nada foi criado ainda). Se depois var=25, isso é 25% do que SOBROU após o root (não 25% do total).')\n\n${YELLOW}$(gettext 'Padrão: root=100, swap/var/home em branco')${RST} — $(gettext 'tudo fica dentro de uma única partição; swap, var e home continuam existindo como pastas normais dentro de /, sem volume lógico separado.')\n\n$(gettext 'Deixe em branco (ou \"0\") o campo que não quiser como volume separado.')\n\n$(gettext 'Também aceita tamanho absoluto em vez de percentual (ex: 10G, 500M).')" \
+      --msgbox "\n${BOLD}$(gettext 'Como preencher os percentuais dos volumes lógicos:')${RST}\n$(gettext 'Cada percentual é relativo ao TOTAL do espaço reservado — não precisa se preocupar com "o que sobra", o script calcula isso por você.')\n\n${YELLOW}$(gettext 'A SOMA de tudo que você preencher precisa fechar, no máximo, 100%.')${RST}\n$(gettext 'Digite só o número, sem o "%" (ex: root=25, boot=2, var=5, home=68 — soma=100 cria os quatro volumes nesses tamanhos exatos).')\n\n${YELLOW}$(gettext 'Padrão: root=100, boot/swap/var/home em branco')${RST} — $(gettext 'tudo fica dentro de uma única partição; boot, swap, var e home continuam existindo como pastas normais dentro de /, sem volume lógico separado.')\n\n$(gettext 'Deixe em branco (ou \"0\") o campo que não quiser como volume separado.')\n\n$(gettext 'Também aceita tamanho absoluto em vez de percentual (ex: 10G, 500M) — nesse caso é descontado do total, e os demais percentuais se referem ao que sobrou.')" \
       0 0
   fi
 
@@ -8522,20 +8580,12 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SERIAL"
       # pra criação de verdade — se recusar, volta pro formulário com os
       # valores exatamente como foram digitados.
       local _line_vg _line_root _line_boot _line_swap _line_var _line_home
-      printf -v _line_vg '%-13s %s' 'Volume Group:' "${AConfFde[vg]}"
-      printf -v _line_root '%-13s %s' 'root:' "${AConfFde[lvroot]}"
-      printf -v _line_boot '%-13s %s' 'boot:' "${AConfFde[lvboot]:-$(gettext '(nenhum)')}"
-      printf -v _line_swap '%-13s %s' 'swap:' "${AConfFde[lvswap]:-$(gettext '(nenhum)')}"
-      printf -v _line_var '%-13s %s' 'var:' "${AConfFde[lvvar]:-$(gettext '(nenhum)')}"
-      printf -v _line_home '%-13s %s' 'home:' "${AConfFde[lvhome]:-$(gettext '(nenhum)')}"
-
-      if ! conf "=== $ctitlemenu - $(gettext 'Confirmação') ===" \
-        "\n$(gettext 'Confira antes de prosseguir:')\n" \
-        "\n${CYAN}${_line_vg}${RST}" \
-        "\n${CYAN}${_line_root}${RST}\n${CYAN}${_line_boot}${RST}\n${CYAN}${_line_swap}${RST}\n${CYAN}${_line_var}${RST}\n${CYAN}${_line_home}${RST}" \
-        "\n\n${BOLD}${WHITE}$(gettext 'Deseja prosseguir com essa configuração?')\n\n"; then
-        continue
-      fi
+      _line_vg="$(padr 'Volume Group :' 15 ' ') ${AConfFde[vg]}"
+      _line_root="$(padr 'root :' 15 ' ') ${AConfFde[lvroot]}"
+      _line_boot="$(padr 'boot :' 15 ' ') ${AConfFde[lvboot]:-$(gettext '(nenhum)')}"
+      _line_swap="$(padr 'swap :' 15 ' ') ${AConfFde[lvswap]:-$(gettext '(nenhum)')}"
+      _line_var="$(padr 'var :' 15 ' ') ${AConfFde[lvvar]:-$(gettext '(nenhum)')}"
+      _line_home="$(padr 'home :' 15 ' ') ${AConfFde[lvhome]:-$(gettext '(nenhum)')}"
 
       local _origroot="${AConfFde[lvroot]}" _origboot="${AConfFde[lvboot]}" _origswap="${AConfFde[lvswap]}" _origvar="${AConfFde[lvvar]}" _orighome="${AConfFde[lvhome]}"
 
@@ -8550,11 +8600,11 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SERIAL"
       lvunithome="${AConfFde[lvhome]: -1}"
       lvsizehome="${AConfFde[lvhome]%$lvunithome}"
       maxbytespartition="$(sh_toBytes "$size")"
-      byteslvroot="$(sh_toBytes "${AConfFde[lvroot]}")"
-      byteslvboot="$(sh_toBytes "${AConfFde[lvboot]}")"
-      byteslvswap="$(sh_toBytes "${AConfFde[lvswap]}")"
-      byteslvvar="$(sh_toBytes "${AConfFde[lvvar]}")"
-      byteslvhome="$(sh_toBytes "${AConfFde[lvhome]}")"
+      byteslvroot="$(sh_toBytesPercent "${AConfFde[lvroot]}" "$maxbytespartition")"
+      byteslvboot="$(sh_toBytesPercent "${AConfFde[lvboot]}" "$maxbytespartition")"
+      byteslvswap="$(sh_toBytesPercent "${AConfFde[lvswap]}" "$maxbytespartition")"
+      byteslvvar="$(sh_toBytesPercent "${AConfFde[lvvar]}" "$maxbytespartition")"
+      byteslvhome="$(sh_toBytesPercent "${AConfFde[lvhome]}" "$maxbytespartition")"
 
       # (partição já ser PV é esperado ao reinstalar no mesmo disco — a
       # limpeza em sh_make_fsLvm/sh_install já trata isso de verdade,
@@ -8566,7 +8616,7 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SERIAL"
 
       if [[ -z "${AConfFde[vg]}" ]]; then
         if ! conf "=== FDE/LVM - $(gettext "Grupo de Volume") === " \
-          "\nVolume Group = '${AConfFde[vg]}'\n$(gettext "O nome do grupo de volumes não pode estar vazio.")\n\n${BOLD}${WHITE}$(gettext "Novamente?")\n\n"; then
+          "\nVolume Group = '${AConfFde[vg]}'\n$(gettext "O nome do grupo de volumes não pode estar vazio.")\n\n${BOLD}${RED}$(gettext "Novamente?")\n\n"; then
           LFDE=false
           LVM=false
           return 1
@@ -8576,8 +8626,37 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SERIAL"
       fi
 
       if [[ $maxbytespartition -lt $((byteslvroot + byteslvboot + byteslvswap + byteslvhome + byteslvvar)) ]]; then
+        local _sum_bytes=$((byteslvroot + byteslvboot + byteslvswap + byteslvhome + byteslvvar))
+        local _deficit_bytes=$((maxbytespartition - _sum_bytes))
+        local _deficit_human _sum_lines _sl_device _sl_part _sl_root _sl_boot _sl_swap _sl_var _sl_home _sl_soma
+        _deficit_human=$(numfmt --to=iec --suffix=B -- "$_deficit_bytes" 2>/dev/null)
+        _sl_device="${CYAN}$(padr "$(gettext 'Device :')" 15 ' ')${RST} ${YELLOW}${AConfFde[partition]}${RST}"
+        _sl_part="${CYAN}$(padr "$(gettext 'Tamanho :')" 15 ' ')${RST} ${YELLOW}${size}${RST}"
+        _sum_lines="${_sl_device}\n${_sl_part}"
+        if [[ -n "${AConfFde[lvroot]}" ]]; then
+          _sl_root="${CYAN}$(padr '/root :' 15 ' ')${RST} ${YELLOW}${AConfFde[lvroot]}${RST}"
+          _sum_lines+="\n${_sl_root}"
+        fi
+        if [[ -n "${AConfFde[lvboot]}" ]]; then
+          _sl_boot="${CYAN}$(padr '/boot :' 15 ' ')${RST} ${YELLOW}${AConfFde[lvboot]}${RST}"
+          _sum_lines+="\n${_sl_boot}"
+        fi
+        if [[ -n "${AConfFde[lvswap]}" ]]; then
+          _sl_swap="${CYAN}$(padr '/swap :' 15 ' ')${RST} ${YELLOW}${AConfFde[lvswap]}${RST}"
+          _sum_lines+="\n${_sl_swap}"
+        fi
+        if [[ -n "${AConfFde[lvvar]}" ]]; then
+          _sl_var="${CYAN}$(padr '/var :' 15 ' ')${RST} ${YELLOW}${AConfFde[lvvar]}${RST}"
+          _sum_lines+="\n${_sl_var}"
+        fi
+        if [[ -n "${AConfFde[lvhome]}" ]]; then
+          _sl_home="${CYAN}$(padr '/home :' 15 ' ')${RST} ${YELLOW}${AConfFde[lvhome]}${RST}"
+          _sum_lines+="\n${_sl_home}"
+        fi
+        _sl_soma="${CYAN}$(padr "$(gettext 'Soma :')" 15 ' ')${RST} ${YELLOW}${_deficit_human}${RST}"
+        _sum_lines+="\n\n${_sl_soma}"
         if ! conf "=== FDE/LVM - $(gettext "Volumes lógicos") === " \
-          "\n$(gettext "A soma das partições excede o tamanho total do disco.")\n\n${BOLD}${WHITE}$(gettext "Novamente?")\n\n"; then
+          "\n$(gettext "A soma das partições excede o tamanho da partição de destino.")\n\n${_sum_lines}\n\n${BOLD}${RED}$(gettext "Novamente?")\n\n"; then
           LFDE=false
           LVM=false
           return 1
@@ -8587,8 +8666,8 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SERIAL"
       fi
 
       if [[ -z "$lvunitroot" || "$lvunitroot" != @(K|M|G|T|%) ]]; then
-        if ! conf "=== FDE/LM - $(gettext "Volume lógico raiz") === " \
-          "\nThe logical volume root cannot be empty or minuscule in size and/or units out of scope (K|M|G|T|%)\nex: 25% [1-100]% or 10G [1-n](K|M|G|T).\n\n${BOLD}${WHITE}$(gettext "Novamente?")\n\n"; then
+        if ! conf "=== FDE/LVM - $(gettext "Volume lógico raiz") === " \
+          "\n$(gettext "O volume lógico root não pode ficar vazio, nem ter tamanho ou unidade fora do padrão (K|M|G|T|%).")\nex: 25% [1-100]% ou 10G [1-n](K|M|G|T).\n\n${BOLD}${RED}$(gettext "Novamente?")\n\n"; then
           LFDE=false
           LVM=false
           return 1
@@ -8599,7 +8678,7 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SERIAL"
 
       if [[ -n "$lvunitboot" && "$lvunitboot" != @(K|M|G|T|%) ]]; then
         if ! conf "=== FDE/LVM - $(gettext "Volume lógico") boot === " \
-          "\nThe logical volume boot cannot be minuscule in size and/or units out of scope (K|M|G|T|%)\nex: 25% [1-100]% or 10G [1-n](K|M|G|T).\n\n${BOLD}${WHITE}$(gettext "Novamente?")\n\n"; then
+          "\n$(gettext "O volume lógico boot não pode ter tamanho ou unidade fora do padrão (K|M|G|T|%).")\nex: 25% [1-100]% ou 10G [1-n](K|M|G|T).\n\n${BOLD}${RED}$(gettext "Novamente?")\n\n"; then
           LFDE=false
           LVM=false
           return 1
@@ -8609,8 +8688,8 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SERIAL"
       fi
 
       if [[ -n "$lvunitswap" && "$lvunitswap" != @(K|M|G|T|%) ]]; then
-        if ! conf "=== FDE/LVM - $("Volume lógico") swap === " \
-          "\nThe logical volume swap cannot be empty or minuscule in size and/or units out of scope (K|M|G|T|%)\nex: 25% [1-100]% or 10G [1-n](K|M|G|T).\n\n${BOLD}${WHITE}$(gettext "Novamente?")\n\n"; then
+        if ! conf "=== FDE/LVM - $(gettext "Volume lógico") swap === " \
+          "\n$(gettext "O volume lógico swap não pode ter tamanho ou unidade fora do padrão (K|M|G|T|%).")\nex: 25% [1-100]% ou 10G [1-n](K|M|G|T).\n\n${BOLD}${RED}$(gettext "Novamente?")\n\n"; then
           LFDE=false
           LVM=false
           return 1
@@ -8620,8 +8699,8 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SERIAL"
       fi
 
       if [[ -n "$lvunithome" && "$lvunithome" != @(K|M|G|T|%) ]]; then
-        if ! conf "=== FDE/LVM - $("Volume lógico") swap === " \
-          "\nThe logical volume swap cannot be empty or minuscule in size and/or units out of scope (K|M|G|T|%)\nex: 25% [1-100]% or 10G [1-n](K|M|G|T).\n\n${BOLD}${WHITE}$(gettext "Novamente?")\n\n"; then
+        if ! conf "=== FDE/LVM - $(gettext "Volume lógico") home === " \
+          "\n$(gettext "O volume lógico home não pode ter tamanho ou unidade fora do padrão (K|M|G|T|%).")\nex: 25% [1-100]% ou 10G [1-n](K|M|G|T).\n\n${BOLD}${RED}$(gettext "Novamente?")\n\n"; then
           LFDE=false
           LVM=false
           return 1
@@ -8631,8 +8710,8 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SERIAL"
       fi
 
       if [[ -n "$lvunitvar" && "$lvunitvar" != @(K|M|G|T|%) ]]; then
-        if ! conf "=== FDE/LVM - $("Volume lógico") var === " \
-          "\nThe logical volume var cannot be empty or minuscule in size and/or units out of scope (K|M|G|T|%)\nex: 25% [1-100]% or 10G [1-n](K|M|G|T).\n\n${BOLD}${WHITE}$(gettext "Novamente?")\n\n"; then
+        if ! conf "=== FDE/LVM - $(gettext "Volume lógico") var === " \
+          "\n$(gettext "O volume lógico var não pode ter tamanho ou unidade fora do padrão (K|M|G|T|%).")\nex: 25% [1-100]% ou 10G [1-n](K|M|G|T).\n\n${BOLD}${RED}$(gettext "Novamente?")\n\n"; then
           LFDE=false
           LVM=false
           return 1
@@ -8643,7 +8722,7 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SERIAL"
 
       if [[ -z "${AConfFde[passphrase]}" || "${AConfFde[passphrase]}" != "${AConfFde[verifypassphrase]}" ]]; then
         if ! conf "=== FDE/LVM - $(gettext "Senha") === " \
-          "\nPassphrases do not match and also not be empty.\n\n${BOLD}${WHITE}$(gettext "Novamente?")\n\n"; then
+          "\n$(gettext "As senhas não conferem, ou estão vazias.")\n\n${BOLD}${RED}$(gettext "Novamente?")\n\n"; then
           LFDE=false
           LVM=false
           return 1
@@ -8652,12 +8731,58 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SERIAL"
         continue
       fi
 
+      # Só mostra o resumo pra confirmar DEPOIS de todas as validações
+      # acima passarem — evita o usuário confirmar "prosseguir" e, logo
+      # em seguida, cair num erro de validação que já era conhecido antes
+      # mesmo de perguntar (ex: soma excede o disco).
+      if ! conf "=== $ctitlemenu - $(gettext 'Confirmação') ===" \
+        "\n$(gettext 'Confira antes de prosseguir:')\n" \
+        "\n${CYAN}${_line_vg}${RST}" \
+        "\n${CYAN}${_line_root}${RST}\n${CYAN}${_line_boot}${RST}\n${CYAN}${_line_swap}${RST}\n${CYAN}${_line_var}${RST}\n${CYAN}${_line_home}${RST}" \
+        "\n\n${BOLD}${RED}$(gettext 'Deseja prosseguir com essa configuração?')\n\n"; then
+        AConfFde[lvroot]="$_origroot"; AConfFde[lvboot]="$_origboot"; AConfFde[lvswap]="$_origswap"; AConfFde[lvvar]="$_origvar"; AConfFde[lvhome]="$_orighome"
+        continue
+      fi
+
+      # O usuário digita pensando em "% do disco total" (ex: root=25% =
+      # 1/4 do disco) — mas o lvcreate usa "%FREE" (% do que ainda está
+      # livre no momento da criação, na ordem fixa root->boot->swap->
+      # var->home). Converte aqui, andando na mesma ordem, descontando
+      # tamanhos absolutos (ex: "10G") do que sobra em bytes, sem
+      # convertê-los pra %FREE (esses usam -L direto, sem cálculo).
+      #
+      # NUNCA sobrescreve AConfFde[lv*] com o valor convertido — isso é
+      # salvo no .conf e reaparece no formulário se o usuário reabrir pra
+      # editar depois (confirmado causando confusão: usuário digitou
+      # 25/5/70 e via 25%/7%/100% ao reabrir). O convertido fica isolado
+      # em _conv, usado só na construção do AmntpointFDE logo abaixo.
+      local -A _conv=([lvroot]="${AConfFde[lvroot]}" [lvboot]="${AConfFde[lvboot]}" [lvswap]="${AConfFde[lvswap]}" [lvvar]="${AConfFde[lvvar]}" [lvhome]="${AConfFde[lvhome]}")
+      local _lvseq=(lvroot lvboot lvswap lvvar lvhome)
+      local _remaining_bytes="$maxbytespartition"
+      local _f _v _bytes_needed _pct_free
+      for _f in "${_lvseq[@]}"; do
+        _v="${AConfFde[$_f]}"
+        [[ -z "$_v" ]] && continue
+        _bytes_needed=$(sh_toBytesPercent "$_v" "$maxbytespartition")
+        if [[ "$_v" == *% ]]; then
+          if [[ "$_remaining_bytes" -gt 0 ]]; then
+            _pct_free=$(awk -v b="$_bytes_needed" -v r="$_remaining_bytes" 'BEGIN{printf "%.0f", (b/r)*100}')
+          else
+            _pct_free=0
+          fi
+          _conv[$_f]="${_pct_free}%"
+        fi
+        # tamanho absoluto: mantém como está em _conv (lvcreate usa -L
+        # direto), só desconta do que resta pros percentuais seguintes.
+        _remaining_bytes=$((_remaining_bytes - _bytes_needed))
+      done
+
       AmntpointFDE=()
-      AmntpointFDE+=(["/dev/${AConfFde[vg]}/root"]="root|$fstype|1|${AConfFde[lvroot]}|/")
-      [[ -n "${AConfFde[lvboot]}" ]] && AmntpointFDE+=(["/dev/${AConfFde[vg]}/boot"]="boot|$fstype|1|${AConfFde[lvboot]}|/boot")
-      [[ -n "${AConfFde[lvswap]}" ]] && AmntpointFDE+=(["/dev/${AConfFde[vg]}/swap"]="swap|swap|1|${AConfFde[lvswap]}|swap")
-      [[ -n "${AConfFde[lvvar]}" ]] && AmntpointFDE+=(["/dev/${AConfFde[vg]}/var"]="var|$fstype|1|${AConfFde[lvvar]}|/var")
-      [[ -n "${AConfFde[lvhome]}" ]] && AmntpointFDE+=(["/dev/${AConfFde[vg]}/home"]="home|$fstype|1|${AConfFde[lvhome]}|/home")
+      AmntpointFDE+=(["/dev/${AConfFde[vg]}/root"]="root|$fstype|1|${_conv[lvroot]}|/")
+      [[ -n "${AConfFde[lvboot]}" ]] && AmntpointFDE+=(["/dev/${AConfFde[vg]}/boot"]="boot|$fstype|1|${_conv[lvboot]}|/boot")
+      [[ -n "${AConfFde[lvswap]}" ]] && AmntpointFDE+=(["/dev/${AConfFde[vg]}/swap"]="swap|swap|1|${_conv[lvswap]}|swap")
+      [[ -n "${AConfFde[lvvar]}" ]] && AmntpointFDE+=(["/dev/${AConfFde[vg]}/var"]="var|$fstype|1|${_conv[lvvar]}|/var")
+      [[ -n "${AConfFde[lvhome]}" ]] && AmntpointFDE+=(["/dev/${AConfFde[vg]}/home"]="home|$fstype|1|${_conv[lvhome]}|/home")
       ;;
     esac
     exec 3>&-
