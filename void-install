@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: dom 06 set 2026 13:38:51 -04
+#  Updated: seg 07 set 2026 11:09:49 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -51,7 +51,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.9.06-20260906'
+readonly _VERSION_='3.9.07-20260907'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
   chroot blkid fdisk parted lsblk curl xz tee
   mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -806,6 +806,10 @@ sh_choose_common_packages() {
   #common
   aPackageDaemons+=(NetworkManager dhcpcd)
   aServicesTTY+=(NetworkManager)
+
+  if $LUPDATELOCAL; then
+    return
+  fi
 
   if $LSWAY; then
     return
