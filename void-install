@@ -2905,6 +2905,13 @@ sh_remove_files_in_dirs() {
 sh_make_user() {
   local user="${AsUser[cuser]}"
 
+  sh_cmd_job "$(gettext 'Removendo link do instalador')" "
+    rm -f $dir_install/etc/skel/'Área de trabalho'/void-install.desktop
+    rm -f $dir_install/etc/skel/Área\ de\ trabalho/void-install.desktop
+    rm -f $dir_install/etc/skel/'Área de trabalho'/voidbr-install.desktop
+    rm -f $dir_install/etc/skel/Área\ de\ trabalho/voidbr-install.desktop
+  " $err_not_fatal
+
   if [[ -n "${AsUser[cuser]}" ]]; then
     if [[ -n "${AsUser[cfullname]}" ]]; then
       sh_chroot_job "${cmsg_CriandoUsuario}: ${AsUser[cuser]} - ${AsUser[cfullname]}" "useradd -m ${AsUser[cuser]} -G ${AsUser[cgroups]} -p ${AsUser[cpass]} -c '${AsUser[cfullname]}'"
@@ -2926,11 +2933,11 @@ sh_make_user() {
    " $err_not_fatal
 
   sh_cmd_job "$(gettext 'Removendo link do instalador')" "
-        rm -f $dir_install/home/$user/'Área de trabalho'/void-install.desktop
-        rm -f $dir_install/home/$user/Área\ de\ trabalho/void-install.desktop
-        rm -f $dir_install/home/$user/'Área de trabalho'/voidbr-install.desktop
-        rm -f $dir_install/home/$user/Área\ de\ trabalho/voidbr-install.desktop
-   " $err_not_fatal
+    rm -f $dir_install/home/$user/'Área de trabalho'/void-install.desktop
+    rm -f $dir_install/home/$user/Área\ de\ trabalho/void-install.desktop
+    rm -f $dir_install/home/$user/'Área de trabalho'/voidbr-install.desktop
+    rm -f $dir_install/home/$user/Área\ de\ trabalho/voidbr-install.desktop
+  " $err_not_fatal
 
   local _desktop_files=(voidbr-install.desktop void-install.desktop weston.desktop labwc.desktop)
   local _desktop_dirs=(/usr/share/applications /usr/share/xsessions /usr/share/wayland-sessions)
