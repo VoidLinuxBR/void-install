@@ -7420,9 +7420,10 @@ sh_install() {
         case "$x" in
         "tty") : ;;
         "local")
-          if $LCUSTOM; then
-            sh_xfce_minimal
-          fi
+#          if $LCUSTOM; then
+#            sh_xfce_minimal
+#          fi
+          :
           ;;
         "server") sh_server_minimal ;;
         "xorg") sh_xorg_minimal ;;
