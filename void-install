@@ -5589,7 +5589,13 @@ sh_confadduser() {
 	local model
 	local chostname
 
-	$LEXTRA && chostname="${AsUser[chostname]}" || chostname="${chostname_base}-${_WM}"
+  if $LEXTRA; then
+  	chostname="${AsUser[chostname]}"
+  else
+  	chostname="${chostname_base}-$(sh_get_edition_label)"
+  	chostname="${chostname,,}"
+  fi
+
 	sh_setUser
 	size=$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 2)
 	model=$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 4)
