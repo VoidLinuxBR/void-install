@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 08 set 2026 08:54:49 -04
+#  Updated: qua 09 set 2026 07:03:07 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -51,7 +51,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.9.08-20260908'
+readonly _VERSION_='3.9.09-20260909'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -805,9 +805,9 @@ sh_choose_common_packages() {
 	aPackageDaemons+=(NetworkManager dhcpcd)
 	aServicesTTY+=(NetworkManager)
 
-  if [[ "${AConfMirror[_SOURCE]}" = "local" ]]; then
-    return
-  fi
+	if [[ "${AConfMirror[_SOURCE]}" = "local" ]]; then
+		return
+	fi
 
 	if $LSWAY; then
 		return
@@ -3586,6 +3586,16 @@ sh_xorg_minimal() {
 	)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
+	# Marcador do autostartx. Modo xorg é teste do stack X (servidor + xterm,
+	# sem WM nem DM); o if com startx vive no .bash_profile do
+	# voidbr-base-config e aqui fica só o gatilho, porque aquele arquivo é do
+	# pacote e é reescrito a cada reinstalação — o marcador não. No skel
+	# porque o useradd -m do sh_make_user, logo adiante, copia pro home.
+	local cfile="$dir_install/etc/skel/.voidbr-autostartx"
+
+	sh_info_msg "${cmsg_Ajustando} ${cfile}"
+	mkdir -p "$dir_install/etc/skel"
+	: >"$cfile"
 }
 
 sh_gnome_minimal() {
@@ -5791,7 +5801,11 @@ sh_choose_wm() {
 
 	if [[ "${AConfMirror[_SOURCE]}" = "local" ]]; then
 		alerta "=== ${cmsg_Wm^^} ===" "$(gettext 'Instalação escolhida foi via local/ISO, não é necessário alterar nada aqui.')"
-		_WINDOWMANAGER='tty'
+		# Repõe o mesmo valor posto lá no sh_getIso: o 'local' não é um WM, é o
+		# marcador que o sh_get_session_name usa pra descobrir a edição da ISO.
+		# Sobrescrever com o escalar 'tty' fazia o SESSION_NAME cair no default
+		# xfce numa ISO que pode ser de outro DE.
+		_WINDOWMANAGER=('tty' 'local')
 		LWM=true
 		return
 	fi
@@ -5851,12 +5865,12 @@ sh_choose_wm() {
 		enlightenment "${aWm[enlightenment]}" "${aFlag[enlightenment]}" \
 		fluxbox "${aWm[fluxbox]}" "${aFlag[fluxbox]}" \
 		gnome "${aWm[gnome]}" "${aFlag[gnome]}" \
+		hyprland "${aWm[hyprland]}" "${aFlag[hyprland]}" \
 		i3wm "${aWm[i3wm]}" "${aFlag[i3wm]}" \
+		mango "${aWm[mango]}" "${aFlag[mango]}" \
 		mate "${aWm[mate]}" "${aFlag[mate]}" \
 		plasma "${aWm[plasma]}" "${aFlag[plasma]}" \
 		sway "${aWm[sway]}" "${aFlag[sway]}" \
-		mango "${aWm[mango]}" "${aFlag[mango]}" \
-		hyprland "${aWm[hyprland]}" "${aFlag[hyprland]}" \
 		river "${aWm[river]}" "${aFlag[river]}" \
 		xfce "${aWm[xfce]}" "${aFlag[xfce]}" \
 		2>&1 >/dev/tty)
@@ -6572,6 +6586,77 @@ sh_confLuksBoot() {
 	fi
 }
 
+sh_set_edition_os_release() {
+	local name="$1"
+	local f="${dir_install}/etc/os-release"
+	sh_info_msg "${cmsg_Ajustando} $f"
+	[[ -f "$f" ]] || return 1
+	name="${name^}"
+	if grep -q '^EDITION=' "$f"; then
+		sed -i "s/^EDITION=.*/EDITION=\"$name\"/" "$f"
+	else
+		[[ -s "$f" ]] && [[ -n "$(tail -c1 "$f")" ]] && echo >>"$f"
+		echo "EDITION=\"$name\"" >>"$f"
+	fi
+}
+
+# Nome CRU da edição. Alimenta o SESSION_NAME do DM, por isso não normaliza
+# nada — 'tty' aqui tem que continuar 'tty'. Pra nome de exibição (bootloader,
+# os-release), use sh_get_edition_label.
+sh_get_edition() {
+	local distro_name
+
+	if [[ "${AConfMirror[_SOURCE]}" = "local" ]]; then
+		# EDITION do live: o squashfs é o que vai pro alvo, então a edição da
+		# ISO é a edição instalada. Aspas são opcionais e só a 1a linha conta.
+		distro_name=$(sed -n 's/^EDITION=//p' /etc/os-release | head -n1 | tr -d "\"'")
+	fi
+
+	# Sem fallback, um os-release sem EDITION devolveria string vazia e ela
+	# vazaria silenciosamente pro GRUB_DISTRIBUTOR, pro os-release do alvo e
+	# pro SESSION_NAME.
+	[[ -n "$distro_name" ]] || distro_name="$_WM"
+	[[ -n "$distro_name" ]] || distro_name="tty"
+
+	echo "${distro_name^}"
+}
+
+# Nome de EXIBIÇÃO da edição (GRUB, Limine e os-release do alvo). Único lugar
+# onde 'tty' vira 'Base' — antes essa conversão estava duplicada dentro de
+# sh_change_grub e sh_change_limine e faltava na gravação do os-release, o que
+# deixava o menu de boot em "VoidBR Base" e o os-release em EDITION="Tty".
+sh_get_edition_label() {
+	local distro_name
+
+	distro_name="$(sh_get_edition)"
+	[[ "${distro_name,,}" = tty ]] && distro_name="Base"
+	echo "${distro_name^}"
+}
+
+sh_change_grub() {
+	local f="${dir_install}/etc/default/grub"
+	local distro_name="$(sh_get_edition_label)"
+
+	sh_cmd_job "$(gettext 'Aplicando ajustes no GRUB')" "
+    sed -i 's/^GRUB_DISTRIBUTOR=.*/GRUB_DISTRIBUTOR=\"VoidBR ${distro_name}\"/' '$f'
+  " "$err_not_fatal"
+}
+
+sh_change_limine() {
+	local f="${dir_install}/etc/default/limine"
+	local distro_name="$(sh_get_edition_label)"
+
+	sh_cmd_job "$(gettext 'Aplicando ajustes no Limine')" "
+    touch '$f'
+    if grep -q '^LIMINE_DISTRO_NAME=' '$f'; then
+      sed -i 's/^LIMINE_DISTRO_NAME=.*/LIMINE_DISTRO_NAME=\"VoidBR ${distro_name}\"/' '$f'
+    else
+      [ -s '$f' ] && [ -n \"\$(tail -c1 '$f')\" ] && echo >>'$f'
+      echo 'LIMINE_DISTRO_NAME=\"VoidBR ${distro_name}\"' >>'$f'
+    fi
+  " "$err_not_fatal"
+}
+
 sh_grubInstall() {
 	local cfile="$dir_install/etc/default/grub"
 	local xuuidfde
@@ -6584,7 +6669,7 @@ GRUB_DEFAULT=0
 #GRUB_HIDDEN_TIMEOUT=0
 #GRUB_HIDDEN_TIMEOUT_QUIET=false
 GRUB_TIMEOUT=5
-GRUB_DISTRIBUTOR="Void"
+GRUB_DISTRIBUTOR="VoidBR"
 # Uncomment to use basic console
 #GRUB_TERMINAL_INPUT="console"
 # Uncomment to disable graphical terminal
@@ -6610,7 +6695,10 @@ EOF
 
 	if $LFDE; then
 		sh_confLuksBoot
-		sh_chroot_job "Alterando /etc/default/grub" "sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=/#&/' /etc/default/grub"
+		sh_chroot_job "Alterando /etc/default/grub" "
+		  sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=/#&/' /etc/default/grub
+    "
+
 		{
 			echo "GRUB_CMDLINE_LINUX_DEFAULT='splash quiet udev.log_priority=3 libata.noacpi=1 loglevel=4 rd.luks.allow-discards rd.lvm.vg=${AConfFde[vg]} rd.luks.uuid=${AConfFde[uuid]}'"
 			echo "GRUB_ENABLE_CRYPTODISK=y"
@@ -6620,7 +6708,9 @@ EOF
 		# crypt/lvm agora, sem depender de um hook posterior (xbps-reconfigure)
 		# rodar de fato. O GRUB lê /boot ao vivo, então isso é suficiente aqui
 		# (diferente do Limine, que precisa da cópia feita por update-limine).
-		sh_chroot_job "Regenerando initramfs com suporte a LUKS/LVM" "dracut --force --regenerate-all"
+		sh_chroot_job "Regenerando initramfs com suporte a LUKS/LVM" "
+		  dracut --force --regenerate-all
+    "
 	fi
 
 	sh_cmd_job "${cmsg_Ajustando} /etc/grub.d/" "
@@ -6634,8 +6724,8 @@ EOF
 		# doesn't exist") — melhor avisar com clareza o motivo real.
 		if [[ -d "$dir_install/usr/lib/grub/i386-pc" || -d "$dir_install/usr/lib64/grub/i386-pc" ]]; then
 			sh_chroot_job "${cmsg_Instalando} GRUB $(gettext 'para a plataforma') i386-pc" "
-			   grub-install ${AConfDisk[_BOOTLOADER]} --target=i386-pc --force
-		   "
+        grub-install ${AConfDisk[_BOOTLOADER]} --target=i386-pc --force
+		  "
 		else
 			die "$(gettext 'Módulos do GRUB (i386-pc) não encontrados no sistema.') $(gettext 'O pacote correspondente não veio no sistema live usado nesta instalação 100% local, e a atualização pela internet não foi liberada.') $(gettext 'Refaça a instalação permitindo atualizar pela internet, ou use uma ISO que já inclua esse pacote.')"
 		fi
@@ -6916,64 +7006,38 @@ sh_install_pkgs_in_chroot() {
 		"$err_not_fatal"
 }
 
+# Nome da sessão gravado no autologin do DM (sddm/gdm/lxdm/lightdm).
+# A tabela substitui os 12 ramos idênticos do case que havia aqui: todo WM
+# cujo .desktop de sessão tem o mesmo nome do WM entra como uma palavra na
+# lista, sem precisar de ramo novo. tty/server/xorg ficam de fora de
+# propósito — não têm sessão, e nesses casos _DISPLAYMANAGER="None" e este
+# valor nem chega a ser lido.
 sh_get_session_name() {
 	local SESSION_NAME=xfce
-	local NEWROOT="$dir_install"
+	local x
+	local -A aSession=(
+		[i3wm]=1 [fluxbox]=1 [hyprland]=1 [sway]=1 [mango]=1 [river]=1
+		[xfce]=1 [gnome]=1 [plasma]=1 [cinnamon]=1 [mate]=1 [enlightenment]=1
+	)
 
 	for x in "${_WINDOWMANAGER[@]}"; do
-		case "$x" in
-		"i3wm")
-			SESSION_NAME=i3wm
+		# Subscrito vazio em array associativo é erro de sintaxe em bash
+		# ("bad array subscript"), coisa que o case antigo engolia calado.
+		[[ -n "$x" ]] || continue
+
+		# 'local' não é WM: é o marcador de instalação via ISO/squashfs, e aí a
+		# sessão vem da edição gravada no os-release do live.
+		if [[ "$x" = "local" ]]; then
+			SESSION_NAME="$(sh_get_edition)"
+			SESSION_NAME="${SESSION_NAME,,}"
 			break
-			;;
-		"fluxbox")
-			SESSION_NAME=fluxbox
+		fi
+		if [[ -n "${aSession[$x]}" ]]; then
+			SESSION_NAME="$x"
 			break
-			;;
-		"hyprland")
-			SESSION_NAME=hyprland
-			break
-			;;
-		"sway")
-			SESSION_NAME=sway
-			break
-			;;
-		"mango")
-			SESSION_NAME=mango
-			break
-			;;
-		"river")
-			SESSION_NAME=river
-			break
-			;;
-		"xfce")
-			SESSION_NAME=xfce
-			break
-			;;
-		"gnome")
-			SESSION_NAME=gnome
-			break
-			;;
-		"plasma")
-			SESSION_NAME=plasma
-			break
-			;;
-		"cinnamon")
-			SESSION_NAME=cinnamon
-			break
-			;;
-		"mate")
-			SESSION_NAME=mate
-			break
-			;;
-		"enlightenment")
-			SESSION_NAME=enlightenment
-			break
-			;;
-		*) continue ;;
-		esac
+		fi
 	done
-	echo $SESSION_NAME
+	echo "$SESSION_NAME"
 }
 
 sh_update_lxdm_conf() {
@@ -7394,6 +7458,7 @@ sh_install() {
 				sh_limineInstall
 			fi
 
+			sh_set_edition_os_release "$(sh_get_edition_label)"
 			sh_make_fstab
 
 			#debug $LONLY_TTY
@@ -9736,35 +9801,6 @@ sh_ask_update_local() {
 	else
 		sh_info_msg "$(gettext 'Sem conexão com a internet — instalação local seguirá 100% offline.')"
 	fi
-}
-
-sh_change_grub() {
-	local f="${dir_install}/etc/default/grub"
-
-	sh_cmd_job "$(gettext 'Aplicando ajustes no GRUB')" "
-    sed -i 's/^GRUB_DISTRIBUTOR=.*/GRUB_DISTRIBUTOR=\"VoidBR ${_WM^}\"/' '$f'
-    #sed -i 's|^GRUB_CMDLINE_LINUX_DEFAULT=.*|GRUB_CMDLINE_LINUX_DEFAULT="quiet splash plymouth.enable=1 loglevel=4 libata.noacpi=1 acpi=force apm=power-off nowatchdog tsc=nowatchdog cryptomgr.notests no_timer_check rcupdate.rcu_expedited=1 intel_pstate=active amd_pstate=active cpuidle.governor=teo split_lock_detect=off clearcpuid=514 transparent_hugepage=never skew_tick=1 intremap=off nosoftlockup audit=0 nomce systemd.show_status=auto rd.udev.log_level=3 apparmor=1 security=apparmor vconsole.font=Uni2-Fixed16 intel_iommu=on amd_iommu=on tdx=on nvme_load=yes nouveau.modeset=1 i915.modeset=1 amdgpu.modeset=1 radeon.si_support=0 radeon.cik_support=0 amdgpu.si_support=1 amdgpu.cik_support=1 nvidia.modeset=1 nvidia_drm.modeset=1 DEEPIN_GFXMODE="|' /etc/default/grub 1>/dev/null
-  " "$err_not_fatal"
-}
-
-# Equivalente ao sh_change_grub, pro Limine: atualiza LIMINE_DISTRO_NAME em
-# /etc/default/limine (lido pelo update-limine.sh na hora de montar o título
-# de cada entrada do menu, ex: "/VoidBR Xfce (Kernel...)"). O arquivo pode
-# ainda não existir (só é criado hoje quando LFDE=true, pro CMDLINE) — por
-# isso cria se faltar, substitui se já tiver a variável, ou anexa com
-# separador de linha correto se o arquivo existir mas sem essa variável.
-sh_change_limine() {
-	local f="${dir_install}/etc/default/limine"
-
-	sh_cmd_job "$(gettext 'Aplicando ajustes no Limine')" "
-    touch '$f'
-    if grep -q '^LIMINE_DISTRO_NAME=' '$f'; then
-      sed -i 's/^LIMINE_DISTRO_NAME=.*/LIMINE_DISTRO_NAME=\"VoidBR ${_WM^}\"/' '$f'
-    else
-      [ -s '$f' ] && [ -n \"\$(tail -c1 '$f')\" ] && echo >>'$f'
-      echo 'LIMINE_DISTRO_NAME=\"VoidBR ${_WM^}\"' >>'$f'
-    fi
-  " "$err_not_fatal"
 }
 
 sh_setEnvironment
