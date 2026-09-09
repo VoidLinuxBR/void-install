@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qua 09 set 2026 07:03:07 -04
+#  Updated: qua 09 set 2026 18:59:07 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -135,6 +135,7 @@ declare LHYPRLAND=false
 declare LXFCE=false
 declare LGNOME=false
 declare LPLASMA=false
+declare LCINNAMON=false
 #
 declare DEFITEM
 #
@@ -833,6 +834,10 @@ sh_choose_common_packages() {
 		return
 	fi
 
+	if $LCINNAMON; then
+		return
+	fi
+
 	if $LXORG; then
 		return
 	fi
@@ -1031,6 +1036,7 @@ sh_touchConf() {
 		declare -p LXFCE
 		declare -p LGNOME
 		declare -p LPLASMA
+		declare -p LCINNAMON
 		declare -p LDHCP
 		declare -p LCUSTOM
 		declare -p LCUSTOM
@@ -3488,6 +3494,15 @@ sh_plasma_meta_package() {
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
 
+sh_cinnamon_meta_package() {
+	local DE='Cinnamon Desktop'
+	local apkgs=(voidbr-cinnamon)
+	apkgs+=(voidbr-base-config)
+	apkgs+=(voidbr-cinnamon-config)
+
+	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
+}
+
 sh_cinnamon_minimal() {
 	local DE='cinnamon'
 	local apkgs=(cinnamon cinnamon-all)
@@ -5902,6 +5917,7 @@ sh_choose_wm() {
 	LXFCE=false
 	LGNOME=false
 	LPLASMA=false
+  LCINNAMON=false
 	LXORG=false
 	LSERVER=false
 
@@ -5940,6 +5956,10 @@ sh_choose_wm() {
 			;;
 		plasma)
 			LPLASMA=true
+			_DISPLAYMANAGER="sddm"
+			;;
+		cinnamon)
+			LCINNAMON=true
 			_DISPLAYMANAGER="sddm"
 			;;
 		*)
@@ -7475,7 +7495,7 @@ sh_install() {
 					# LCUSTOM — nunca cai no sh_X11_minimal (evita assumir XFCE numa
 					# ISO que pode ser de outro DE).
 					:
-				elif $LSWAY || $LMANGO || $LHYPRLAND || $LXFCE || $LGNOME || $LPLASMA; then
+				elif $LSWAY || $LMANGO || $LHYPRLAND || $LXFCE || $LGNOME || $LPLASMA || $LCINNAMON; then
 					# Meta-pacote (voidbr-*) já traz o DE inteiro — só falta o DM,
 					# que é escolha independente do usuário.
 					sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
@@ -7505,7 +7525,7 @@ sh_install() {
 				"gnome") sh_gnome_meta_package ;;
 				"plasma") sh_plasma_meta_package ;;
 				"xfce") sh_xfce_meta_package ;;
-				"cinnamon") sh_cinnamon_minimal ;;
+				"cinnamon") sh_cinnamon_meta_package ;;
 				"i3wm") sh_i3_minimal ;;
 				"sway") sh_sway_meta_package ;;
 				"mango") sh_mango_meta_package ;;
