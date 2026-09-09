@@ -135,6 +135,7 @@ declare LHYPRLAND=false
 declare LXFCE=false
 declare LGNOME=false
 declare LPLASMA=false
+declare LMATE=false
 declare LCINNAMON=false
 #
 declare DEFITEM
@@ -834,6 +835,10 @@ sh_choose_common_packages() {
 		return
 	fi
 
+	if $LMATE; then
+		return
+	fi
+
 	if $LCINNAMON; then
 		return
 	fi
@@ -1036,6 +1041,7 @@ sh_touchConf() {
 		declare -p LXFCE
 		declare -p LGNOME
 		declare -p LPLASMA
+		declare -p LMATE
 		declare -p LCINNAMON
 		declare -p LDHCP
 		declare -p LCUSTOM
@@ -3749,6 +3755,15 @@ sh_river_minimal() {
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
 
+sh_mate_meta_package() {
+	local DE='Mate Desktop'
+	local apkgs=(voidbr-mate)
+	apkgs+=(voidbr-base-config)
+	apkgs+=(voidbr-mate-config)
+
+	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
+}
+
 sh_mate_minimal() {
 	local DE='Mate'
 	local apkgs=(mate
@@ -5604,12 +5619,12 @@ sh_confadduser() {
 	local model
 	local chostname
 
-  if $LEXTRA; then
-  	chostname="${AsUser[chostname]}"
-  else
-  	chostname="${chostname_base}-$(sh_get_edition_label)"
-  	chostname="${chostname,,}"
-  fi
+	if $LEXTRA; then
+		chostname="${AsUser[chostname]}"
+	else
+		chostname="${chostname_base}-$(sh_get_edition_label)"
+		chostname="${chostname,,}"
+	fi
 
 	sh_setUser
 	size=$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 2)
@@ -5917,7 +5932,8 @@ sh_choose_wm() {
 	LXFCE=false
 	LGNOME=false
 	LPLASMA=false
-  LCINNAMON=false
+	LMATE=false
+	LCINNAMON=false
 	LXORG=false
 	LSERVER=false
 
@@ -5952,15 +5968,19 @@ sh_choose_wm() {
 			;;
 		gnome)
 			LGNOME=true
-			_DISPLAYMANAGER="sddm"
+			_DISPLAYMANAGER="lightdm"
 			;;
 		plasma)
 			LPLASMA=true
-			_DISPLAYMANAGER="sddm"
+			_DISPLAYMANAGER="lightdm"
+			;;
+		mate)
+			LMATE=true
+			_DISPLAYMANAGER="lightdm"
 			;;
 		cinnamon)
 			LCINNAMON=true
-			_DISPLAYMANAGER="sddm"
+			_DISPLAYMANAGER="lightdm"
 			;;
 		*)
 			if grep -qi gnome <<<"$_realwm"; then
@@ -7495,7 +7515,7 @@ sh_install() {
 					# LCUSTOM — nunca cai no sh_X11_minimal (evita assumir XFCE numa
 					# ISO que pode ser de outro DE).
 					:
-				elif $LSWAY || $LMANGO || $LHYPRLAND || $LXFCE || $LGNOME || $LPLASMA || $LCINNAMON; then
+				elif $LSWAY || $LMANGO || $LHYPRLAND || $LXFCE || $LGNOME || $LPLASMA || $LCINNAMON || $LMATE; then
 					# Meta-pacote (voidbr-*) já traz o DE inteiro — só falta o DM,
 					# que é escolha independente do usuário.
 					sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
@@ -7531,7 +7551,7 @@ sh_install() {
 				"mango") sh_mango_meta_package ;;
 				"river") sh_river_minimal ;;
 				"twm") sh_twm_minimal ;;
-				"mate") sh_mate_minimal ;;
+				"mate") sh_mate_meta_package ;;
 				"lxde") sh_lxde_minimal ;;
 				"lxqt") sh_lxqt_minimal ;;
 				esac
