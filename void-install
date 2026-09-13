@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: dom 13 set 2026 05:14:40 -04
+#  Updated: dom 13 set 2026 07:00:44 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -3033,7 +3033,7 @@ sh_activating_services() {
 
 	for x in "${aDE[@]}"; do
 		case $x in
-		tty | server) continue ;;
+		tty | server | xorg) continue ;;
 		*)
 			aServicesX+=("$_DISPLAYMANAGER")
 			break
@@ -3741,6 +3741,15 @@ sh_hyprland_meta_package() {
 	local apkgs=(voidbr-hyprland)
 	apkgs+=(voidbr-base-config)
 	apkgs+=(voidbr-hyprland-config)
+
+	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
+}
+
+sh_river_meta_package() {
+	local DE='RIVER Desktop'
+	local apkgs=(voidbr-river)
+	apkgs+=(voidbr-base-config)
+	apkgs+=(voidbr-river-config)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -5964,6 +5973,10 @@ sh_choose_wm() {
 			LHYPRLAND=true
 			LMETA=true
 			;;
+		river)
+			_DISPLAYMANAGER="sddm"
+			LMETA=true
+			;;
 		xfce)
 			LXFCE=true
 			_DISPLAYMANAGER="lightdm"
@@ -7372,11 +7385,11 @@ sh_install_DE() {
 		"awesome") sh_awesome_minimal ;;
 		"bspwm") sh_bspwm_minimal ;;
 		"dwm") sh_dwm_minimal ;;
-		"river") sh_river_minimal ;;
 		"lxde") sh_lxde_minimal ;;
 		"lxqt") sh_lxqt_minimal ;;
 		"openbox") sh_openbox_minimal ;;
 		"twm") sh_twm_minimal ;;
+		"river") sh_river_meta_package ;;
 		"i3wm") sh_i3_meta_package ;;
 		"enlightenment") sh_enlightenment_meta_package ;;
 		"fluxbox") sh_fluxbox_meta_package ;;
