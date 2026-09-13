@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qua 09 set 2026 18:59:07 -04
+#  Updated: dom 13 set 2026 05:14:40 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -51,7 +51,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.9.09-20260909'
+readonly _VERSION_='3.9.13-20260913'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -133,10 +133,14 @@ declare LSWAY=false
 declare LMANGO=false
 declare LHYPRLAND=false
 declare LXFCE=false
+declare LFLUXBOX=false
+declare LI3=false
 declare LGNOME=false
 declare LPLASMA=false
 declare LMATE=false
 declare LCINNAMON=false
+declare LENLIGHTENMENT=false
+declare LMETA=false
 #
 declare DEFITEM
 #
@@ -715,6 +719,9 @@ sh_update_self() {
 }
 
 sh_configure_display_manager() {
+	declare -ga aDisplaymanager=()
+	declare -ga aDisplaymanagerConfig=()
+
 	if ! $LONLY_TTY; then
 		case $_DISPLAYMANAGER in
 		lxdm)
@@ -760,15 +767,10 @@ sh_configure_display_manager() {
 }
 
 sh_choose_common_packages() {
-	declare -ga aDisplaymanager=()
-	declare -ga aDisplaymanagerConfig=()
-	declare -ga custom=()
 	declare -ga aExtra=()
-	declare -ga aMicrocode=()
-	declare -ga aSuplemento=()
-	if $LCUSTOM && $LHAS_INTERNET; then # tem internet e o usuário topou customizar
+
+	if $LCUSTOM && $LHAS_INTERNET && ! $LXORG && ! $LMETA; then # tem internet e o usuário topou customizar
 		aExtra+=(
-			bash-completion
 			fzf
 			dialog
 			pv
@@ -781,12 +783,6 @@ sh_choose_common_packages() {
 			wget
 			nano
 			parallel
-		)
-		aMicrocode+=(
-			intel-ucode
-			linux-firmware-amd
-		)
-		aSuplemento+=(
 			voidbr-utils
 			voidbr-nano-config
 			voidbr-webapps
@@ -794,8 +790,6 @@ sh_choose_common_packages() {
 			chili-clonedisk
 		)
 	fi
-
-	sh_configure_display_manager
 
 	if $LSERVER; then
 		aPackageDaemons+=(iptables)
@@ -811,35 +805,7 @@ sh_choose_common_packages() {
 		return
 	fi
 
-	if $LSWAY; then
-		return
-	fi
-
-	if $LMANGO; then
-		return
-	fi
-
-	if $LHYPRLAND; then
-		return
-	fi
-
-	if $LXFCE; then
-		return
-	fi
-
-	if $LGNOME; then
-		return
-	fi
-
-	if $LPLASMA; then
-		return
-	fi
-
-	if $LMATE; then
-		return
-	fi
-
-	if $LCINNAMON; then
+	if $LMETA; then
 		return
 	fi
 
@@ -854,40 +820,21 @@ sh_choose_common_packages() {
 		declare -ga aPipewire=(pipewire wireplumber alsa-pipewire pulseaudio-utils pavucontrol libspa-bluetooth libjack-pipewire alsa-plugins-pulseaudio alsa-utils)
 
 		if $LCUSTOM; then
-			declare -ga aIconsAndThemes=()
-			declare -ga aArchiverX=()
-			declare -ga aBrowser=()
-			declare -ga aFilemanager=()
 			declare -ga aBluetooth=(bluez bluez-alsa bluedevil blueman bluez-deprecated gnome-bluetooth1 blueberry)
-			declare -ga aFonts=()
-			declare -ga aPerfumery=()
-			declare -ga aPrinter=()
 			declare -ga aTerminal=(rxvt-unicode)
-			declare -ga aEditorX=()
 			declare -ga aNetworkX=(gvfs gvfs-smb gvfs-mtp gvfs-afc gvfs-cdda gvfs-gphoto2 udisks2)
 			declare -ga aUtilityX=(xkill lm_sensors)
-			declare -ga aArchiverTty=()
-			declare -ga aDownloader=()
-			#			declare -ga aUtility=(binutils dfc btop parallel bubblewrap cmatrix pfetch bc bat xtools geoip geoipupdate)
 			declare -ga aUtility=(binutils bc)
-		else
-			declare -ga aIconsAndThemes=()
-			declare -ga aTerminal=()
-			declare -ga aBrowser=()
-			declare -ga aFilemanager=()
-			declare -ga aUtilityX=()
 		fi
 
 		aFonts+=(noto-fonts-emoji)
-		aFonts+=(
-			noto-fonts-cjk
-			dejavu-fonts-ttf
-			font-fira-ttf
-			font-firacode
-			font-hack-ttf
-			ttf-jetbrains-mono-nerd
-			#nerd-fonts
-		)
+		aFonts+=(noto-fonts-cjk)
+		aFonts+=(dejavu-fonts-ttf)
+		aFonts+=(font-fira-ttf)
+		aFonts+=(font-firacode)
+		aFonts+=(font-hack-ttf)
+		aFonts+=(ttf-jetbrains-mono-nerd)
+		#
 		aIconsAndThemes+=(Adapta adwaita-icon-theme arc-theme)
 		aTerminal+=(xfce4-terminal)
 		aBrowser+=(firefox firefox-i18n-$(sh_get_language_without_utf8))
@@ -1039,8 +986,13 @@ sh_touchConf() {
 		declare -p LMANGO
 		declare -p LHYPRLAND
 		declare -p LXFCE
+		declare -p LFLUXBOX
+		declare -p LI3
+		declare -p LMETA
 		declare -p LGNOME
 		declare -p LPLASMA
+		declare -p LXORG
+		declare -p LENLIGHTENMENT
 		declare -p LMATE
 		declare -p LCINNAMON
 		declare -p LDHCP
@@ -2663,10 +2615,10 @@ sh_update_hostname() {
 sh_update_rc_local() {
 	sh_cmd_job "${cmsg_Ajustando} rc.local" "
       cat > ${dir_install}/etc/rc.local <<-EOF
-#HOSTNAME="${AsUser[chostname]}"
-#HARDWARECLOCK="${AConfLocale[_CLOCK]}"
-#TIMEZONE="${AConfLocale[_TIMEZONE]}"
-#KEYMAP="${AConfLocale[_KEYMAP]}"
+HOSTNAME="${AsUser[chostname]}"
+HARDWARECLOCK="${AConfLocale[_CLOCK]}"
+TIMEZONE="${AConfLocale[_TIMEZONE]}"
+KEYMAP="${AConfLocale[_KEYMAP]}"
 #hwclock --systohc
 EOF
    " $err_not_fatal
@@ -3075,7 +3027,9 @@ sh_activating_services() {
 	aServicesTTY+=(dbus sshd chronyd udevd uuidd dmeventd socklog-unix)
 	aServicesX+=()
 
-	if ! $LSERVER && ! $LONLY_TTY; then aServicesX+=(bluetoothd); fi
+	if ! $LSERVER && ! $LONLY_TTY; then
+		aServicesX+=(bluetoothd)
+	fi
 
 	for x in "${aDE[@]}"; do
 		case $x in
@@ -3384,6 +3338,10 @@ sh_X11_minimal() {
 	local apkgs=()
 	local aMedia=()
 
+	sh_install_pkgs_in_chroot "$(gettext 'Instalando META Pacote') voidbr-xorg-common" "voidbr-xorg-common"
+	sh_install_pkgs_in_chroot "$(gettext 'Instalando META Pacote') voidbr-gui-common" "voidbr-gui-common"
+	return
+
 	if ! $LHYPRLAND; then
 		apkgs+=("${aXorg[@]}")
 	fi
@@ -3407,17 +3365,10 @@ sh_X11_minimal() {
 		aMedia+=("${aPipewire[@]}")
 	fi
 
-	apkgs+=("${aPrinter[@]}")
-	apkgs+=("${aPerfumery[@]}")
-	apkgs+=("${aMicrocode[@]}")
-	apkgs+=("${aArchiverX[@]}")
-	apkgs+=("${aEditorX[@]}")
-
 	if ! $LHYPRLAND; then
 		sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Xorg')" "${aXorg[*]}"
 	fi
 
-	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Microde')" "${aMicrocode[*]}"
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Video')" "${aVideo[*]}"
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Rede')" "${aNetworkX[*]}"
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Fontes')" "${aFonts[*]}"
@@ -3430,13 +3381,10 @@ sh_X11_minimal() {
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Bluetooth')" "${aBluetooth[*]}"
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Utilitários')" "${aUtilityX[*]}"
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Media')" "${aMedia[*]}"
-	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Impressoras')" "${aPrinter[*]}"
-	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Perfumarias')" "${aPerfumery[*]}"
-	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Archivadores')" "${aArchiverX[*]}"
 }
 
 sh_fluxbox_meta_package() {
-	local DE='fluxbox'
+	local DE='FLUXBOX Desktop'
 	local apkgs=(voidbr-fluxbox)
 	apkgs+=(voidbr-base-config)
 	apkgs+=(voidbr-fluxbox-config)
@@ -3492,7 +3440,7 @@ sh_plasma_minimal() {
 }
 
 sh_plasma_meta_package() {
-	local DE='Plasma Desktop'
+	local DE='PLASMA Desktop'
 	local apkgs=(voidbr-plasma)
 	apkgs+=(voidbr-base-config)
 	apkgs+=(voidbr-plasma-config)
@@ -3500,8 +3448,17 @@ sh_plasma_meta_package() {
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
 
+sh_enlightenment_meta_package() {
+	local DE='ENLIGHTENMENT Desktop'
+	local apkgs=(voidbr-enlightenment)
+	apkgs+=(voidbr-base-config)
+	apkgs+=(voidbr-enlightenment-config)
+
+	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
+}
+
 sh_cinnamon_meta_package() {
-	local DE='Cinnamon Desktop'
+	local DE='CINNAMON Desktop'
 	local apkgs=(voidbr-cinnamon)
 	apkgs+=(voidbr-base-config)
 	apkgs+=(voidbr-cinnamon-config)
@@ -3577,7 +3534,7 @@ sh_xfce_minimal() {
 }
 
 sh_xfce_meta_package() {
-	local DE='Xfce'
+	local DE='XFCE Desktop'
 	local apkgs=(voidbr-xfce)
 	apkgs+=(voidbr-base-config)
 	apkgs+=(voidbr-xfce-config)
@@ -3585,9 +3542,21 @@ sh_xfce_meta_package() {
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
 
-sh_server_minimal() {
-	local DE='Void server'
+sh_base_meta_package() {
+	local DE='VoidBR Base'
 	declare apkgs=(
+		voidbr-base-common
+	)
+
+	if $LONLY_TTY; then
+		sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
+	fi
+}
+
+sh_server_meta_package() {
+	local DE='VoidBR Server'
+	declare apkgs=(
+		voidbr-base-common
 		bind-utils
 		ldns
 	)
@@ -3595,8 +3564,27 @@ sh_server_minimal() {
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
 
+sh_xorg_minimal_meta_package() {
+	local DE='Meta XORG Minimal'
+	declare apkgs=(
+		voidbr-xorg-minimal
+	)
+
+	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
+	# Marcador do autostartx. Modo xorg é teste do stack X (servidor + xterm,
+	# sem WM nem DM); o if com startx vive no .bash_profile do
+	# voidbr-base-config e aqui fica só o gatilho, porque aquele arquivo é do
+	# pacote e é reescrito a cada reinstalação — o marcador não. No skel
+	# porque o useradd -m do sh_make_user, logo adiante, copia pro home.
+	local cfile="$dir_install/etc/skel/.voidbr-autostartx"
+
+	sh_info_msg "${cmsg_Ajustando} ${cfile}"
+	mkdir -p "$dir_install/etc/skel"
+	: >"$cfile"
+}
+
 sh_xorg_minimal() {
-	local DE='Xorg Minimal'
+	local DE='XORG Minimal'
 	declare apkgs=(
 		xorg-minimal
 		xinit
@@ -3673,7 +3661,7 @@ sh_gnome_minimal() {
 }
 
 sh_gnome_meta_package() {
-	local DE='Gnome'
+	local DE='GNOME Desktop'
 	local apkgs=(voidbr-gnome)
 	apkgs+=(voidbr-base-config)
 	apkgs+=(voidbr-gnome-config)
@@ -3681,8 +3669,17 @@ sh_gnome_meta_package() {
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
 
+sh_i3_meta_package() {
+	local DE='I3 Desktop'
+	local apkgs=(voidbr-i3)
+	apkgs+=(voidbr-base-config)
+	apkgs+=(voidbr-i3wm-config)
+
+	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
+}
+
 sh_i3_minimal() {
-	local DE='I3'
+	local DE='I3 Desktop'
 	local apkgs=(
 		i3
 		i3status # Status bar generator for i3bar, dzen2, xmobar or similar programs
@@ -3722,7 +3719,7 @@ sh_i3_minimal() {
 }
 
 sh_mango_meta_package() {
-	local DE='Mango'
+	local DE='MANGO Desktop'
 	local apkgs=(voidbr-mango)
 	apkgs+=(voidbr-base-config)
 	apkgs+=(voidbr-mango-config)
@@ -3731,7 +3728,7 @@ sh_mango_meta_package() {
 }
 
 sh_sway_meta_package() {
-	local DE='Sway'
+	local DE='SWAY Desktop'
 	local apkgs=(voidbr-sway)
 	apkgs+=(voidbr-base-config)
 	apkgs+=(voidbr-sway-config)
@@ -3740,7 +3737,7 @@ sh_sway_meta_package() {
 }
 
 sh_hyprland_meta_package() {
-	local DE='hyprland'
+	local DE='HYPRLAND Desktop'
 	local apkgs=(voidbr-hyprland)
 	apkgs+=(voidbr-base-config)
 	apkgs+=(voidbr-hyprland-config)
@@ -3756,7 +3753,7 @@ sh_river_minimal() {
 }
 
 sh_mate_meta_package() {
-	local DE='Mate Desktop'
+	local DE='MATE Desktop'
 	local apkgs=(voidbr-mate)
 	apkgs+=(voidbr-base-config)
 	apkgs+=(voidbr-mate-config)
@@ -4594,13 +4591,15 @@ sh_choose_audioserver() {
 	local caudio
 
 	if [[ "${AConfMirror[_SOURCE]}" = "local" ]] && ! $LCUSTOM; then
-		# Diferente do Dm (serviço já ativo, gera conflito mesmo com
-		# customizar): áudio não tem esse risco de conflito de serviço — se
-		# customizar (LCUSTOM=true), o servidor escolhido é instalado de
-		# verdade via rede (sh_X11_minimal). Só bloqueia no 100% offline.
 		alerta "=== ${cmsg_DefinirAudioServer^^} ===" "$(gettext 'Instalação escolhida foi via local/ISO, não é necessário alterar nada aqui.')"
 		LAUDIO=true
 		return 0
+	fi
+
+	if $LONLY_TTY; then
+		alerta "=== ${cmsg_DefinirAudioServer^^} ===" "${YELLOW}${_WM}${RST} => $(gettext "A instalação escolhida não necessita alterar nada aqui.")"
+		LAUDIO=true
+		return
 	fi
 
 	if ! $LONLY_TTY; then
@@ -5837,10 +5836,6 @@ sh_choose_wm() {
 
 	if [[ "${AConfMirror[_SOURCE]}" = "local" ]]; then
 		alerta "=== ${cmsg_Wm^^} ===" "$(gettext 'Instalação escolhida foi via local/ISO, não é necessário alterar nada aqui.')"
-		# Repõe o mesmo valor posto lá no sh_getIso: o 'local' não é um WM, é o
-		# marcador que o sh_get_session_name usa pra descobrir a edição da ISO.
-		# Sobrescrever com o escalar 'tty' fazia o SESSION_NAME cair no default
-		# xfce numa ISO que pode ser de outro DE.
 		_WINDOWMANAGER=('tty' 'local')
 		LWM=true
 		return
@@ -5892,7 +5887,7 @@ sh_choose_wm() {
 		--colors \
 		--cancel-label "${cmsg_ButtonBack}" \
 		--ok-label "${cmsg_Aceitar}" \
-		--checklist "${cmsg_MENU}" \
+		--radiolist "${cmsg_MENU}" \
 		0 0 0 \
 		tty "${aWm[tty]}" "${aFlag[tty]}" \
 		server "${aWm[server]}" "${aFlag[server]}" \
@@ -5930,12 +5925,16 @@ sh_choose_wm() {
 	LMANGO=false
 	LHYPRLAND=false
 	LXFCE=false
+	LI3=false
+	LFLUXBOX=false
 	LGNOME=false
 	LPLASMA=false
+	LENLIGHTENMENT=false
 	LMATE=false
 	LCINNAMON=false
 	LXORG=false
 	LSERVER=false
+	LMETA=false
 
 	local _realwm=""
 	for wm in "${_WINDOWMANAGER[@]}"; do
@@ -5953,58 +5952,81 @@ sh_choose_wm() {
 		sway)
 			_DISPLAYMANAGER="sddm"
 			LSWAY=true
+			LMETA=true
 			;;
 		mango)
 			_DISPLAYMANAGER="sddm"
 			LMANGO=true
+			LMETA=true
 			;;
 		hyprland)
 			_DISPLAYMANAGER="sddm"
 			LHYPRLAND=true
+			LMETA=true
 			;;
 		xfce)
 			LXFCE=true
 			_DISPLAYMANAGER="lightdm"
+			LMETA=true
+			;;
+		i3wm)
+			LI3=true
+			_DISPLAYMANAGER="lightdm"
+			LMETA=true
+			;;
+		fluxbox)
+			LFLUXBOX=true
+			_DISPLAYMANAGER="lightdm"
+			LMETA=true
 			;;
 		gnome)
 			LGNOME=true
 			_DISPLAYMANAGER="lightdm"
+			LMETA=true
 			;;
 		plasma)
 			LPLASMA=true
 			_DISPLAYMANAGER="lightdm"
+			LMETA=true
+			;;
+		enlightenment)
+			LENLIGHTENMENT=true
+			_DISPLAYMANAGER="lightdm"
+			LMETA=true
 			;;
 		mate)
 			LMATE=true
 			_DISPLAYMANAGER="lightdm"
+			LMETA=true
 			;;
 		cinnamon)
 			LCINNAMON=true
 			_DISPLAYMANAGER="lightdm"
+			LMETA=true
 			;;
 		*)
-			if grep -qi gnome <<<"$_realwm"; then
-				_DISPLAYMANAGER="gdm"
-			else
-				_DISPLAYMANAGER="lightdm"
-			fi
+			_DISPLAYMANAGER="lightdm"
+			LMETA=false
 			;;
 		esac
 	elif [[ " ${_WINDOWMANAGER[*]} " == *" server "* ]]; then
 		_WM="server"
 		LONLY_TTY=true
 		LSERVER=true
+		LMETA=true
 		AConfAudio[_AUDIOSERVER]="None"
 		_DISPLAYMANAGER="None"
 	elif [[ " ${_WINDOWMANAGER[*]} " == *" xorg "* ]]; then
 		_WM="xorg"
 		LONLY_TTY=true
+		LMETA=false
 		LXORG=true
 		AConfAudio[_AUDIOSERVER]="None"
 		_DISPLAYMANAGER="None"
 	else
 		_WM="tty"
 		LONLY_TTY=true
+		LMETA=true
 		AConfAudio[_AUDIOSERVER]="None"
 		_DISPLAYMANAGER="None"
 	fi
@@ -6013,12 +6035,8 @@ sh_choose_wm() {
 
 	LAUDIO=true
 	LDM=true
-
-	if grep -qi hyprland <<<"${_WINDOWMANAGER[@]}"; then
-		LHYPRLAND=true
-	fi
-
 	LDHCP=false
+
 	if $LSERVER; then
 		if conf "=== IP SERVER ===" \
 			"\n${BOLD}${WHITE}$(gettext "Uma instalação SERVIDOR foi escolhida")\n" \
@@ -6092,7 +6110,7 @@ sh_choose_custom_packages() {
 		aCustom['mpv']="$(gettext 'Video player based on MPlayer/mplayer2')"
 		aCustom['cool-retro-term']="$(gettext 'Good looking terminal emulator which mimics the old cathode display')"
 		aCustom['gparted']="$(gettext 'Gnome Partition Editor)')"
-		aCustom['voidbr-google-chrome']="$(gettext 'The popular web browser by Google (Stable Channel)')"
+		aCustom['google-chrome']="$(gettext 'The popular web browser by Google (Stable Channel)')"
 		aCustom['libreoffice']="$(gettext 'Productivity suite')"
 		aCustom['menulibre']="$(gettext 'Advanced menu editor')"
 		aCustom['mousepad']="$(gettext 'Simple text editor for Xfce based on Leafpad')"
@@ -6195,6 +6213,7 @@ sh_configure_dhcpcd_static_ip_dialog() {
 	sh_setAsDhcp
 
 	# formulário
+	local ncol=18
 	while true; do
 		exec 3>&1
 		dhcptext=$(dialog \
@@ -6202,12 +6221,12 @@ sh_configure_dhcpcd_static_ip_dialog() {
 			--title "$(gettext "Configuração de IP fixo (dhcpcd)")" \
 			--form "$(gettext "Preencha os dados:")" \
 			15 60 6 \
-			"$(gettext "Interface:")" 1 1 "${AsDhcp[IFACE]}" 1 25 20 0 \
-			"$(gettext "IP:")" 2 1 "${AsDhcp[IP]}" 2 25 20 0 \
-			"$(gettext "Máscara (CIDR):")" 3 1 "${AsDhcp[CIDR]}" 3 25 20 0 \
-			"$(gettext "Gateway:")" 4 1 "${AsDhcp[GATEWAY]}" 4 25 20 0 \
-			"$(gettext "DNS 1:")" 5 1 "${AsDhcp[DNS1]}" 5 25 20 0 \
-			"$(gettext "DNS 2:")" 6 1 "${AsDhcp[DNS2]}" 6 25 20 0 \
+			"Interface      : " 1 1 "${AsDhcp[IFACE]}" 1 $ncol 20 0 \
+			"IP             : " 2 1 "${AsDhcp[IP]}" 2 $ncol 20 0 \
+			"Máscara (CIDR) : " 3 1 "${AsDhcp[CIDR]}" 3 $ncol 20 0 \
+			"Gateway        : " 4 1 "${AsDhcp[GATEWAY]}" 4 $ncol 20 0 \
+			"DNS 1          : " 5 1 "${AsDhcp[DNS1]}" 5 $ncol 20 0 \
+			"DNS 2          : " 6 1 "${AsDhcp[DNS2]}" 6 $ncol 20 0 \
 			2>&1 >/dev/tty)
 
 		exit_status=$?
@@ -6226,12 +6245,12 @@ sh_configure_dhcpcd_static_ip_dialog() {
 			AsDhcp[DNS2]="${adhcp[5]}"
 
 			# mensagem confirmação
-			CONFIRM_MSG="$(printf "%s\n\n%s: %s\n%s: %s/%s\n%s: %s\n%s: %s %s" \
-				"${BOLD}${RED}$(gettext "Aplicar essas configurações?")" \
-				"${RESET}$(gettext "Interface")" "${AsDhcp[IFACE]}" \
-				"$(gettext "IP")" "${AsDhcp[IP]}" "${AsDhcp[CIDR]}" \
-				"$(gettext "Gateway")" "${AsDhcp[GATEWAY]}" \
-				"$(gettext "DNS")" "${AsDhcp[DNS1]}" "${AsDhcp[DNS2]}")"
+			CONFIRM_MSG="$(printf "%s\n\n%-20s: %s\n%-20s: %s/%s\n%-20s: %s\n%-20s: %s %s" \
+				"${BOLD}${RED}$(gettext "Aplicar essas configurações?")${RESET}" \
+				"$(gettext "Interface")" "${YELLOW}${AsDhcp[IFACE]}${RST}" \
+				"$(gettext "IP")" "${YELLOW}${AsDhcp[IP]}" "${AsDhcp[CIDR]}${RST}" \
+				"$(gettext "Gateway")" "${YELLOW}${AsDhcp[GATEWAY]}${RST}" \
+				"$(gettext "DNS")" "${YELLOW}${AsDhcp[DNS1]}" "${AsDhcp[DNS2]}${RST}")"
 
 			#   dialog --yesno "$CONFIRM_MSG" 12 50
 			if conf "=== DHCP ===" "$CONFIRM_MSG"; then
@@ -6288,11 +6307,13 @@ sh_choose_dm() {
 	local x
 
 	if [[ "${AConfMirror[_SOURCE]}" = "local" ]]; then
-		# Igual sh_choose_wm: numa instalação local, o Display Manager que já
-		# está ativo no sistema live segue ativo (copiado junto pelo rsync).
-		# Deixar escolher outro aqui, sem instalar o pacote via rede, gera
-		# dois DMs "meio configurados" disputando a tela de login.
 		alerta "=== ${cmsg_Dm^^} ===" "$(gettext 'Instalação escolhida foi via local/ISO, não é necessário alterar nada aqui.')"
+		LDM=true
+		return
+	fi
+
+	if $LONLY_TTY; then
+		alerta "=== ${cmsg_Dm^^} ===" "${YELLOW}${_WM}${RST} => $(gettext "A instalação escolhida não necessita alterar nada aqui.")"
 		LDM=true
 		return
 	fi
@@ -6801,10 +6822,6 @@ EOF
 	   "
 }
 
-sh_is_running_hypervisor() {
-	grep -qw hypervisor $dir_install/proc/cpuinfo
-}
-
 sh_limineInstall() {
 	if $LFDE; then
 		sh_confLuksBoot false
@@ -6885,6 +6902,10 @@ sh_limineInstall() {
     "
 	fi
 
+}
+
+sh_is_running_hypervisor() {
+	grep -qw hypervisor $dir_install/proc/cpuinfo
 }
 
 confmulti() {
@@ -7337,6 +7358,40 @@ sh_prepare_lvm_fde_disk() {
 	return 0
 }
 
+sh_install_DE() {
+	aDE=()
+	debug"${_WINDOWMANAGER[@]}"
+
+	for x in "${_WINDOWMANAGER[@]}"; do
+		aDE+=("$x")
+		case "$x" in
+		"local") : ;;
+		"tty") sh_base_meta_package ;;
+		"server") sh_server_meta_package ;;
+		"xorg") sh_xorg_minimal_meta_package ;;
+		"awesome") sh_awesome_minimal ;;
+		"bspwm") sh_bspwm_minimal ;;
+		"dwm") sh_dwm_minimal ;;
+		"river") sh_river_minimal ;;
+		"lxde") sh_lxde_minimal ;;
+		"lxqt") sh_lxqt_minimal ;;
+		"openbox") sh_openbox_minimal ;;
+		"twm") sh_twm_minimal ;;
+		"i3wm") sh_i3_meta_package ;;
+		"enlightenment") sh_enlightenment_meta_package ;;
+		"fluxbox") sh_fluxbox_meta_package ;;
+		"hyprland") sh_hyprland_meta_package ;;
+		"gnome") sh_gnome_meta_package ;;
+		"plasma") sh_plasma_meta_package ;;
+		"xfce") sh_xfce_meta_package ;;
+		"cinnamon") sh_cinnamon_meta_package ;;
+		"sway") sh_sway_meta_package ;;
+		"mango") sh_mango_meta_package ;;
+		"mate") sh_mate_meta_package ;;
+		esac
+	done
+}
+
 sh_install() {
 	local user="${AsUser[cuser]}"
 	local start_datetime
@@ -7348,55 +7403,71 @@ sh_install() {
 
 	aPackageDaemons+=(dbus)
 	akernel+=("${AConfKernel[_KERNEL]:-linux}")
-	#
-	afirmware+=(linux-firmware)
-	afirmware+=(linux-firmware-network)
-	afirmware+=(wifi-firmware)
-	afirmware+=(wireless_tools)
-	afirmware+=(wpa_supplicant)
-	afirmware+=(iwd)
-	afirmware+=(iw)
-	#
-	abase+=(xfsprogs)
-	abase+=(jfsutils)
-	abase+=(bash-completion)
-	abase+=(voidbr-base-config)
-	abase+=(voidbr-vinstall)
-	abase+=(voidbr-utils)
-	abase+=(chili-utils)
-	abase+=(fzf)
-	abase+=(eza)
-	abase+=(gettext)
-	abase+=(chrony)
-	abase+=(pigz)
-	abase+=(zstd)
-	abase+=(xz)
-	abase+=(sed)
-	abase+=(grep)
-	abase+=(grc)
-	abase+=(socklog)
-	abase+=(socklog-void)
-	abase+=(fastfetch)
-	#
 
-	agrub+=(dracut voidbr-plymouth-theme)
-	if [[ "${AConfBootLoader[_LOADER]}" == 'grub' ]]; then
-		agrub+=(grub-i386-efi)
-		agrub+=(grub-utils)
-		agrub+=(grub-terminus)
-		agrub+=(grub-btrfs-runit)
-		agrub+=(voidbr-grub-theme)
-	else
-		agrub+=(limine)
-		agrub+=(voidbr-limine-config)
+	if ! $LMETA; then
+		afirmware+=(intel-ucode)
+		afirmware+=(linux-firmware)
+		#		afirmware+=(sof-firmware)
+		#		afirmware+=(alsa-firmware)
+		#		afirmware+=(linux-firmware-network)
+		#		afirmware+=(linux-firmware-intel)
+		#		afirmware+=(linux-firmware-nvidia)
+		#		afirmware+=(linux-firmware-amd)
+		afirmware+=(wifi-firmware)
+		afirmware+=(wireless_tools)
+		afirmware+=(wpa_supplicant)
+		afirmware+=(iwd)
+		afirmware+=(iw)
 	fi
 
-	if $LVM; then
-		abase+=(lvm2)
+	if ! $LMETA; then
+		abase+=(xfsprogs)
+		abase+=(jfsutils)
+		abase+=(bash-completion)
+		abase+=(voidbr-base-config)
+		abase+=(voidbr-vinstall)
+		abase+=(voidbr-utils)
+		abase+=(chili-utils)
+		abase+=(fzf)
+		abase+=(eza)
+		abase+=(gettext)
+		abase+=(chrony)
+		abase+=(pigz)
+		abase+=(zstd)
+		abase+=(xz)
+		abase+=(sed)
+		abase+=(grep)
+		abase+=(grc)
+		abase+=(socklog)
+		abase+=(socklog-void)
+		abase+=(fastfetch)
 	fi
 
-	if $LFDE; then
-		abase+=(cryptsetup)
+	if ! $LMETA; then
+		#		agrub+=(dracut voidbr-plymouth-theme)
+		agrub+=(voidbr-plymouth-theme)
+		if [[ "${AConfBootLoader[_LOADER]}" == 'grub' ]]; then
+			agrub+=(grub-i386-efi)
+			agrub+=(grub-utils)
+			agrub+=(grub-terminus)
+			agrub+=(grub-btrfs-runit)
+			agrub+=(voidbr-grub-theme)
+		else
+			agrub+=(limine)
+			agrub+=(voidbr-limine-config)
+		fi
+	fi
+
+	if ! $LMETA; then
+		if $LVM; then
+			abase+=(lvm2)
+		fi
+	fi
+
+	if ! $LMETA; then
+		if $LFDE; then
+			abase+=(cryptsetup)
+		fi
 	fi
 
 	ncounter=0
@@ -7419,6 +7490,7 @@ sh_install() {
 	fi
 
 	sh_choose_common_packages
+	sh_configure_display_manager
 
 	start_time=$(date +%s) # Obtém o tempo de início em segundos desde a época Unix
 	start_datetime=$(date)
@@ -7449,23 +7521,22 @@ sh_install() {
 		sh_configure_custom_packages
 
 		if sh_extract_root_fs; then
+			# Go install
 			sh_init_bind
 			sh_cmd_job "${cmsg_Copiando} /etc/resolv.conf" "cp -f /etc/resolv.conf $dir_install/etc/"
 			sh_update_mirror
-			#			sh_checkNet "$url_mirror" || return 1
+			sh_checkNet "$url_mirror" || return 1
 
-			# Go install
-			#			sh_chroot_job "${cmsg_Atualizando} xbps" "
-			#       LC_ALL=C xbps-install --sync --update xbps --yes
-			#     "
 			# Em modo local, só mexe em rede se o usuário topou (LUPDATELOCAL).
 			# Fora do modo local, mantém o comportamento de sempre (via rede).
 			if [[ "${AConfMirror[_SOURCE]}" != "local" ]] || $LUPDATELOCAL; then
 				sh_chroot_job "${cmsg_Atualizando} xbps" "
-				  LC_ALL=C xbps-install -Syuf voidbr-xbps
+				  LC_ALL=C xbps-install --sync --update --yes --force --force voidbr-xbps
 			  "
 			fi
+
 			sh_copy_keys # ao remover xbps a chave tamém é removida, recolocando!
+			sh_install_DE
 
 			if [[ "${AConfMirror[_SOURCE]}" = "local" ]] && ! $LCUSTOM && ! $LUPDATELOCAL; then
 				# source=local, LCUSTOM=false, LUPDATELOCAL=false: 100% offline,
@@ -7475,7 +7546,7 @@ sh_install() {
 				# Qualquer outro caso: internet disponível (source != local, ou
 				# LUPDATELOCAL=true) — atualiza bootloader/base.
 				sh_install_pkgs_in_chroot "$(gettext 'Instalando') BootLoader" "${agrub[*]}"
-				sh_install_pkgs_in_chroot "$(gettext 'Atualizando Pacotes Base')" "${abase[*]}"
+				sh_install_pkgs_in_chroot "$(gettext 'Instalando Pacotes Base')" "${abase[*]}"
 
 				if [[ "${AConfMirror[_SOURCE]}" = "local" ]] && ! $LCUSTOM; then
 					# source=local, LCUSTOM=false (LUPDATELOCAL=true implícito, senão
@@ -7483,17 +7554,11 @@ sh_install() {
 					:
 				else
 					# source!=local, ou LCUSTOM=true: instalação completa.
-					#				sh_chroot_job "${cmsg_AtualizandoRepositorio}" "LC_ALL=C xbps-install -Syu"
 					sh_install_pkgs_in_chroot "$(gettext 'Instalando Kernel')" "${akernel[*]}"
-					sh_install_pkgs_in_chroot "$(gettext 'Instalando Wifi Firmware')" "${afirmware[*]}"
+					sh_install_pkgs_in_chroot "$(gettext 'Instalando Firmware')" "${afirmware[*]}"
 					sh_install_pkgs_in_chroot "$(gettext 'Instalando Daemons')" "${aPackageDaemons[*]}"
-					sh_install_pkgs_in_chroot "$(gettext 'Instalando Editores Texto Gráfico ')" "${aEditorX[*]}"
-					sh_install_pkgs_in_chroot "$(gettext 'Instalando Editores texto')" "${aEditorTxt[*]}"
-					sh_install_pkgs_in_chroot "$(gettext 'Instalando Downloaders')" "${aDownloader[*]}"
 					sh_install_pkgs_in_chroot "$(gettext 'Instalando Utilitários')" "${aUtility[*]}"
-					sh_install_pkgs_in_chroot "$(gettext 'Instalando Archiver tty')" "${aArchiverTty[*]}"
 					sh_install_pkgs_in_chroot "$(gettext 'Instalando Extras')" "${aExtra[*]}"
-					sh_install_pkgs_in_chroot "$(gettext 'Instalando Suplementos')" "${aSuplemento[*]}"
 					sh_install_pkgs_in_chroot "$(gettext 'Instalando Pacotes customizados')" "${aCustomPackages[*]}"
 				fi
 			fi
@@ -7511,59 +7576,27 @@ sh_install() {
 			if ! $LONLY_TTY; then
 				sh_update_Xkeymap
 				if [[ "${AConfMirror[_SOURCE]}" = "local" ]]; then
-					# source=local: DE já veio pronto no squashfs, independente de
-					# LCUSTOM — nunca cai no sh_X11_minimal (evita assumir XFCE numa
-					# ISO que pode ser de outro DE).
+					# source=local: DE já veio pronto no squashfs, independente de LCUSTOM
+					# nunca cai no sh_X11_minimal (evita assumir XFCE numa ISO que pode ser de outro DE).
 					:
-				elif $LSWAY || $LMANGO || $LHYPRLAND || $LXFCE || $LGNOME || $LPLASMA || $LCINNAMON || $LMATE; then
+				elif $LMETA; then
 					# Meta-pacote (voidbr-*) já traz o DE inteiro — só falta o DM,
 					# que é escolha independente do usuário.
 					sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
 					sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM Config')" "${aDisplaymanagerConfig[*]}"
+				elif $LXORG; then
+					:
 				else
-					# WM sem meta-pacote próprio ainda (i3wm, awesome, bspwm, dwm,
-					# enlightenment, openbox, cinnamon, fluxbox) — precisa do X11 base.
+					# WM sem meta-pacote próprio ainda (i3wm, awesome, bspwm, dwm, openbox) — precisa do X11 base.
 					sh_X11_minimal
 				fi
 			fi
 
-			aDE=()
-			for x in "${_WINDOWMANAGER[@]}"; do
-				aDE+=("$x")
-				case "$x" in
-				"tty") : ;;
-				"local") : ;;
-				"server") sh_server_minimal ;;
-				"xorg") sh_xorg_minimal ;;
-				"awesome") sh_awesome_minimal ;;
-				"bspwm") sh_bspwm_minimal ;;
-				"dwm") sh_dwm_minimal ;;
-				"enlightenment") sh_enlightenment_minimal ;;
-				"fluxbox") sh_fluxbox_meta_package ;;
-				"hyprland") sh_hyprland_meta_package ;;
-				"openbox") sh_openbox_minimal ;;
-				"gnome") sh_gnome_meta_package ;;
-				"plasma") sh_plasma_meta_package ;;
-				"xfce") sh_xfce_meta_package ;;
-				"cinnamon") sh_cinnamon_meta_package ;;
-				"i3wm") sh_i3_minimal ;;
-				"sway") sh_sway_meta_package ;;
-				"mango") sh_mango_meta_package ;;
-				"river") sh_river_minimal ;;
-				"twm") sh_twm_minimal ;;
-				"mate") sh_mate_meta_package ;;
-				"lxde") sh_lxde_minimal ;;
-				"lxqt") sh_lxqt_minimal ;;
-				esac
-			done
+			#			sh_install_DE
 
 			sh_make_user
 			sh_update_hostname
 			sh_update_rc_local
-
-			if ! $LSERVER; then
-				sh_update_sshd
-			fi
 
 			sh_update_rc_conf
 			sh_update_locale
@@ -7574,8 +7607,6 @@ sh_install() {
 			elif [[ "${AConfAudio[_AUDIOSERVER]}" == 'Pulseaudio' ]]; then
 				sh_activating_pulseaudio
 			fi
-
-			#			debug "$_DISPLAYMANAGER" "\n${aDisplaymanager[*]}"
 
 			case "$_DISPLAYMANAGER" in
 			lxdm) sh_update_lxdm_conf ;;
@@ -7591,16 +7622,19 @@ sh_install() {
 				if $LDHCP; then
 					sh_build_and_apply_dhcpcd_config
 				fi
+			else
+				sh_update_sshd
 			fi
 
 			sh_chroot_job "$(gettext 'Validando configuração para FINALIZAR')" "
-                #xbps-reconfigure --force glibc-locales
-                xbps-reconfigure --force --all
-            "
+        #xbps-reconfigure --force glibc-locales
+        xbps-reconfigure --force --all
+      "
+
 			sh_chroot_job "${cmsg_RemovendoPacotesAntigosObseletos}" "
-			   rm -fv /var/cache/xbps/*.xbps
-               rm -fv /var/cache/xbps/*.sig*
-            "
+        rm -fv /var/cache/xbps/*.xbps
+        rm -fv /var/cache/xbps/*.sig*
+      "
 
 			if $LHYPRLAND; then
 				sh_configure_hyprland_audio
@@ -7627,6 +7661,28 @@ sh_install() {
 		exit 0
 	} # > out & sh_monitor
 	#	killall dialog
+}
+
+start_time=$(date +%s)
+
+sh_timer() {
+	while true; do
+		local duration=$(($(date +%s) - start_time))
+		local hours=$((duration / 3600))
+		local minutes=$(((duration % 3600) / 60))
+		local seconds=$((duration % 60))
+		local time
+		local cols
+		local pos
+
+		time=$(printf '%02d:%02d:%02d' "$hours" "$minutes" "$seconds")
+		cols=$(tput cols)
+		pos=$((cols - ${#time}))
+
+		printf '\033[1;%sH%s' "$pos" "$time"
+
+		sleep 1
+	done
 }
 
 sh_time_elapsed() {
@@ -8071,42 +8127,6 @@ $(gettext "Criar um novo sistema de arquivos em") $part?" 8 75
 		esac
 		continue
 	done
-}
-
-sh_chooseperfumery() {
-	local -A Aperfumery
-	local -A Aflag
-	local -a array=()
-	local exit_status
-	local x
-
-	Aperfumery[bash]=$(gettext "Ativar o bash para o usuario root")
-	Aperfumery[bashrc]=$(gettext "Instalar bashrc.sh personalizado")
-	Aperfumery[console]=$(gettext "Usar um terminal gráfico para o Carregador de Inicialização (GRUB)")
-	Aperfumery[sshd]=$(gettext "Configurar servidor ssh")
-	Aperfumery[sudo]=$(gettext "Enable sudo for login user")
-
-	for x in "${!Aperfumery[@]}"; do
-		Aflag[$x]='off'
-		array+=("$x" "${Aperfumery[$x]}" "${Aflag[$x]}")
-	done
-
-	perf=$(${DIALOG} --title "$(gettext "=== PERFUMARIA ===")" \
-		--default-item "$_WINDOWMANAGER" \
-		--colors \
-		--cancel-label "${cmsg_ButtonBack}" \
-		--ok-label "${cmsg_Aceitar}" \
-		--checklist "${cmsg_MENU}" \
-		12 70 0 "${array[@]}" 2>&1 >/dev/tty)
-
-	exit_status=$?
-	case $exit_status in
-	"$D_ESC" | "$D_CANCEL")
-		return
-		;;
-	esac
-	_PERFUMERY=($(strtoarray "$perf"))
-	LPERFUMERY=1
 }
 
 sh_toBytes() {
@@ -9896,6 +9916,8 @@ case " $* " in
 	sh_without_chroot
 	sh_with_all
 	grafico=1
+	#sh_timer &
+	#timer_pid=$!
 	sh_init -i "$@"
 	;;
 esac
