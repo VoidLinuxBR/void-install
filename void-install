@@ -3867,8 +3867,19 @@ sh_dwm_minimal() {
 }
 
 sh_lxde_minimal() {
-	local DE='Lxde'
-	local apkgs=(lxde lxterminal lxrandr lxtask lxinput lxappearance)
+	local DE='LXDE Desktop'
+	local apkgs=()
+
+	apkgs+=(lxde)
+	apkgs+=(lxde-common)
+	apkgs+=(lxde-icon-theme)
+	apkgs+=(lxrandr)
+	apkgs+=(lxrandr)
+	apkgs+=(lxtask)
+	apkgs+=(lxinput)
+	apkgs+=(lxlauncher)
+	apkgs+=(lxterminal)
+	apkgs+=(lxappearance)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -5881,13 +5892,14 @@ sh_choose_wm() {
 		aFlag[$x]='on'
 	done
 
-	#		awesome "${aWm[awesome]}" "${aFlag[awesome]}" \
-	#		bspwm "${aWm[bspwm]}" "${aFlag[bspwm]}" \
-	#		dwm "${aWm[dwm]}" "${aFlag[dwm]}" \
-	#		lxde "${aWm[lxde]}" "${aFlag[lxde]}" \
-	#		lxqt "${aWm[lxqt]}" "${aFlag[lxqt]}" \
-	#		openbox "${aWm[openbox]}" "${aFlag[openbox]}" \
-	#		twm "${aWm[twm]}" "${aFlag[twm]}" \
+
+#  	awesome "${aWm[awesome]}" "${aFlag[awesome]}" \
+#  	bspwm "${aWm[bspwm]}" "${aFlag[bspwm]}" \
+#  	dwm "${aWm[dwm]}" "${aFlag[dwm]}" \
+#  	lxde "${aWm[lxde]}" "${aFlag[lxde]}" \
+#  	lxqt "${aWm[lxqt]}" "${aFlag[lxqt]}" \
+#  	twm "${aWm[twm]}" "${aFlag[twm]}" \
+#		openbox "${aWm[openbox]}" "${aFlag[openbox]}" \
 
 	wm=$(${DIALOG} \
 		--backtitle "$ccabec" \
@@ -5897,7 +5909,7 @@ sh_choose_wm() {
 		--cancel-label "${cmsg_ButtonBack}" \
 		--ok-label "${cmsg_Aceitar}" \
 		--radiolist "${cmsg_MENU}" \
-		0 0 0 \
+		23 0 100 \
 		tty "${aWm[tty]}" "${aFlag[tty]}" \
 		server "${aWm[server]}" "${aFlag[server]}" \
 		xorg "${aWm[xorg]}" "${aFlag[xorg]}" \
@@ -5907,6 +5919,7 @@ sh_choose_wm() {
 		gnome "${aWm[gnome]}" "${aFlag[gnome]}" \
 		hyprland "${aWm[hyprland]}" "${aFlag[hyprland]}" \
 		i3wm "${aWm[i3wm]}" "${aFlag[i3wm]}" \
+  	lxde "${aWm[lxde]}" "${aFlag[lxde]}" \
 		mango "${aWm[mango]}" "${aFlag[mango]}" \
 		mate "${aWm[mate]}" "${aFlag[mate]}" \
 		plasma "${aWm[plasma]}" "${aFlag[plasma]}" \
@@ -7600,7 +7613,7 @@ sh_install() {
 				elif $LXORG; then
 					:
 				else
-					# WM sem meta-pacote próprio ainda (i3wm, awesome, bspwm, dwm, openbox) — precisa do X11 base.
+					# WM sem meta-pacote próprio ainda (awesome, bspwm, dwm, openbox) — precisa do X11 base.
 					sh_X11_minimal
 				fi
 			fi
