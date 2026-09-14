@@ -4479,6 +4479,7 @@ sh_chooseSource() {
 	cextra="${cmsg_ExtraNotIso}"
 
 	_src=${AConfMirror[_SOURCE]}
+
 	if ! $LHAS_INTERNET; then
 		# Sem internet ao entrar na tela: não dá pra deixar network/networkFull
 		# desativados de verdade (dialog radiolist não suporta isso), mas dá
@@ -10014,6 +10015,13 @@ sh_without_chroot() {
 sh_with_all() {
 	reset
 	#sh_update_self "$@"
+
+	# Rodando de dentro da ISO, local é o padrão: os pacotes já estão no
+	# squashfs. Vem antes do sh_loadSavedConfig de propósito — num primeiro
+	# arranque sem .conf, o sh_touchConf de lá grava já com local; e se o
+	# .conf existir, a escolha salva pelo usuário prevalece.
+	sh_getIso && AConfMirror[_SOURCE]='local'
+
 	sh_loadSavedConfig
 	sh_disablePrintk
 	sh_loadconf
