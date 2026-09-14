@@ -263,6 +263,8 @@ declare dialogRcFile="$HOME/.dialogrc"
 declare _DISPLAYMANAGER='None'
 declare _WINDOWMANAGER=('tty')
 declare _WM='tty'
+declare -a _WM_SAVE=()
+declare _LONLY_TTY_SAVE=''
 declare _WIFI_NETWORK="wifi_ssid"
 declare _WIFI_PASSWORD="wifi_password"
 declare Interrupted="$(gettext "Interrompido! Saindo...")"
@@ -3035,7 +3037,7 @@ sh_activating_services() {
 		case $x in
 		tty | server | xorg) continue ;;
 		*)
-			aServicesX+=("$_DISPLAYMANAGER")
+			[[ "$_DISPLAYMANAGER" != "None" ]] && aServicesX+=("$_DISPLAYMANAGER")
 			break
 			;;
 		esac
@@ -4437,6 +4439,8 @@ set_custom_install() {
 }
 
 sh_getIso() {
+	return 0 # não esquecer de remover, coloquei para teste
+
 	if test -e '/run/initramfs/live/LiveOS/squashfs.img'; then
 		return 0
 	fi
@@ -4470,6 +4474,7 @@ sh_chooseSource() {
 			"\n${BOLD}$(gettext 'Sem conexão com a internet no momento.')" \
 			"\n$(gettext 'Somente a instalação local (via ISO) será possível.')"
 	fi
+
 	for x in "${!Asource[@]}"; do
 		if [[ "$_src" = "$x" ]]; then
 			Aflag[$x]='on'
@@ -4512,6 +4517,7 @@ sh_chooseSource() {
 					continue
 				fi
 			fi
+
 			if [[ "$src" = "networkFull" ]]; then
 				if ! sh_checkcommand "${XBPS_INSTALL_CMD}"; then
 					alerta "=== ${cmsg_Source^^} ===" \
@@ -4519,16 +4525,28 @@ sh_chooseSource() {
 					continue
 				fi
 			fi
+
 			if [[ "$src" = "local" ]]; then
 				if ! sh_getIso; then
 					alerta "=== ${cmsg_Source^^} ===" "\n\n$cextra"
 					continue
 				else
 					LSOURCE=true
+
+					# Guarda a escolha do menu Wm pra devolver se o usuário
+					# voltar pra rede. A guarda do 'local' evita que entrar
+					# duas vezes seguidas em local salve 'local' por cima da
+					# escolha real.
+					if [[ "${_WINDOWMANAGER[0]}" != "local" ]]; then
+						_WM_SAVE=("${_WINDOWMANAGER[@]}")
+						_LONLY_TTY_SAVE="$LONLY_TTY"
+					fi
+
+					_WINDOWMANAGER=('local')
 					AConfMirror[_SOURCE]=$src
-					_WINDOWMANAGER=('tty' 'local')
 					LONLY_TTY=false
 					sh_ask_update_local
+
 					if $LUPDATELOCAL; then
 						set_custom_install "=== ${cmsg_Source^^} ==="
 					else
@@ -4540,6 +4558,30 @@ sh_chooseSource() {
 						LCUSTOM=false
 					fi
 				fi
+			elif [[ "${AConfMirror[_SOURCE]}" = "local" ]]; then
+				# Só entra aqui quem está SAINDO de local para rede.
+				# AConfMirror[_SOURCE] ainda tem o valor antigo neste ponto —
+				# a atribuição definitiva está depois do esac.
+				#
+				# Devolve o WM escolhido antes de entrar em local. _WM,
+				# _DISPLAYMANAGER, LMETA e as L<wm> nunca foram tocadas pelo
+				# caminho local, então já estão coerentes com esse
+				# _WINDOWMANAGER — não há o que recalcular.
+				if ((${#_WM_SAVE[@]})); then
+					_WINDOWMANAGER=("${_WM_SAVE[@]}")
+					LONLY_TTY="$_LONLY_TTY_SAVE"
+					_WM_SAVE=()
+				else
+					# Sem nada guardado (sessão que já abriu em local, vinda
+					# de um .conf). Cai no default da 264.
+					_WINDOWMANAGER=('tty')
+					_WM='tty'
+					_DISPLAYMANAGER='None'
+					LONLY_TTY=true
+				fi
+
+				LUPDATELOCAL=false
+				LWM=true
 			fi
 			;;
 		esac
@@ -5855,8 +5897,10 @@ sh_choose_wm() {
 	local x
 
 	if [[ "${AConfMirror[_SOURCE]}" = "local" ]]; then
-		alerta "=== ${cmsg_Wm^^} ===" "$(gettext 'Instalação escolhida foi via local/ISO, não é necessário alterar nada aqui.')"
-		_WINDOWMANAGER=('tty' 'local')
+		alerta "=== ${cmsg_Wm^^} ===" \
+			"$(gettext 'Instalação escolhida foi via local/ISO, não é necessário alterar nada aqui.
+       \nCaso queira escolher uma WM, então troque a Fonte para Network ou NetworkFull')"
+		_WINDOWMANAGER=('local')
 		LWM=true
 		return
 	fi
@@ -5892,14 +5936,13 @@ sh_choose_wm() {
 		aFlag[$x]='on'
 	done
 
-
-#  	awesome "${aWm[awesome]}" "${aFlag[awesome]}" \
-#  	bspwm "${aWm[bspwm]}" "${aFlag[bspwm]}" \
-#  	dwm "${aWm[dwm]}" "${aFlag[dwm]}" \
-#  	lxde "${aWm[lxde]}" "${aFlag[lxde]}" \
-#  	lxqt "${aWm[lxqt]}" "${aFlag[lxqt]}" \
-#  	twm "${aWm[twm]}" "${aFlag[twm]}" \
-#		openbox "${aWm[openbox]}" "${aFlag[openbox]}" \
+	#  	awesome "${aWm[awesome]}" "${aFlag[awesome]}" \
+	#  	bspwm "${aWm[bspwm]}" "${aFlag[bspwm]}" \
+	#  	dwm "${aWm[dwm]}" "${aFlag[dwm]}" \
+	#  	lxde "${aWm[lxde]}" "${aFlag[lxde]}" \
+	#  	lxqt "${aWm[lxqt]}" "${aFlag[lxqt]}" \
+	#  	twm "${aWm[twm]}" "${aFlag[twm]}" \
+	#		openbox "${aWm[openbox]}" "${aFlag[openbox]}" \
 
 	wm=$(${DIALOG} \
 		--backtitle "$ccabec" \
@@ -5919,7 +5962,7 @@ sh_choose_wm() {
 		gnome "${aWm[gnome]}" "${aFlag[gnome]}" \
 		hyprland "${aWm[hyprland]}" "${aFlag[hyprland]}" \
 		i3wm "${aWm[i3wm]}" "${aFlag[i3wm]}" \
-  	lxde "${aWm[lxde]}" "${aFlag[lxde]}" \
+		lxde "${aWm[lxde]}" "${aFlag[lxde]}" \
 		mango "${aWm[mango]}" "${aFlag[mango]}" \
 		mate "${aWm[mate]}" "${aFlag[mate]}" \
 		plasma "${aWm[plasma]}" "${aFlag[plasma]}" \
@@ -6332,7 +6375,7 @@ sh_choose_dm() {
 	declare -A aDm
 	local x
 
-	if [[ "${AConfMirror[_SOURCE]}" = "local" ]]; then
+	if [[ "${AConfMirror[_SOURCE]}" = "local" ]] && ! $LUPDATELOCAL; then
 		alerta "=== ${cmsg_Dm^^} ===" "$(gettext 'Instalação escolhida foi via local/ISO, não é necessário alterar nada aqui.')"
 		LDM=true
 		return
@@ -7386,7 +7429,6 @@ sh_prepare_lvm_fde_disk() {
 
 sh_install_DE() {
 	aDE=()
-	debug"${_WINDOWMANAGER[@]}"
 
 	for x in "${_WINDOWMANAGER[@]}"; do
 		aDE+=("$x")
