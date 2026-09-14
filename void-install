@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: dom 13 set 2026 07:00:44 -04
+#  Updated: seg 14 set 2026 02:19:53 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -51,7 +51,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.9.13-20260913'
+readonly _VERSION_='3.9.14-20260914'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -265,6 +265,7 @@ declare _WINDOWMANAGER=('tty')
 declare _WM='tty'
 declare -a _WM_SAVE=()
 declare _LONLY_TTY_SAVE=''
+declare _DM_SAVE=''
 declare _WIFI_NETWORK="wifi_ssid"
 declare _WIFI_PASSWORD="wifi_password"
 declare Interrupted="$(gettext "Interrompido! Saindo...")"
@@ -970,7 +971,6 @@ sh_setEnvironment() {
 }
 
 sh_touchConf() {
-	#		_WINDOWMANAGER=(${_WINDOWMANAGER[*]})
 	cat >"$app_conf" <<-EOF
 		######################################################################
 		# void-install.conf
@@ -997,9 +997,10 @@ sh_touchConf() {
 		declare -p LENLIGHTENMENT
 		declare -p LMATE
 		declare -p LCINNAMON
+		declare -p LSERVER
 		declare -p LDHCP
 		declare -p LCUSTOM
-		declare -p LCUSTOM
+		declare -p LUPDATELOCAL
 		declare -p LDISK
 		declare -p LEFI
 		declare -p LAUDIO
@@ -1010,16 +1011,13 @@ sh_touchConf() {
 		declare -p LMKPARTED
 		declare -p LMKPARTED_DEVICE
 		declare -p LFSREVISED
-		# LVM e LFDE faltavam aqui: sem elas, sh_mount_fs (chamada por
-		# sh_dryrun/--chroot numa execução separada) sempre cai no ramo
-		# "não é LVM" e tenta montar a partição LUKS crua como se fosse um
-		# filesystem normal — falha sempre em instalação com LUKS/LVM.
 		declare -p LVM
 		declare -p LFDE
-		#		declare -p _WIFI_NETWORK
-		#		declare -p _WIFI_PASSWORD
 		declare -p _DISPLAYMANAGER
 		declare -p _WINDOWMANAGER
+		declare -p _WM_SAVE
+		declare -p _LONLY_TTY_SAVE
+		declare -p _DM_SAVE
 		declare -p AsUser
 		declare -p Amkfs
 		declare -p AsDhcp
@@ -1035,9 +1033,6 @@ sh_touchConf() {
 		declare -p AConfMirror
 		declare -p AConfWifi
 		declare -p AConfFde
-		declare -p LCUSTOM
-		declare -p LAUTOLOGIN
-		declare -p LHYPRLAND
 		#	declare -p AARRAY_DSK_DEVICES
 		#	declare -p AARRAY_PART_DEVICES
 		#	} | sed 's/declare -/&g/' >>"$app_conf"
@@ -1155,7 +1150,10 @@ sh_setAsDhcp() {
 
 sh_setUser() {
 	AsUser[cuser]=${AsUser[cuser]:-$(sh_getusernameloggeduserbyid)}
-	AsUser[cfullname]=${AsUser[cfullname]:-$(sh_getfullusernameloggeduserbyGetent)}
+	#	AsUser[cfullname]=${AsUser[cfullname]:-$(sh_getfullusernameloggeduserbyGetent)}
+	AsUser[cfullname]=${AsUser[cfullname]:-$(sh_getfullnamefromuser "${AsUser[cuser]}")}
+	# ISO: anon normalmente tem GECOS vazio — cai no próprio nome de usuário
+	AsUser[cfullname]=${AsUser[cfullname]:-${AsUser[cuser]}}
 	AsUser[cpass]=${AsUser[cpass]:-voidlinux}
 	AsUser[cpassroot]=${AsUser[cpassroot]:-voidlinux}
 	AsUser[chostname]=${AsUser[chostname]:-voidbr}
@@ -3043,6 +3041,27 @@ sh_activating_services() {
 		esac
 	done
 
+	# Em local o runsvdir do destino veio inteiro no rsync do squashfs, já com
+	# o DM da ISO habilitado. Trocar de DM sem remover o link antigo deixa os
+	# dois disputando o tty7. Só acontece com LUPDATELOCAL, único caso em que
+	# sh_choose_dm abre o menu (6349).
+	#
+	# A lista acompanha o case de sh_configure_display_manager (721): DM novo
+	# lá, DM novo aqui.
+	#
+	# Roda antes do loop de aServicesX, que é quem cria o link do DM escolhido.
+	# O continue protege o escolhido, então se o usuário não trocou nada,
+	# nenhum link é removido.
+	if [[ "${AConfMirror[_SOURCE]}" = "local" ]] && $LUPDATELOCAL; then
+		for service in lightdm sddm gdm lxdm; do
+			[[ "$service" = "$_DISPLAYMANAGER" ]] && continue
+			sh_chroot_job "$(gettext 'Desativando serviço') $service" \
+				"rm -f /etc/runit/runsvdir/current/$service" \
+				"$err_not_fatal" \
+				"$level"
+		done
+	fi
+
 	for service in "${aServicesTTY[@]}"; do
 		sh_chroot_job "${cmsg_AtivandoServico} $service" \
 			"ln -sf /etc/sv/$service /etc/runit/runsvdir/current/" \
@@ -4439,8 +4458,6 @@ set_custom_install() {
 }
 
 sh_getIso() {
-	return 0 # não esquecer de remover, coloquei para teste
-
 	if test -e '/run/initramfs/live/LiveOS/squashfs.img'; then
 		return 0
 	fi
@@ -4540,6 +4557,7 @@ sh_chooseSource() {
 					if [[ "${_WINDOWMANAGER[0]}" != "local" ]]; then
 						_WM_SAVE=("${_WINDOWMANAGER[@]}")
 						_LONLY_TTY_SAVE="$LONLY_TTY"
+						_DM_SAVE="$_DISPLAYMANAGER"
 					fi
 
 					_WINDOWMANAGER=('local')
@@ -4563,17 +4581,15 @@ sh_chooseSource() {
 				# AConfMirror[_SOURCE] ainda tem o valor antigo neste ponto —
 				# a atribuição definitiva está depois do esac.
 				#
-				# Devolve o WM escolhido antes de entrar em local. _WM,
-				# _DISPLAYMANAGER, LMETA e as L<wm> nunca foram tocadas pelo
-				# caminho local, então já estão coerentes com esse
-				# _WINDOWMANAGER — não há o que recalcular.
+				# _WM, LMETA e as L<wm> não são tocadas pelo caminho local, então
+				# já estão coerentes com o _WINDOWMANAGER restaurado.
 				if ((${#_WM_SAVE[@]})); then
 					_WINDOWMANAGER=("${_WM_SAVE[@]}")
 					LONLY_TTY="$_LONLY_TTY_SAVE"
+					_DISPLAYMANAGER="$_DM_SAVE"
 					_WM_SAVE=()
 				else
-					# Sem nada guardado (sessão que já abriu em local, vinda
-					# de um .conf). Cai no default da 264.
+					# Nada guardado: sessão que já abriu em local, vinda de .conf
 					_WINDOWMANAGER=('tty')
 					_WM='tty'
 					_DISPLAYMANAGER='None'
@@ -5679,10 +5695,16 @@ sh_confadduser() {
 	local size
 	local model
 	local chostname
+	local usertext
+	local exit_status
+	local -a aUser
 
-	if $LEXTRA; then
-		chostname="${AsUser[chostname]}"
-	else
+	# O hostname automático acompanha a edição: sem isto, preencher a tela
+	# Extra antes de escolher o WM congela 'voidbr-base' (LEXTRA=true trava o
+	# recálculo). Nome digitado pelo usuário é preservado — só o que casa com
+	# o padrão gerado aqui é refeito.
+	chostname="${AsUser[chostname]}"
+	if [[ -z "$chostname" || "$chostname" == "${chostname_base,,}-"* ]]; then
 		chostname="${chostname_base}-$(sh_get_edition_label)"
 		chostname="${chostname,,}"
 	fi
@@ -5715,12 +5737,20 @@ sh_confadduser() {
 			2>&1 1>&3)
 
 		exit_status=$?
+		# fd 3 só serve pro dialog acima; fechando aqui, nenhum return
+		# posterior precisa se lembrar dele.
+		exec 3>&-
+
 		case $exit_status in
 		"$D_ESC" | "$D_CANCEL")
 			return
 			;;
 		"$D_OK")
 			mapfile -t aUser <<<"$usertext"
+
+			# As validações reabrem o formulário via continue. Antes era
+			# recursão, e a chamada interna retornava para o meio da externa,
+			# que seguia rodando as validações seguintes até LEXTRA=true.
 			AsUser[cfullname]="${aUser[0]}"
 			AsUser[cuser]="${aUser[1]}"
 			AsUser[cpass]="${aUser[2]}"
@@ -5732,7 +5762,7 @@ sh_confadduser() {
 					die "$(gettext "=== USUÁRIO === ")" "${cmsg_adduserCancel}"
 					return 1
 				fi
-				sh_confadduser
+				continue
 			fi
 
 			if [[ -z "${AsUser[cuser]}" ]]; then
@@ -5740,7 +5770,7 @@ sh_confadduser() {
 					die "=== ${cmsg_Usuario^^} === " "${cmsg_adduserCancel}"
 					return 1
 				fi
-				sh_confadduser
+				continue
 			fi
 
 			# Verificar se usuario começa com um número
@@ -5749,7 +5779,7 @@ sh_confadduser() {
 					die "$(gettext "=== USUÁRIO === ")" "${cmsg_adduserCancel}"
 					return 1
 				fi
-				sh_confadduser
+				continue
 			fi
 
 			# Verificar se string1 começa com uma letra maiúscula
@@ -5758,7 +5788,7 @@ sh_confadduser() {
 					die "$(gettext "=== USUÁRIO === ")" "${cmsg_adduserCancel}"
 					return 1
 				fi
-				sh_confadduser
+				continue
 			fi
 
 			if [[ -z "${AsUser[cpass]}" ]]; then
@@ -5766,7 +5796,7 @@ sh_confadduser() {
 					die "=== ${cmsg_Usuario^^} ===" "${cmsg_adduserCancel}"
 					return 1
 				fi
-				sh_confadduser
+				continue
 			fi
 
 			if [[ -z "${AsUser[cpassroot]}" ]]; then
@@ -5774,12 +5804,11 @@ sh_confadduser() {
 					die "=== ROOT === " "${cmsg_adduserCancel}"
 					return 1
 				fi
-				sh_confadduser
+				continue
 			fi
 			LEXTRA=true
 			;;
 		esac
-		exec 3>&-
 		return 0
 	done
 }
@@ -5895,6 +5924,8 @@ sh_choose_wm() {
 	declare -A aFlag
 	declare -A aWm
 	local x
+	local wm
+	local exit_status
 
 	if [[ "${AConfMirror[_SOURCE]}" = "local" ]]; then
 		alerta "=== ${cmsg_Wm^^} ===" \
@@ -6002,10 +6033,10 @@ sh_choose_wm() {
 	LMETA=false
 
 	local _realwm=""
-	for wm in "${_WINDOWMANAGER[@]}"; do
-		case "$wm" in
+	for x in "${_WINDOWMANAGER[@]}"; do
+		case "$x" in
 		tty | xorg | server) : ;;
-		*) _realwm="$wm" ;;
+		*) _realwm="$x" ;;
 		esac
 	done
 
@@ -6284,7 +6315,6 @@ sh_configure_dhcpcd_static_ip_dialog() {
 	# formulário
 	local ncol=18
 	while true; do
-		exec 3>&1
 		dhcptext=$(dialog \
 			--backtitle "$ccabec" \
 			--title "$(gettext "Configuração de IP fixo (dhcpcd)")" \
@@ -6327,7 +6357,6 @@ sh_configure_dhcpcd_static_ip_dialog() {
 			fi
 			;;
 		esac
-		exec 3>&-
 		return 0
 	done
 }
@@ -7143,33 +7172,32 @@ sh_install_pkgs_in_chroot() {
 }
 
 # Nome da sessão gravado no autologin do DM (sddm/gdm/lxdm/lightdm).
-# A tabela substitui os 12 ramos idênticos do case que havia aqui: todo WM
-# cujo .desktop de sessão tem o mesmo nome do WM entra como uma palavra na
-# lista, sem precisar de ramo novo. tty/server/xorg ficam de fora de
-# propósito — não têm sessão, e nesses casos _DISPLAYMANAGER="None" e este
-# valor nem chega a ser lido.
+# Mapa chave→sessão: o .desktop nem sempre usa o nome do WM (lxde → LXDE).
+# Sessões vêm de /usr/share/{xsessions,wayland-sessions}.
+# tty/server/xorg ficam de fora: não têm sessão, e nesses casos
+# _DISPLAYMANAGER="None" e o valor nem é lido.
 sh_get_session_name() {
 	local SESSION_NAME=xfce
 	local x
 	local -A aSession=(
-		[i3wm]=1 [fluxbox]=1 [hyprland]=1 [sway]=1 [mango]=1 [river]=1
-		[xfce]=1 [gnome]=1 [plasma]=1 [cinnamon]=1 [mate]=1 [enlightenment]=1
+		[i3wm]=i3wm [fluxbox]=fluxbox [hyprland]=hyprland [sway]=sway
+		[mango]=mango [river]=river [xfce]=xfce [gnome]=gnome
+		[plasma]=plasma [cinnamon]=cinnamon [mate]=mate
+		[enlightenment]=enlightenment [lxde]=LXDE
 	)
 
 	for x in "${_WINDOWMANAGER[@]}"; do
-		# Subscrito vazio em array associativo é erro de sintaxe em bash
-		# ("bad array subscript"), coisa que o case antigo engolia calado.
+		# subscrito vazio é "bad array subscript" em array associativo
 		[[ -n "$x" ]] || continue
 
-		# 'local' não é WM: é o marcador de instalação via ISO/squashfs, e aí a
-		# sessão vem da edição gravada no os-release do live.
+		# 'local' = marcador de ISO/squashfs; sessão vem do os-release do live
 		if [[ "$x" = "local" ]]; then
 			SESSION_NAME="$(sh_get_edition)"
 			SESSION_NAME="${SESSION_NAME,,}"
 			break
 		fi
 		if [[ -n "${aSession[$x]}" ]]; then
-			SESSION_NAME="$x"
+			SESSION_NAME="${aSession[$x]}"
 			break
 		fi
 	done
@@ -7646,7 +7674,15 @@ sh_install() {
 				if [[ "${AConfMirror[_SOURCE]}" = "local" ]]; then
 					# source=local: DE já veio pronto no squashfs, independente de LCUSTOM
 					# nunca cai no sh_X11_minimal (evita assumir XFCE numa ISO que pode ser de outro DE).
-					:
+					#
+					# O DM é a única peça que o usuário ainda pode trocar aqui:
+					# sh_choose_dm (6349) abre o menu quando LUPDATELOCAL. Sem
+					# isto ele escolhe sddm e nada é baixado — boota no DM da ISO.
+					if $LUPDATELOCAL && ((${#aDisplaymanager[@]})); then
+						sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
+						((${#aDisplaymanagerConfig[@]})) &&
+							sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM Config')" "${aDisplaymanagerConfig[*]}"
+					fi
 				elif $LMETA; then
 					# Meta-pacote (voidbr-*) já traz o DE inteiro — só falta o DM,
 					# que é escolha independente do usuário.
@@ -8516,6 +8552,13 @@ sh_getfullusernameloggeduser() {
 	echo "${passwd_fields[4]}"
 }
 
+# GECOS do usuário informado. Amarra cfullname ao mesmo /etc/passwd de onde
+# veio o cuser — byGetent usava SUDO_USER:-$USER, que dentro da ISO é root
+# (o instalador roda como root, sem sudo) e devolvia o GECOS do root.
+sh_getfullnamefromuser() {
+	getent passwd "$1" | cut -d ':' -f 5 | cut -d ',' -f 1
+}
+
 function sh_getfullusernameloggeduserbyGetent() {
 	local logged_user="${SUDO_USER:-$USER}" # Prioriza SUDO_USER, mas usa USER como fallback
 	getent passwd "$logged_user" | cut -d ':' -f 5 | cut -d ',' -f 1
@@ -8702,6 +8745,10 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SERIAL"
 			2>&1 1>&3)
 
 		exit_status=$?
+		# fd 3 só serve pro dialog acima. Fechando aqui, os nove return 1
+		# espalhados pelas validações abaixo não precisam se lembrar dele.
+		exec 3>&-
+
 		case $exit_status in
 		"$D_EXTRA")
 			# "Reset": volta tudo pro estado inicial, como se nada tivesse
@@ -9022,7 +9069,6 @@ $(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" "$DSK_SERIAL"
 			[[ -n "${AConfFde[lvhome]}" ]] && AmntpointFDE+=(["/dev/${AConfFde[vg]}/home"]="home|$fstype|1|${_conv[lvhome]}|/home")
 			;;
 		esac
-		exec 3>&-
 		if ((LCONFIGFDE)); then
 			LFDE=true
 			LVM=true
