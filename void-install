@@ -10020,7 +10020,11 @@ sh_with_all() {
 	# squashfs. Vem antes do sh_loadSavedConfig de propósito — num primeiro
 	# arranque sem .conf, o sh_touchConf de lá grava já com local; e se o
 	# .conf existir, a escolha salva pelo usuário prevalece.
-	sh_getIso && AConfMirror[_SOURCE]='local'
+	if sh_getIso; then
+		AConfMirror[_SOURCE]='local'
+		_WINDOWMANAGER=('local')
+		LONLY_TTY=false
+	fi
 
 	sh_loadSavedConfig
 	sh_disablePrintk
