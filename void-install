@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: seg 14 set 2026 02:19:53 -04
+#  Updated: ter 15 set 2026 00:15:13 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -51,7 +51,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.9.14-20260914'
+readonly _VERSION_='3.9.15-20260915'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -134,6 +134,7 @@ declare LMANGO=false
 declare LHYPRLAND=false
 declare LXFCE=false
 declare LFLUXBOX=false
+declare LLXDE=false
 declare LI3=false
 declare LGNOME=false
 declare LPLASMA=false
@@ -989,6 +990,7 @@ sh_touchConf() {
 		declare -p LHYPRLAND
 		declare -p LXFCE
 		declare -p LFLUXBOX
+		declare -p LLXDE
 		declare -p LI3
 		declare -p LMETA
 		declare -p LGNOME
@@ -3344,64 +3346,35 @@ sh_mount_fs() {
 	done
 }
 
-sh_common_theme() {
-	apkgs+=(
-		voidbr-wallpapers
-		voidbr-tokyo-theme
-		voidbr-dracula-theme
-		voidbr-professional-theme
-		voidbr-xfwm-axiom-theme
-		voidbr-beauty-icons
-	)
-}
-
 sh_X11_minimal() {
 	local apkgs=()
-	local aMedia=()
 
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando META Pacote') voidbr-xorg-common" "voidbr-xorg-common"
 	sh_install_pkgs_in_chroot "$(gettext 'Instalando META Pacote') voidbr-gui-common" "voidbr-gui-common"
-	return
+}
 
-	if ! $LHYPRLAND; then
-		apkgs+=("${aXorg[@]}")
-	fi
+sh_twm_minimal() {
+	local DE='TWM Desktop'
+	local apkgs=('twm')
+	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
+}
 
-	apkgs+=("${aVideo[@]}")
-	apkgs+=("${aFonts[@]}")
-	apkgs+=("${aDisplaymanager[@]}")
-	apkgs+=("${aDisplaymanagerConfig[@]}")
-	apkgs+=("${aTerminal[@]}")
-	apkgs+=("${aFilemanager[@]}")
-	apkgs+=("${aBrowser[@]}")
-	apkgs+=("${aBluetooth[@]}")
-	apkgs+=("${aNetworkX[@]}")
-	apkgs+=("${aUtilityX[@]}")
-	apkgs+=("${aIconsAndThemes[@]}")
+sh_awesome_minimal() {
+	local DE='AWESOME Desktop'
+	local apkgs=(awesome polybar pcmanfm font-awesome)
+	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
+}
 
-	if $LAUDIO; then
-		apkgs+=("${aPulseaudio[@]}")
-		apkgs+=("${aPipewire[@]}")
-		aMedia+=("${aPulseaudio[@]}")
-		aMedia+=("${aPipewire[@]}")
-	fi
+sh_dwm_minimal() {
+	local DE='DWM Desktop'
+	local apkgs=(dwm)
+	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
+}
 
-	if ! $LHYPRLAND; then
-		sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Xorg')" "${aXorg[*]}"
-	fi
-
-	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Video')" "${aVideo[*]}"
-	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Rede')" "${aNetworkX[*]}"
-	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Fontes')" "${aFonts[*]}"
-	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Icones')" "${aIconsAndThemes[*]}"
-	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM')" "${aDisplaymanager[*]}"
-	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote DM Config')" "${aDisplaymanagerConfig[*]}"
-	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Terminais')" "${aTerminal[*]}"
-	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote FileManager')" "${aFilemanager[*]}"
-	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Navegadores')" "${aBrowser[*]}"
-	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Bluetooth')" "${aBluetooth[*]}"
-	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Utilitários')" "${aUtilityX[*]}"
-	sh_install_pkgs_in_chroot "$(gettext 'Instalando Meta Pacote Media')" "${aMedia[*]}"
+sh_openbox_minimal() {
+	local DE='OPENBOX Desktop'
+	local apkgs=(openbox obconf)
+	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
 
 sh_fluxbox_meta_package() {
@@ -3420,51 +3393,20 @@ sh_fluxbox_meta_package() {
 	fi
 }
 
-sh_openbox_minimal() {
-	local apkgs=(openbox obconf)
-	local DE='OpenBox'
-	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
-}
-
-sh_plasma_minimal() {
-	local DE='Plasma Desktop'
-	local apkgs=(
-		kde5
-		plasma-desktop
-		plasma-nm
-		plasma-pa
-		plasma-disks
-		kate
-		konsole
-		dolphin
-	)
-
-	if $LCUSTOM; then
-		apkgs+=(
-			kf6-kaccounts-integration
-			kaccounts-providers
-			signon-kwallet-extension
-			ark
-			kwalletmanager
-			spectacle
-		)
-
-		apkgs+=(
-			voidbr-plasma-config
-		)
-
-		sh_common_theme
-
-	fi
-
-	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
-}
-
 sh_plasma_meta_package() {
 	local DE='PLASMA Desktop'
 	local apkgs=(voidbr-plasma)
 	apkgs+=(voidbr-base-config)
 	apkgs+=(voidbr-plasma-config)
+
+	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
+}
+
+sh_bspwm_meta_package() {
+	local DE='BSPWM Desktop'
+	local apkgs=(voidbr-bspwm)
+	apkgs+=(voidbr-base-config)
+	apkgs+=(voidbr-bspwm-config)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -3483,73 +3425,6 @@ sh_cinnamon_meta_package() {
 	local apkgs=(voidbr-cinnamon)
 	apkgs+=(voidbr-base-config)
 	apkgs+=(voidbr-cinnamon-config)
-
-	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
-}
-
-sh_cinnamon_minimal() {
-	local DE='cinnamon'
-	local apkgs=(cinnamon cinnamon-all)
-
-	if $LCUSTOM; then
-		apkgs+=(
-			plank
-			voidbr-cinnamon-config
-		)
-
-		sh_common_theme
-
-	fi
-
-	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
-}
-
-sh_enlightenment_minimal() {
-	local DE='Enlightenment'
-	local apkgs=(
-		enlightenment
-		efl
-		exquisite
-		connman
-	)
-
-	if $LCUSTOM; then
-		apkgs+=(
-			voidbr-enlightenment-config
-		)
-
-		sh_common_theme
-
-	fi
-
-	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
-}
-
-sh_xfce_minimal() {
-	local DE='Xfce'
-	local apkgs=(
-		xfce4
-		xfce4-plugins
-		xfce4-screenshooter
-		xfce4-dict
-		xfce4-datetime-plugin
-		xfce4-pulseaudio-plugin
-	)
-
-	if $LCUSTOM; then
-		apkgs+=(
-			thunar-archive-plugin
-			ristretto
-			engrampa
-			file-roller
-			mate-calc
-			umc
-			plank
-			voidbr-xfce-config
-		)
-
-		sh_common_theme
-	fi
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -3604,83 +3479,6 @@ sh_xorg_minimal_meta_package() {
 	: >"$cfile"
 }
 
-sh_xorg_minimal() {
-	local DE='XORG Minimal'
-	declare apkgs=(
-		xorg-minimal
-		xinit
-		xterm
-		xorg-fonts
-		xorg-video-drivers
-		mesa-dri
-	)
-
-	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
-	# Marcador do autostartx. Modo xorg é teste do stack X (servidor + xterm,
-	# sem WM nem DM); o if com startx vive no .bash_profile do
-	# voidbr-base-config e aqui fica só o gatilho, porque aquele arquivo é do
-	# pacote e é reescrito a cada reinstalação — o marcador não. No skel
-	# porque o useradd -m do sh_make_user, logo adiante, copia pro home.
-	local cfile="$dir_install/etc/skel/.voidbr-autostartx"
-
-	sh_info_msg "${cmsg_Ajustando} ${cfile}"
-	mkdir -p "$dir_install/etc/skel"
-	: >"$cfile"
-}
-
-sh_gnome_minimal() {
-	local DE='Gnome'
-	local apkgs=(
-		"bluez"                    # Pilha de protocolos Bluetooth
-		"cantarell-fonts"          # Fonte oficial da interface GNOME
-		"colord"                   # Gerenciador de perfis de cores
-		"extension-manager"        # App para gerenciar extensões sem navegador
-		"gdm"                      # Gerenciador de login (Display Manager)
-		"gnome"                    # Meta-pacote Core (Shell, Nautilus, Control Center)
-		"gnome-apps"               # Suite de aplicativos padrão (Calculadora, Mapas, etc.)
-		"gnome-backgrounds"        # Papéis de parede oficiais do GNOME
-		"gnome-bluetooth"          # Interface de controle do Bluetooth no GNOME
-		"gnome-browser-connector"  # Integração do navegador com extensões do Shell
-		"gnome-characters"         # Utilitário de mapa de caracteres e emojis
-		"gnome-connections"        # Cliente nativo para conexões remotas RDP/VNC
-		"gnome-disk-utility"       # Utilitário para gerenciamento de discos e partições
-		"gnome-keyring"            # Gerenciador de senhas, chaves SSH e GPG
-		"gnome-online-accounts"    # Configuração central de contas externas
-		"gnome-session"            # Gerenciador de sessão do GNOME
-		"gnome-shell-extensions"   # Extensões oficiais fornecidas pelo projeto GNOME
-		"gnome-system-monitor"     # Monitor de processos e recursos do sistema
-		"gnome-terminal"           # Emulador de terminal padrão do GNOME
-		"gnome-themes-extra"       # Temas extras para compatibilidade GTK2 e GTK3
-		"mime-types"               # Fornece o arquivo compartilhado /etc/mime.types
-		"papirus-icon-theme"       # Conjunto de ícones Papirus
-		"polkit"                   # Framework para definição de privilégios
-		"simple-scan"              # Utilitário de digitalização de documentos
-		"tracker3"                 # Motor de busca e indexação de arquivos
-		"tracker3-miners"          # Extratores de metadados para busca do Tracker
-		"xdg-desktop-portal-gnome" # Integração de interface e permissões para Wayland
-		"xdg-user-dirs-gtk"        # Gerenciamento automático das pastas padrão de usuário
-		"accountsservice"          # D-Bus interfaces for querying and manipulating user account information
-	)
-
-	if $LCUSTOM; then
-		apkgs+=(dconf-editor devhelp Endeavour evolution five-or-more four-in-a-row geary
-			gedit ghex glade3 gnome-boxes gnome-builder gnome-chess gnome-games-collection
-			gnome-klotski gnome-mahjongg gnome-multi-writer gdm-settings
-			gnome-nettool gnome-nibbles gnome-robots gnome-sound-recorder gnome-sudoku
-			gnome-taquin gnome-tetravex gnome-tweaks gnome-usage hitori iagno lightsoff
-			polari quadrapassel swell-foop sysprof tali
-		)
-		apkgs+=(
-			voidbr-gnome-config
-			voidbr-change-gnome-wallpaper
-		)
-
-		sh_common_theme
-	fi
-
-	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
-}
-
 sh_gnome_meta_package() {
 	local DE='GNOME Desktop'
 	local apkgs=(voidbr-gnome)
@@ -3695,46 +3493,6 @@ sh_i3_meta_package() {
 	local apkgs=(voidbr-i3)
 	apkgs+=(voidbr-base-config)
 	apkgs+=(voidbr-i3wm-config)
-
-	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
-}
-
-sh_i3_minimal() {
-	local DE='I3 Desktop'
-	local apkgs=(
-		i3
-		i3status # Status bar generator for i3bar, dzen2, xmobar or similar programs
-		dmenu    # Generic menu for X
-		#   i3lock-color
-		i3lock     # Improved screenlocker based upon XCB and PAM
-		volumeicon # Lightweight volume control that sits in your systray
-		mc         # User-friendly file manager and visual shell
-		scrot      # Simple command-line screenshot utility for X
-		mpv        # Video player based on MPlayer/mplayer2
-		cava       # Audio Visualizer for ALSA
-		pcmanfm    # LXDE file manager
-		alacritty
-		mate-themes
-		gnome-themes-standard
-		voidbr-i3wm-config
-		autotiling
-		azote
-		bumblebee-status
-		i3-gaps
-		i3blocks
-		xss-lock
-		j4-dmenu-desktop
-		nitrogen
-		dex
-		xfce4-screenshooter
-		font-awesome
-		Thunar
-		rofi
-		feh
-		picom
-		flameshot
-		polybar
-	)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -3775,13 +3533,6 @@ sh_river_meta_package() {
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
 
-sh_river_minimal() {
-	local DE='river'
-	local apkgs=(river yambar fuzzel voidbr-river-config)
-
-	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
-}
-
 sh_mate_meta_package() {
 	local DE='MATE Desktop'
 	local apkgs=(voidbr-mate)
@@ -3791,144 +3542,20 @@ sh_mate_meta_package() {
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
 
-sh_mate_minimal() {
-	local DE='Mate'
-	local apkgs=(mate
-		mate-applets
-		mate-common
-		mate-extra
-		mate-backgrounds
-		mate-calc
-		mate-icon-theme-faenza
-		mate-media
-		mate-netbook
-		mate-power-manager
-		mate-screensaver
-		mate-sensors-applet
-		mate-system-monitor
-		mate-terminal
-		mate-utils
-		atril
-		caja-image-converter
-		caja-open-terminal
-		caja-sendto
-		caja-share
-		caja-wallpaper
-		caja-xattr-tags
-		engrampa
-		eom
-		mozo
-		pluma
-	)
-
-	if $LCUSTOM; then
-		apkgs+=(
-			plank
-			brisk-menu
-			voidbr-mate-config
-		)
-
-		sh_common_theme
-	fi
-
-	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
-}
-
-sh_twm_minimal() {
-	local DE='TWM'
-	local apkgs=('twm')
-
-	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
-}
-
-sh_awesome_minimal() {
-	local DE='Awesome'
-	local apkgs=(awesome polybar pcmanfm font-awesome)
-
-	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
-}
-
-sh_bspwm_minimal() {
-	local DE='Bspwm'
-	local apkgs=(bspwm
-		polybar
-		sxhkd
-		dunst
-		flameshot
-		picom
-		feh
-		dmenu
-		lua
-		wmctrl
-		compton
-		mpd
-		font-weather-icons
-		font-awesome5
-		hsetroot
-		lxappearance
-		rofi
-		gtk-engine-murrine
-		gtk2-engines
-	)
-
-	if $LCUSTOM; then
-		apkgs+=(
-			chili-void-bspwm-skel
-		)
-	fi
-
-	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
-}
-
-sh_dwm_minimal() {
-	local DE='Dwm'
-	local apkgs=(dwm)
-
-	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
-}
-
-sh_lxde_minimal() {
+sh_lxde_meta_package() {
 	local DE='LXDE Desktop'
-	local apkgs=()
-
-	apkgs+=(lxde)
-	apkgs+=(lxde-common)
-	apkgs+=(lxde-icon-theme)
-	apkgs+=(lxrandr)
-	apkgs+=(lxrandr)
-	apkgs+=(lxtask)
-	apkgs+=(lxinput)
-	apkgs+=(lxlauncher)
-	apkgs+=(lxterminal)
-	apkgs+=(lxappearance)
+	local apkgs=(voidbr-lxde)
+	apkgs+=(voidbr-base-config)
+	apkgs+=(voidbr-lxde-config)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
 
 sh_lxqt_minimal() {
-	local DE='Lxqt'
+	local DE='LXQT Desktop'
 	local apkgs=(lxqt)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
-}
-
-sh_make_bspwm_conf() {
-	local user="${AsUser[cuser]}"
-	shell='/bin/bash'
-
-	sh_chroot_job "${cmsg_Configurando} Bspwm" "
-      mkdir -p /home/$user/.config/{bspwm,polybar,sxhkd} &&
-		cp -R /usr/share/doc/bspwm/examples/* /home/$user/.config/bspwm/ &&
-		cp /usr/share/examples/polybar/config.ini /home/$user/.config/polybar/ &&
-		cp /usr/share/doc/bspwm/examples/sxhkdrc /home/$user/.config/sxhkd/ &&
-		echo '#!/usr/bin/env bash'  >> /home/$user/.config/polybar/launch.sh &&
-		echo 'polybar-msg cmd quit' >> /home/$user/.config/polybar/launch.sh &&
-		echo 'echo "---" | tee -a /tmp/polybar1.log /tmp/polybar2.log' >> /home/$user/.config/polybar/launch.sh &&
-		echo 'polybar example 2>&1 | tee -a /tmp/polybar1.log & disown' >> /home/$user/.config/polybar/launch.sh &&
-   	echo '~/.config/polybar/launch.sh' >> /home/$user/.config/bspwm/bspwmrc &&
-    chmod +x /home/$user/.config/polybar/launch.sh &&
-   	chown $user:$user /home/$user/.config -R
-   " "$err_not_fatal"
 }
 
 sh_backup_partitions() {
@@ -6024,6 +5651,7 @@ sh_choose_wm() {
 	LXFCE=false
 	LI3=false
 	LFLUXBOX=false
+	LLXDE=false
 	LGNOME=false
 	LPLASMA=false
 	LENLIGHTENMENT=false
@@ -6077,6 +5705,11 @@ sh_choose_wm() {
 			;;
 		fluxbox)
 			LFLUXBOX=true
+			_DISPLAYMANAGER="lightdm"
+			LMETA=true
+			;;
+		lxde)
+      LLXDE=true
 			_DISPLAYMANAGER="lightdm"
 			LMETA=true
 			;;
@@ -7467,12 +7100,12 @@ sh_install_DE() {
 		"server") sh_server_meta_package ;;
 		"xorg") sh_xorg_minimal_meta_package ;;
 		"awesome") sh_awesome_minimal ;;
-		"bspwm") sh_bspwm_minimal ;;
 		"dwm") sh_dwm_minimal ;;
-		"lxde") sh_lxde_minimal ;;
 		"lxqt") sh_lxqt_minimal ;;
 		"openbox") sh_openbox_minimal ;;
 		"twm") sh_twm_minimal ;;
+		"bspwm") sh_bspwm_meta_package ;;
+		"lxde") sh_lxde_meta_package ;;
 		"river") sh_river_meta_package ;;
 		"i3wm") sh_i3_meta_package ;;
 		"enlightenment") sh_enlightenment_meta_package ;;
