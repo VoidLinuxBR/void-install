@@ -134,6 +134,7 @@ declare LMANGO=false
 declare LHYPRLAND=false
 declare LXFCE=false
 declare LFLUXBOX=false
+declare LBSPWM=false
 declare LLXDE=false
 declare LI3=false
 declare LGNOME=false
@@ -990,6 +991,7 @@ sh_touchConf() {
 		declare -p LHYPRLAND
 		declare -p LXFCE
 		declare -p LFLUXBOX
+		declare -p LBSPWM
 		declare -p LLXDE
 		declare -p LI3
 		declare -p LMETA
@@ -5596,7 +5598,6 @@ sh_choose_wm() {
 	done
 
 	#  	awesome "${aWm[awesome]}" "${aFlag[awesome]}" \
-	#  	bspwm "${aWm[bspwm]}" "${aFlag[bspwm]}" \
 	#  	dwm "${aWm[dwm]}" "${aFlag[dwm]}" \
 	#  	lxde "${aWm[lxde]}" "${aFlag[lxde]}" \
 	#  	lxqt "${aWm[lxqt]}" "${aFlag[lxqt]}" \
@@ -5615,6 +5616,7 @@ sh_choose_wm() {
 		tty "${aWm[tty]}" "${aFlag[tty]}" \
 		server "${aWm[server]}" "${aFlag[server]}" \
 		xorg "${aWm[xorg]}" "${aFlag[xorg]}" \
+	  bspwm "${aWm[bspwm]}" "${aFlag[bspwm]}" \
 		cinnamon "${aWm[cinnamon]}" "${aFlag[cinnamon]}" \
 		enlightenment "${aWm[enlightenment]}" "${aFlag[enlightenment]}" \
 		fluxbox "${aWm[fluxbox]}" "${aFlag[fluxbox]}" \
@@ -5651,6 +5653,7 @@ sh_choose_wm() {
 	LXFCE=false
 	LI3=false
 	LFLUXBOX=false
+	LBSPWM=false
 	LLXDE=false
 	LGNOME=false
 	LPLASMA=false
@@ -5705,6 +5708,11 @@ sh_choose_wm() {
 			;;
 		fluxbox)
 			LFLUXBOX=true
+			_DISPLAYMANAGER="lightdm"
+			LMETA=true
+			;;
+		bspwm)
+			LBSPWM=true
 			_DISPLAYMANAGER="lightdm"
 			LMETA=true
 			;;
