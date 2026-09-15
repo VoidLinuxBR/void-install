@@ -5569,6 +5569,7 @@ sh_choose_wm() {
 	aWm[tty]="${cmsg_tty}"
 	aWm[server]="${cmsg_server}"
 	aWm[xorg]="Xorg $(gettext "Minimal")"
+	aWm[bspwm]="$(gettext "Tiling window manager based on binary space partitioning")"
 	aWm[cinnamon]="Cinnamon"
 	aWm[enlightenment]="Enlightenment"
 	aWm[gnome]="Gnome"
@@ -5576,7 +5577,6 @@ sh_choose_wm() {
 	aWm[xfce]="Xfce 4"
 	aWm[mate]="Mate"
 	aWm[awesome]="Awesome"
-	aWm[bspwm]="Bspwm"
 	aWm[dwm]="Dwm"
 	aWm[fluxbox]="Fluxbox"
 	aWm[hyprland]="(Experimental) Hyprland"
@@ -5616,7 +5616,7 @@ sh_choose_wm() {
 		tty "${aWm[tty]}" "${aFlag[tty]}" \
 		server "${aWm[server]}" "${aFlag[server]}" \
 		xorg "${aWm[xorg]}" "${aFlag[xorg]}" \
-	  bspwm "${aWm[bspwm]}" "${aFlag[bspwm]}" \
+		bspwm "${aWm[bspwm]}" "${aFlag[bspwm]}" \
 		cinnamon "${aWm[cinnamon]}" "${aFlag[cinnamon]}" \
 		enlightenment "${aWm[enlightenment]}" "${aFlag[enlightenment]}" \
 		fluxbox "${aWm[fluxbox]}" "${aFlag[fluxbox]}" \
@@ -5717,7 +5717,7 @@ sh_choose_wm() {
 			LMETA=true
 			;;
 		lxde)
-      LLXDE=true
+			LLXDE=true
 			_DISPLAYMANAGER="lightdm"
 			LMETA=true
 			;;
@@ -6822,10 +6822,20 @@ sh_get_session_name() {
 	local SESSION_NAME=xfce
 	local x
 	local -A aSession=(
-		[i3wm]=i3wm [fluxbox]=fluxbox [hyprland]=hyprland [sway]=sway
-		[mango]=mango [river]=river [xfce]=xfce [gnome]=gnome
-		[plasma]=plasma [cinnamon]=cinnamon [mate]=mate
-		[enlightenment]=enlightenment [lxde]=LXDE
+		[bspwm]=bspwm
+		[cinnamon]=cinnamon
+		[enlightenment]=enlightenment
+		[fluxbox]=fluxbox
+		[gnome]=gnome
+		[hyprland]=hyprland
+		[i3wm]=i3wm
+		[lxde]=LXDE
+		[mango]=mango
+		[mate]=mate
+		[plasma]=plasma
+		[river]=river
+		[sway]=sway
+		[xfce]=xfce
 	)
 
 	for x in "${_WINDOWMANAGER[@]}"; do
