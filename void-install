@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 15 set 2026 00:15:13 -04
+#  Updated: ter 15 set 2026 08:54:04 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -132,16 +132,7 @@ declare LXORG=false
 declare LSWAY=false
 declare LMANGO=false
 declare LHYPRLAND=false
-declare LXFCE=false
-declare LFLUXBOX=false
-declare LBSPWM=false
-declare LLXDE=false
-declare LI3=false
-declare LGNOME=false
-declare LPLASMA=false
-declare LMATE=false
-declare LCINNAMON=false
-declare LENLIGHTENMENT=false
+declare LRIVER=false
 declare LMETA=false
 #
 declare DEFITEM
@@ -817,37 +808,6 @@ sh_choose_common_packages() {
 	if $LXORG; then
 		return
 	fi
-
-	if ! $LONLY_TTY; then
-		declare -ga aXorg=(xorg xinit xterm xorg-fonts dbus-x11 elogind dbus-elogind polkit-elogind xdg-user-dirs xrdb xorg-server-xwayland)
-		declare -ga aVideo=(mesa-dri linux-firmware-intel xf86-video-amdgpu xf86-video-ati mesa-nouveau-dri libavif libheif gdk-pixbuf libheif-pixbuf-loader)
-		declare -ga aPulseaudio=(pulseaudio pavucontrol pasystray gst-plugins-bad1 gst-plugins-good1 gst-plugins-ugly1 gst-plugins-base1 alsa-plugins-pulseaudio alsa-utils)
-		declare -ga aPipewire=(pipewire wireplumber alsa-pipewire pulseaudio-utils pavucontrol libspa-bluetooth libjack-pipewire alsa-plugins-pulseaudio alsa-utils)
-
-		if $LCUSTOM; then
-			declare -ga aBluetooth=(bluez bluez-alsa bluedevil blueman bluez-deprecated gnome-bluetooth1 blueberry)
-			declare -ga aTerminal=(rxvt-unicode)
-			declare -ga aNetworkX=(gvfs gvfs-smb gvfs-mtp gvfs-afc gvfs-cdda gvfs-gphoto2 udisks2)
-			declare -ga aUtilityX=(xkill lm_sensors)
-			declare -ga aUtility=(binutils bc)
-		fi
-
-		aFonts+=(noto-fonts-emoji)
-		aFonts+=(noto-fonts-cjk)
-		aFonts+=(dejavu-fonts-ttf)
-		aFonts+=(font-fira-ttf)
-		aFonts+=(font-firacode)
-		aFonts+=(font-hack-ttf)
-		aFonts+=(ttf-jetbrains-mono-nerd)
-		#
-		aIconsAndThemes+=(Adapta adwaita-icon-theme arc-theme)
-		aTerminal+=(xfce4-terminal)
-		aBrowser+=(firefox firefox-i18n-$(sh_get_language_without_utf8))
-		aFilemanager+=(octoxbps)
-		aUtilityX+=(chili-iso2usb voidbr-iso-writer)
-		aNetworkX+=(network-manager-applet)
-	fi
-
 }
 
 errorbeep() {
@@ -989,18 +949,9 @@ sh_touchConf() {
 		declare -p LSWAY
 		declare -p LMANGO
 		declare -p LHYPRLAND
-		declare -p LXFCE
-		declare -p LFLUXBOX
-		declare -p LBSPWM
-		declare -p LLXDE
-		declare -p LI3
+		declare -p LRIVER
 		declare -p LMETA
-		declare -p LGNOME
-		declare -p LPLASMA
 		declare -p LXORG
-		declare -p LENLIGHTENMENT
-		declare -p LMATE
-		declare -p LCINNAMON
 		declare -p LSERVER
 		declare -p LDHCP
 		declare -p LCUSTOM
@@ -2953,6 +2904,7 @@ sh_make_fstab() {
 			fstype="$(sh_splitarray "${Amntpoint[$i]}" 2)"
 			format="$(sh_splitarray "${Amntpoint[$i]}" 3)"
 
+			fsorder=1
 			if [ "$fstype" = "f2fs" -o "$fstype" = "btrfs" -o "$fstype" = "xfs" -o "$fstype" = "reiserfs" ]; then
 				fsorder=0
 			fi
@@ -2979,9 +2931,12 @@ sh_make_fstab() {
 				fi
 			fi
 		done
-		#		evaluate_retval "$?"
+	#		evaluate_retval "$?"
 	else
-		sh_info_msb "${cmsg_Gerando} fstab pass1"
+		sh_info_msg "${cmsg_Gerando} fstab pass1"
+		echo "tmpfs /tmp tmpfs defaults,nosuid,nodev,noatime,mode=1777 0 0" >"$dir_install/etc/fstab"
+		echo "proc /proc proc nodev,noexec,nosuid 0 0" >>"$dir_install/etc/fstab"
+
 		for i in "${!AmntpointFDE[@]}"; do
 			_part="$i"
 			label="$(sh_splitarray "${AmntpointFDE[$i]}" 1)"
@@ -3008,19 +2963,18 @@ sh_make_fstab() {
 			format="$(sh_splitarray "${Amntpoint[$i]}" 3)"
 
 			if [[ "$mntpoint" = "/boot/efi" ]]; then
-				echo "UUID=$(blkid -o value -s UUID "${_part}") ${mntpoint} ${fstype,,} defaults 0 $fsorder" >>"$dir_install/etc/fstab"
+				echo "UUID=$(blkid -o value -s UUID "${_part}") ${mntpoint} ${fstype,,} defaults 0 2" >>"$dir_install/etc/fstab"
 				break
 			fi
 		done
 		#		evaluate_retval "$?"
 	fi
 
-	sh_chroot_job "${cmsg_Gerando} fstab pass2" \
-		"sed 's/#.*//' /etc/fstab | column --table --table-columns SOURCES,DIR,TYPE,OPTIONS,DUMP,PASS --table-hide - >/tmp/fstab" "$err_not_fatal"
-	sh_chroot_job "${cmsg_Gerando} fstab pass3" \
-		"sed -i 's/SOURCES/#SOURCE/' /tmp/fstab" "$err_not_fatal"
-	sh_chroot_job "${cmsg_Gerando} fstab pass4" \
-		"cp /tmp/fstab /etc/fstab" "$err_not_fatal"
+	sh_chroot_job "${cmsg_Gerando} fstab pass2" "
+    sed 's/#.*//' /etc/fstab | column --table --table-columns SOURCES,DIR,TYPE,OPTIONS,DUMP,PASS --table-hide - >/tmp/fstab
+    sed -i 's/SOURCES/#SOURCE/' /tmp/fstab
+    cp /tmp/fstab /etc/fstab
+  " $err_not_fatal
 }
 
 sh_activating_services() {
@@ -3351,8 +3305,10 @@ sh_mount_fs() {
 sh_X11_minimal() {
 	local apkgs=()
 
-	sh_install_pkgs_in_chroot "$(gettext 'Instalando META Pacote') voidbr-xorg-common" "voidbr-xorg-common"
-	sh_install_pkgs_in_chroot "$(gettext 'Instalando META Pacote') voidbr-gui-common" "voidbr-gui-common"
+	if ! $LMETA; then
+		sh_install_pkgs_in_chroot "$(gettext 'Instalando META Pacote') voidbr-xorg-common" "voidbr-xorg-common"
+		sh_install_pkgs_in_chroot "$(gettext 'Instalando META Pacote') voidbr-gui-common" "voidbr-gui-common"
+	fi
 }
 
 sh_twm_minimal() {
@@ -5650,16 +5606,7 @@ sh_choose_wm() {
 	LSWAY=false
 	LMANGO=false
 	LHYPRLAND=false
-	LXFCE=false
-	LI3=false
-	LFLUXBOX=false
-	LBSPWM=false
-	LLXDE=false
-	LGNOME=false
-	LPLASMA=false
-	LENLIGHTENMENT=false
-	LMATE=false
-	LCINNAMON=false
+	LRIVER=false
 	LXORG=false
 	LSERVER=false
 	LMETA=false
@@ -5694,55 +5641,46 @@ sh_choose_wm() {
 			;;
 		river)
 			_DISPLAYMANAGER="sddm"
+			LRIVER=true
 			LMETA=true
 			;;
 		xfce)
-			LXFCE=true
 			_DISPLAYMANAGER="lightdm"
 			LMETA=true
 			;;
 		i3wm)
-			LI3=true
 			_DISPLAYMANAGER="lightdm"
 			LMETA=true
 			;;
 		fluxbox)
-			LFLUXBOX=true
 			_DISPLAYMANAGER="lightdm"
 			LMETA=true
 			;;
 		bspwm)
-			LBSPWM=true
 			_DISPLAYMANAGER="lightdm"
 			LMETA=true
 			;;
 		lxde)
-			LLXDE=true
 			_DISPLAYMANAGER="lightdm"
 			LMETA=true
 			;;
 		gnome)
-			LGNOME=true
 			_DISPLAYMANAGER="lightdm"
 			LMETA=true
 			;;
 		plasma)
-			LPLASMA=true
 			_DISPLAYMANAGER="lightdm"
 			LMETA=true
 			;;
 		enlightenment)
-			LENLIGHTENMENT=true
 			_DISPLAYMANAGER="lightdm"
 			LMETA=true
 			;;
 		mate)
-			LMATE=true
 			_DISPLAYMANAGER="lightdm"
 			LMETA=true
 			;;
 		cinnamon)
-			LCINNAMON=true
 			_DISPLAYMANAGER="lightdm"
 			LMETA=true
 			;;
@@ -6093,7 +6031,7 @@ sh_choose_dm() {
 	LDM=true
 	_DISPLAYMANAGER="$dm"
 
-	if $LHYPRLAND || $LSWAY || $LMANGO; then
+	if $LHYPRLAND || $LSWAY || $LMANGO || $LRIVER; then
 		if [[ "$dm" != "None" && "$dm" != "sddm" ]]; then
 			if conf "=== ${cmsg_Dm^^} ===" \
 				"\n${BOLD}${CYAN}$(gettext "É aconselhável escolhar sddm para compatibilidade")" \
@@ -6396,6 +6334,7 @@ sh_confLuksBoot() {
 sh_set_edition_os_release() {
 	local name="$1"
 	local f="${dir_install}/etc/os-release"
+
 	sh_info_msg "${cmsg_Ajustando} $f"
 	[[ -f "$f" ]] || return 1
 	name="${name^}"
@@ -6493,7 +6432,6 @@ GRUB_CMDLINE_LINUX_DEFAULT="loglevel=3 quiet splash"
 GRUB_THEME="/boot/grub/themes/voidbr/theme.txt"
 EOF
 
-	echo "GRUB_THEME=/boot/grub/themes/voidbr/theme.txt" >>"$dir_install/etc/default/grub"
 	if $LOSPROBER; then
 		echo "GRUB_DISABLE_OS_PROBER=false" >>"$dir_install/etc/default/grub"
 	else
@@ -6626,21 +6564,31 @@ sh_limineInstall() {
           -l '\EFI\limine\BOOTX64.EFI'
     	"
 		else
+			local vm_user vm_home vm_vars
+
 			vm_user="${SUDO_USER:-$(id -un)}"
 			vm_home=$(getent passwd "$vm_user" | cut -d: -f6)
 			vm_vars="$vm_home/.chili-fr/OVMF_VARS.4m.fd"
 
-			virt-fw-vars \
-				--inplace "$vm_vars" \
-				--append-boot-filepath "$dir_install/boot/efi/EFI/limine/BOOTX64.EFI"
+			if ! hash virt-fw-vars 2>/dev/null; then
+				sh_info_msg "${RED} ✗ ${RST} virt-fw-vars $(gettext 'não encontrado') — $(gettext 'entrada de boot não registrada na VM')"
+			elif [[ ! -f "$vm_vars" ]]; then
+				sh_info_msg "${RED} ✗ ${RST} ${vm_vars} $(gettext 'não encontrado') — $(gettext 'entrada de boot não registrada na VM')"
+			else
+				virt-fw-vars \
+					--inplace "$vm_vars" \
+					--append-boot-filepath "$dir_install/boot/efi/EFI/limine/BOOTX64.EFI" 2>&1 |
+					tee -i -a "$BOOTLOG" >"$LOGGER"
+				((PIPESTATUS[0] == 0)) || sh_info_msg "${RED} ✗ ${RST} virt-fw-vars $(gettext 'falhou') — $(gettext 'entrada de boot não registrada na VM')"
+			fi
 		fi
-
-		sh_change_limine
-
-		sh_chroot_job "${cmsg_Instalando} Limine $(gettext 'para a plataforma') x86_64-efi" "
-      update-limine || true
-    "
 	fi
+
+	sh_change_limine
+
+	sh_chroot_job "${cmsg_Instalando} Limine $(gettext 'para a plataforma') x86_64-efi" "
+    update-limine || true
+  "
 
 }
 
@@ -6930,7 +6878,7 @@ User=$user
 Session=$session
 EOF
 
-	if $LHYPRLAND || $LSWAY || $LMANGO; then
+	if $LHYPRLAND || $LSWAY || $LMANGO || $LRIVER; then
 		sed -i '/^\[General\]/,/^\[/{
     /^\[/!b
     /^\[General\]/!i\
@@ -7311,6 +7259,8 @@ sh_install() {
 				fi
 			fi
 
+			sh_make_fstab
+
 			if [[ "${AConfBootLoader[_LOADER]}" == 'grub' ]]; then
 				sh_grubInstall
 			else
@@ -7318,7 +7268,6 @@ sh_install() {
 			fi
 
 			sh_set_edition_os_release "$(sh_get_edition_label)"
-			sh_make_fstab
 
 			#debug $LONLY_TTY
 			if ! $LONLY_TTY; then
