@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 15 set 2026 08:54:04 -04
+#  Updated: ter 15 set 2026 10:09:46 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -781,10 +781,11 @@ sh_choose_common_packages() {
 			parallel
 			voidbr-utils
 			voidbr-nano-config
-			voidbr-webapps
 			chili-utils
 			chili-clonedisk
 		)
+		$LONLY_TTY || aExtra+=(voidbr-webapps)
+
 	fi
 
 	if $LSERVER; then
@@ -797,17 +798,6 @@ sh_choose_common_packages() {
 	aPackageDaemons+=(NetworkManager dhcpcd)
 	aServicesTTY+=(NetworkManager)
 
-	if [[ "${AConfMirror[_SOURCE]}" = "local" ]]; then
-		return
-	fi
-
-	if $LMETA; then
-		return
-	fi
-
-	if $LXORG; then
-		return
-	fi
 }
 
 errorbeep() {
@@ -3010,7 +3000,7 @@ sh_activating_services() {
 	# Roda antes do loop de aServicesX, que é quem cria o link do DM escolhido.
 	# O continue protege o escolhido, então se o usuário não trocou nada,
 	# nenhum link é removido.
-	if [[ "${AConfMirror[_SOURCE]}" = "local" ]] && $LUPDATELOCAL; then
+	if [[ "${AConfMirror[_SOURCE]}" = "local" ]] && $LUPDATELOCAL && [[ "$_DISPLAYMANAGER" != "None" ]]; then
 		for service in lightdm sddm gdm lxdm; do
 			[[ "$service" = "$_DISPLAYMANAGER" ]] && continue
 			sh_chroot_job "$(gettext 'Desativando serviço') $service" \
@@ -4149,6 +4139,7 @@ sh_chooseSource() {
 					_WINDOWMANAGER=('local')
 					AConfMirror[_SOURCE]=$src
 					LONLY_TTY=false
+					_DISPLAYMANAGER='None'
 					sh_ask_update_local
 
 					if $LUPDATELOCAL; then
@@ -5693,7 +5684,7 @@ sh_choose_wm() {
 		_WM="server"
 		LONLY_TTY=true
 		LSERVER=true
-		LMETA=true
+		LMETA=false
 		AConfAudio[_AUDIOSERVER]="None"
 		_DISPLAYMANAGER="None"
 	elif [[ " ${_WINDOWMANAGER[*]} " == *" xorg "* ]]; then
@@ -5706,7 +5697,7 @@ sh_choose_wm() {
 	else
 		_WM="tty"
 		LONLY_TTY=true
-		LMETA=true
+		LMETA=false
 		AConfAudio[_AUDIOSERVER]="None"
 		_DISPLAYMANAGER="None"
 	fi
