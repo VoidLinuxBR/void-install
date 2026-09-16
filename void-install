@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 15 set 2026 10:09:46 -04
+#  Updated: qua 16 set 2026 01:23:03 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -51,7 +51,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.9.15-20260915'
+readonly _VERSION_='3.9.16-20260916'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -3440,7 +3440,7 @@ sh_i3_meta_package() {
 	local DE='I3 Desktop'
 	local apkgs=(voidbr-i3)
 	apkgs+=(voidbr-base-config)
-	apkgs+=(voidbr-i3wm-config)
+	apkgs+=(voidbr-i3-config)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -5527,7 +5527,7 @@ sh_choose_wm() {
 	aWm[dwm]="Dwm"
 	aWm[fluxbox]="Fluxbox"
 	aWm[hyprland]="(Experimental) Hyprland"
-	aWm[i3wm]="I3wm"
+	aWm[i3]="I3"
 	aWm[lxde]="Lxde"
 	aWm[lxqt]="Lxqt"
 	aWm[openbox]="Openbox"
@@ -5569,7 +5569,7 @@ sh_choose_wm() {
 		fluxbox "${aWm[fluxbox]}" "${aFlag[fluxbox]}" \
 		gnome "${aWm[gnome]}" "${aFlag[gnome]}" \
 		hyprland "${aWm[hyprland]}" "${aFlag[hyprland]}" \
-		i3wm "${aWm[i3wm]}" "${aFlag[i3wm]}" \
+		i3 "${aWm[i3]}" "${aFlag[i3]}" \
 		lxde "${aWm[lxde]}" "${aFlag[lxde]}" \
 		mango "${aWm[mango]}" "${aFlag[mango]}" \
 		mate "${aWm[mate]}" "${aFlag[mate]}" \
@@ -5639,7 +5639,7 @@ sh_choose_wm() {
 			_DISPLAYMANAGER="lightdm"
 			LMETA=true
 			;;
-		i3wm)
+		i3)
 			_DISPLAYMANAGER="lightdm"
 			LMETA=true
 			;;
@@ -6767,7 +6767,7 @@ sh_get_session_name() {
 		[fluxbox]=fluxbox
 		[gnome]=gnome
 		[hyprland]=hyprland
-		[i3wm]=i3wm
+		[i3]=i3
 		[lxde]=LXDE
 		[mango]=mango
 		[mate]=mate
@@ -7064,7 +7064,7 @@ sh_install_DE() {
 		"bspwm") sh_bspwm_meta_package ;;
 		"lxde") sh_lxde_meta_package ;;
 		"river") sh_river_meta_package ;;
-		"i3wm") sh_i3_meta_package ;;
+		"i3") sh_i3_meta_package ;;
 		"enlightenment") sh_enlightenment_meta_package ;;
 		"fluxbox") sh_fluxbox_meta_package ;;
 		"hyprland") sh_hyprland_meta_package ;;
@@ -9076,8 +9076,8 @@ $cLB7 ${ccolor}↵ ENTER${RESET} ou ${ccolor}BARRA DE ESPAÇO${RESET} $cLB8"
 	cmsg_ExtraNotEfi=$(gettext "✗ EFI não detectado: sistema iniciado em modo BIOS")
 	cmsg_ExtraNotEfiRecommended=$(gettext "✓ Recomendado: GPT_BIOS ou MBR_BIOS")
 	cmsg_ExtraIso=$(gettext "Detectado boot via ISO ↓ é recomendável instalar ↓")
-	cmsg_ExtraNotIso=$(gettext "ISO não detectado ↓ é recomendável usar NETWORK ↓")
-	cmsg_ExtraNotHostVoid=$(gettext "Host VOID não detectado ↓ é recomendável usar NETWORK↓")
+	cmsg_ExtraNotIso=$(gettext "ISO não detectada ↓ é recomendável usar NETWORK ou NETWORKFULL ↓")
+	cmsg_ExtraNotHostVoid=$(gettext "Host VOID não detectado ↓ é recomendável usar NETWORK ↓")
 	welcome=$(gettext "Bem-vindo ao instalador $APP")
 	escolhaIdioma=$(gettext "Escolha o idioma")
 	cmsg_Usuario=$(gettext "Usuário")
