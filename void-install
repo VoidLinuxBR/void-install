@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qua 16 set 2026 01:23:03 -04
+#  Updated: qua 16 set 2026 16:01:02 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -5269,28 +5269,28 @@ sh_checkdisk() {
 }
 
 sh_confadduser() {
-	local size
-	local model
-	local chostname
-	local usertext
-	local exit_status
-	local -a aUser
+  local size
+  local model
+  local chostname
+  local usertext
+  local exit_status
+  local -a aUser
 
-	# O hostname automático acompanha a edição: sem isto, preencher a tela
-	# Extra antes de escolher o WM congela 'voidbr-base' (LEXTRA=true trava o
-	# recálculo). Nome digitado pelo usuário é preservado — só o que casa com
-	# o padrão gerado aqui é refeito.
-	chostname="${AsUser[chostname]}"
-	if [[ -z "$chostname" || "$chostname" == "${chostname_base,,}-"* ]]; then
-		chostname="${chostname_base}-$(sh_get_edition_label)"
-		chostname="${chostname,,}"
-	fi
+  # O hostname automático acompanha a edição: sem isto, preencher a tela
+  # Extra antes de escolher o WM congela 'voidbr-base' (LEXTRA=true trava o
+  # recálculo). Nome digitado pelo usuário é preservado — só o que casa com
+  # o padrão gerado aqui é refeito.
+  chostname="${AsUser[chostname]}"
+  if [[ -z "$chostname" || "$chostname" == "${chostname_base,,}" || "$chostname" == "${chostname_base,,}-"* ]]; then
+    chostname="${chostname_base}-$(sh_get_edition_label)"
+    chostname="${chostname,,}"
+  fi
 
-	sh_setUser
-	size=$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 2)
-	model=$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 4)
+  sh_setUser
+  size=$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 2)
+  model=$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_BOOTLOADER]}]}" 4)
 
-	while true; do
+  while true; do
 		exec 3>&1
 		usertext=$(${DIALOG} \
 			--title "$(gettext "=== EXTRA ===")" \
