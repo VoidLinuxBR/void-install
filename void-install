@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qui 17 set 2026 00:08:13 -04
+#  Updated: qui 17 set 2026 06:00:40 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -4415,7 +4415,35 @@ sh_choose_bootloadernew() {
 	return 0
 }
 
-sh_timedatectl() {
+ sh_timedatectl() {
+ 	local _localtime
+
+	if [[ -L /etc/localtime ]]; then
+		_localtime=$(readlink -f /etc/localtime)
+		_localtime="${_localtime#*/zoneinfo/}"
+		if [[ -n "$_localtime" && -e "/usr/share/zoneinfo/$_localtime" ]]; then
+			echo "$_localtime"
+			return 0
+		fi
+	fi
+
+	if command -v timedatectl >/dev/null 2>&1 && timedatectl >/dev/null 2>&1; then
+ 		_localtime=$(awk '{print $3}' <(grep 'Time zone' <(timedatectl)))
+ 		if [[ -n "$_localtime" ]]; then
+ 			echo "$_localtime"
+ 			return 0
+ 		fi
+ 	else
+ 		_localtime=$(cut -d'"' -f2 <(grep TIMEZONE /etc/rc.conf))
+ 		if [[ -n "$_localtime" ]]; then
+ 			echo "$_localtime"
+ 			return 0
+ 		fi
+ 	fi
+ 	return 1
+ }
+
+sh_timedatectlOLD() {
 	local _localtime
 
 	if [[ -n $(command -v timedatectl) ]]; then
@@ -7983,13 +8011,22 @@ sh_getparamfile() {
 	return 1
 }
 
-sh_main_menu() {
-	local cOK="${RST}${BOLD}${GREEN}✓ ${RST}${YELLOW}"
-	local cNOK="${RST}${BOLD}${RED}✗ ${cERRO}[${cmsg_Nao_definido}]${RST} ● "
-	local cWARN="${RST}${YELLOW}"
-	local cERRO="${RST}${UNDERLINE}${BOLD}${RED}"
+ sh_main_menu() {
+ 	local cOK="${RST}${BOLD}${GREEN}✓ ${RST}${YELLOW}"
+ 	local cNOK="${RST}${BOLD}${RED}✗ ${cERRO}[${cmsg_Nao_definido}]${RST} ● "
+ 	local cWARN="${RST}${YELLOW}"
+ 	local cERRO="${RST}${UNDERLINE}${BOLD}${RED}"
 
-	sh_disk_part_info
+	# Detecta o timezone do host assim que o menu abre, em vez de esperar o
+	# usuário abrir a tela de Timezone — sem isso, quem nunca abre aquele
+	# menu instala com 'America/Sao_Paulo' fixo, mesmo rodando noutro fuso.
+	# Só roda se ainda não houver timezone configurado (ex.: por -f/--file).
+	if ! $LTIMEZONE; then
+		local _hosttz
+		_hosttz=$(sh_timedatectl) && AConfLocale[_TIMEZONE]="$_hosttz"
+	fi
+
+ 	sh_disk_part_info
 
 	while true; do
 		sh_touchConf
@@ -9671,6 +9708,7 @@ sh_with_all() {
 	sh_disablePrintk
 	sh_loadconf
 }
+_hosttz=$(sh_timedatectl) && AConfLocale[_TIMEZONE]="$_hosttz"
 
 case " $* " in
 *" -c "* | *" --chroot "*)
