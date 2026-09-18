@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qui 17 set 2026 06:00:40 -04
+#  Updated: sex 18 set 2026 09:50:10 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -51,7 +51,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.9.17-20260917'
+readonly _VERSION_='3.9.18-20260918'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -2443,6 +2443,14 @@ sh_mkparted() {
 			fi
 
 		fi
+
+		# wipefs por partição (abaixo, depois do parted) só limpa dentro dos
+		# limites das partições NOVAS. Se o disco veio de um layout anterior
+		# diferente (ex.: MBR_BIOS trocado por GPT_BIOS/EFI), sinais de
+		# filesystem das partições ANTIGAS que caem fora dessas novas
+		# fronteiras nunca são tocados — ficam enroscados no disco. Zera o
+		# disco inteiro antes de escrever a tabela nova.
+		wipefs -a "${AConfDisk[_DEVICE]}" >/dev/null 2>&1
 
 		parted --align=opt --script "${AConfDisk[_DEVICE]}" -- "$CSCRIPT" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 		evaluate_retval "${PIPESTATUS[0]}"
