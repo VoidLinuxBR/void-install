@@ -6068,7 +6068,7 @@ sh_choose_dm() {
 		if [[ "$dm" != "None" && "$dm" != "sddm" ]]; then
 			if conf "=== ${cmsg_Dm^^} ===" \
 				"\n${BOLD}${CYAN}$(gettext "É aconselhável escolhar sddm para compatibilidade")" \
-				"\n\n${BOLD}${RED}$(gettext "Deseja ativar esse Display Manager?")\n\n"; then
+				"\n\n${BOLD}${RED}$(gettext "Deseja ativar o sddm como Display Manager?")\n\n"; then
 				_DISPLAYMANAGER="sddm"
 			fi
 		fi
