@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: seg 21 set 2026 08:51:03 -04
+#  Updated: qui 24 set 2026 22:20:00 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -51,7 +51,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.9.21-20260921'
+readonly _VERSION_='3.9.24-20260924'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -3613,6 +3613,7 @@ sh_disk_part_info() {
 	local {NAME,PATH,SIZE,TRAN,MODEL,LABEL,SERIAL,PTTYPE,FSTYPE,PARTTYPENAME,KNAME}_
 
 	mensagem "$(gettext "=== DISCO/PARTIÇÃO ===")" "\n\n${BOLD}${WHITE}$(gettext "Aguarde... coletando informações")"
+	sh_map_dm_partitions "${AConfDisk[_DEVICE]}"
 	AARRAY_DSK_DEVICES=()
 	AARRAY_PART_DEVICES=()
 	sh_populate_nested_lvm_map
@@ -4961,26 +4962,29 @@ ${BOLD}MODEL   : ${RESET}${RED}${MODEL_ORIGEM}${RESET}\n" \
 }
 
 sh_getNvme() {
-	local segtype
 	local device="${AConfDisk[_DEVICE]}"
-
-	segtype="$(sudo lvs "$device" -o segtype --noheadings 2>/dev/null | tr -d ' ')"
-
-	case "$segtype" in
-	thin | thin-pool)
-		echo ''
-		return
-		;;
-	esac
-
 	local tran
 	local name
+	local child
+
+	# Partição já mapeada: o nome real decide, sem adivinhar pelo tipo.
+	child=$(lsblk -lnpo PATH,TYPE "$device" 2>/dev/null | awk '$2=="part"{print $1; exit}')
+	if [[ -n "$child" ]]; then
+		[[ "${child#"$device"}" == p* ]] && echo 'p' || echo ''
+		return
+	fi
 
 	name="$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_DEVICE]}]}" $DSK_NAME)"
 	tran="$(sh_splitarray "${AARRAY_DSK_DEVICES[${AConfDisk[_DEVICE]}]}" $DSK_TRAN)"
 
 	case "$tran" in
-	nvme | loop | lvm) echo 'p' ;;
+	nvme | loop) echo 'p' ;;
+	lvm)
+		# device-mapper (LV comum ou thin): parted e kpartx só colocam 'p'
+		# quando o nome termina em dígito (pve-lvm -> pve-lvm1,
+		# pve-vm--100--disk--0 -> pve-vm--100--disk--0p1).
+		[[ "${device: -1}" == [0-9] ]] && echo 'p' || echo ''
+		;;
 	#lvm) echo '' ;;
 	*)
 		case "$name" in
@@ -4990,6 +4994,34 @@ sh_getNvme() {
 		esac
 		;;
 	esac
+}
+
+# Kernel não cria nós de partição em device-mapper (LV comum ou thin):
+# a tabela fica gravada no LV (fdisk -l mostra), mas sem mapeamento em
+# /dev/mapper o lsblk não lista filho nenhum. O parted só cria esses
+# mapeamentos na sessão em que grava a tabela — após reboot do live, ou
+# em sessão restaurada via .conf, eles não existem. Recria só para o
+# disco alvo: mapear LVs de outras VMs do host deixaria esses LVs
+# "em uso" e travaria lvremove/migração no Proxmox.
+sh_map_dm_partitions() {
+	local dev="${1:-${AConfDisk[_DEVICE]}}"
+
+	[[ -b "$dev" ]] || return 0
+	[[ "$(lsblk -dno TYPE "$dev" 2>/dev/null)" = "lvm" ]] || return 0
+	lsblk -lnpo TYPE "$dev" 2>/dev/null | grep -qx part && return 0
+	[[ -n "$(blkid -p -s PTTYPE -o value "$dev" 2>/dev/null)" ]] || return 0
+
+	# partprobe primeiro: mesmo esquema de nomes usado pelo parted em
+	# sh_mkparted. kpartx só se o partprobe não criar nada.
+	partprobe "$dev" >/dev/null 2>&1
+	udevadm settle 2>/dev/null
+	lsblk -lnpo TYPE "$dev" 2>/dev/null | grep -qx part && return 0
+
+	if has_command kpartx; then
+		kpartx -a -s "$dev" >/dev/null 2>&1
+		udevadm settle 2>/dev/null
+	fi
+	lsblk -lnpo TYPE "$dev" 2>/dev/null | grep -qx part
 }
 
 sh_getlgrub() {
@@ -5306,6 +5338,7 @@ sh_checkdisk() {
 	done < <(
 		swapon --noheadings --raw | awk -v d="$device" '$1 ~ "^"d {print $1}'
 	)
+	sh_map_dm_partitions "$device"
 	return 0
 }
 
