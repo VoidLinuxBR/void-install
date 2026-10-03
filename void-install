@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: sex 02 out 2026 20:16:20 -04
+#  Updated: sáb 03 out 2026 00:12:17 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -130,9 +130,11 @@ declare LEXTRA=false
 declare LLOCALE=true
 declare LXORG=false
 declare LSWAY=false
+declare LUMBRIEL=false
 declare LMANGO=false
 declare LHYPRLAND=false
 declare LRIVER=false
+declare LUMBRIEL=false
 declare LGNOME=false
 declare LMETA=false
 #
@@ -939,6 +941,7 @@ sh_touchConf() {
 		declare -p aCustomPackages
 		declare -p LONLY_TTY
 		declare -p LSWAY
+		declare -p LUMBRIEL
 		declare -p LMANGO
 		declare -p LHYPRLAND
 		declare -p LRIVER
@@ -3463,6 +3466,15 @@ sh_mango_meta_package() {
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
 
+sh_umbriel_meta_package() {
+	local DE='UMBRIEL Desktop'
+	local apkgs=(voidbr-umbriel)
+	apkgs+=(voidbr-base-config)
+	apkgs+=(voidbr-umbriel-config)
+
+	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
+}
+
 sh_sway_meta_package() {
 	local DE='SWAY Desktop'
 	local apkgs=(voidbr-sway)
@@ -5614,6 +5626,7 @@ sh_choose_wm() {
 	aWm[sway]="Sway"
 	aWm[mango]="Mango"
 	aWm[river]="River"
+	aWm[umbriel]="Umbriel"
 
 	for x in "${!aWm[@]}"; do
 		aFlag[$x]='off'
@@ -5648,6 +5661,7 @@ sh_choose_wm() {
 		plasma "${aWm[plasma]}" "${aFlag[plasma]}" \
 		sway "${aWm[sway]}" "${aFlag[sway]}" \
 		river "${aWm[river]}" "${aFlag[river]}" \
+		umbriel "${aWm[umbriel]}" "${aFlag[umbriel]}" \
 		xfce "${aWm[xfce]}" "${aFlag[xfce]}" \
 		2>&1 >/dev/tty)
 
@@ -5667,6 +5681,7 @@ sh_choose_wm() {
 	# bastava "tty" vir marcado por padrão + o usuário marcar outro WM junto
 	# pra dar resultado errado dependendo da ordem de iteração).
 	LSWAY=false
+	LUMBRIEL=false
 	LMANGO=false
 	LHYPRLAND=false
 	LRIVER=false
@@ -5688,6 +5703,11 @@ sh_choose_wm() {
 		LONLY_TTY=false
 		AConfAudio[_AUDIOSERVER]="Pipewire"
 		case "$_realwm" in
+		umbriel)
+			_DISPLAYMANAGER="sddm"
+			LUMBRIEL=true
+			LMETA=true
+			;;
 		sway)
 			_DISPLAYMANAGER="sddm"
 			LSWAY=true
@@ -6098,7 +6118,7 @@ sh_choose_dm() {
 	LDM=true
 	_DISPLAYMANAGER="$dm"
 
-	if $LHYPRLAND || $LSWAY || $LMANGO || $LRIVER | $LGNOME; then
+	if $LHYPRLAND || $LSWAY || $LMANGO || $LRIVER | $LGNOME | $LUMBRIEL; then
 		if [[ "$dm" != "None" && "$dm" != "sddm" ]]; then
 			if conf "=== ${cmsg_Dm^^} ===" \
 				"\n${BOLD}${CYAN}$(gettext "É aconselhável escolhar sddm para compatibilidade")" \
@@ -6951,7 +6971,7 @@ User=$user
 Session=$session
 EOF
 
-	if $LHYPRLAND || $LSWAY || $LMANGO || $LRIVER | $LGNOME; then
+	if $LHYPRLAND || $LSWAY || $LMANGO || $LRIVER | $LGNOME | $LUMBRIEL; then
 		sed -i '/^\[General\]/,/^\[/{
     /^\[/!b
     /^\[General\]/!i\
@@ -7165,6 +7185,7 @@ sh_install_DE() {
 		"xfce") sh_xfce_meta_package ;;
 		"cinnamon") sh_cinnamon_meta_package ;;
 		"sway") sh_sway_meta_package ;;
+		"umbriel") sh_umbriel_meta_package ;;
 		"mango") sh_mango_meta_package ;;
 		"mate") sh_mate_meta_package ;;
 		esac
