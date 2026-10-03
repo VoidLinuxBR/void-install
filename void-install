@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qui 24 set 2026 22:20:00 -04
+#  Updated: sex 02 out 2026 20:16:20 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -51,7 +51,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.9.24-20260924'
+readonly _VERSION_='3.10.02-20261002'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -2929,8 +2929,8 @@ sh_make_fstab() {
 			fi
 
 			if [ "$mntpoint" = "none" ] && [ "$fstype" = "-" ]; then
- 				continue
- 			fi
+				continue
+			fi
 
 			if [ -n "$mntpoint" ]; then
 				if [ "$mntpoint" = '/boot/efi' ]; then
@@ -3313,8 +3313,8 @@ sh_mount_fs() {
 		fi
 
 		if [[ "$mntpoint" = "none" && "$fstype" = "-" ]]; then
- 			continue
- 		fi
+			continue
+		fi
 
 		if [[ -n "$mntpoint" ]]; then
 			sh_info_msg "${cmsg_MontandoParticao} ${_part} ${red}(${mntpoint})${rst} ${cmsg_Em} $dir_install${mntpoint}"
@@ -5877,6 +5877,7 @@ sh_choose_custom_packages() {
 	fi
 
 	# tty
+	aCustom['voidbr-snapper-manager']="$(gettext 'Snapshots btrfs+snapper automáticos no xbps (hooks pre/post)')"
 	aCustom['timeshift']="$(gettext 'System restore tool')"
 	aCustom['voidbr-distrobox']="$(gettext 'Use any linux distribution inside your terminal')"
 	aCustom['net-snmp']="$(gettext 'Simple Network Management Protocol (SNMP) suite')"
@@ -7011,6 +7012,21 @@ EOF
 
 }
 
+sh_fix_gnome_wayland_session() {
+	local file="$dir_install/usr/share/wayland-sessions/gnome-wayland.desktop"
+
+	[ -f "$file" ] || return 0
+
+	grep -q '^Exec=/usr/bin/dbus-run-session /usr/bin/gnome-session$' "$file" &&
+		grep -q '^TryExec=/usr/bin/dbus-run-session$' "$file" &&
+		return 0
+
+	sed -i \
+		-e 's|^Exec=.*|Exec=/usr/bin/dbus-run-session /usr/bin/gnome-session|' \
+		-e 's|^TryExec=.*|TryExec=/usr/bin/dbus-run-session|' \
+		"$file"
+}
+
 sh_update_lightdm_conf() {
 	local cuser="${AsUser[cuser]}"
 	local cfile="$dir_install/etc/lightdm/lightdm.conf.d/00-autologin.conf"
@@ -7389,6 +7405,7 @@ sh_install() {
 			lightdm) sh_update_lightdm_conf ;;
 			esac
 
+			sh_fix_gnome_wayland_session
 			sh_activating_services
 
 			if $LSERVER; then
