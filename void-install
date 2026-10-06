@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: dom 04 out 2026 23:03:35 -04
+#  Updated: ter 06 out 2026 12:37:28 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -51,7 +51,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.10.04-20261004'
+readonly _VERSION_='3.10.06-20261006'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -3467,7 +3467,7 @@ sh_mango_meta_package() {
 }
 
 sh_umbriel_meta_package() {
-	local DE='UMBRIEL Desktop'
+	local DE='UMBRIEL + NOCTALIA Desktop'
 	local apkgs=(voidbr-umbriel)
 	apkgs+=(voidbr-base-config)
 	apkgs+=(voidbr-umbriel-config)
@@ -5626,7 +5626,7 @@ sh_choose_wm() {
 	aWm[sway]="Sway"
 	aWm[mango]="Mango"
 	aWm[river]="River"
-	aWm[umbriel]="Umbriel"
+	aWm[umbriel]="Umbriel + Noctalia"
 
 	for x in "${!aWm[@]}"; do
 		aFlag[$x]='off'
