@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: sáb 10 out 2026 20:13:21 -04
+#  Updated: dom 11 out 2026 16:33:54 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -7053,23 +7053,43 @@ EOF
 }
 
 sh_fix_gnome_wayland_session() {
-  local file
+	local file
 
-  for file in \
-    "$dir_install/usr/share/wayland-sessions/gnome-wayland.desktop" \
-    "$dir_install/usr/share/wayland-sessions/gnome.desktop"
-  do
-    [ -f "$file" ] || continue
+	for file in \
+		"$dir_install/usr/share/wayland-sessions/gnome-wayland.desktop" \
+		"$dir_install/usr/share/wayland-sessions/gnome.desktop"; do
+		[ -f "$file" ] || continue
 
-    grep -q '^Exec=/usr/bin/dbus-run-session /usr/bin/gnome-session$' "$file" &&
-      grep -q '^TryExec=/usr/bin/dbus-run-session$' "$file" &&
-      continue
+		grep -q '^Exec=/usr/bin/dbus-run-session /usr/bin/gnome-session$' "$file" &&
+			grep -q '^TryExec=/usr/bin/dbus-run-session$' "$file" &&
+			continue
 
-    sed -i \
-      -e 's|^Exec=.*|Exec=/usr/bin/dbus-run-session /usr/bin/gnome-session|' \
-      -e 's|^TryExec=.*|TryExec=/usr/bin/dbus-run-session|' \
-      "$file"
-  done
+		sed -i \
+			-e 's|^Exec=.*|Exec=/usr/bin/dbus-run-session /usr/bin/gnome-session|' \
+			-e 's|^TryExec=.*|TryExec=/usr/bin/dbus-run-session|' \
+			"$file"
+	done
+}
+
+sh_update_greetd_conf() {
+	local cuser="${AsUser[cuser]}"
+	local cfile="$dir_install/etc/greetd/config.toml"
+
+	sh_info_msg "Customizando Greetd $cfile"
+	mkdir -p "$dir_install/etc/greetd/"
+
+	cat >"$cfile" <<EOF
+[terminal]
+vt = 7
+
+[general]
+source_profile = false
+
+[default_session]
+command = "/usr/local/bin/noctalia-greeter-session"
+user = "_greeter"
+EOF
+
 }
 
 sh_update_lightdm_conf() {
@@ -7449,7 +7469,7 @@ sh_install() {
 			sddm) sh_update_sddm_conf ;;
 			gdm) sh_update_gdm_conf ;;
 			lightdm) sh_update_lightdm_conf ;;
-			greetd) ;;
+			greetd) sh_update_greetd_conf ;;
 			esac
 
 			sh_fix_gnome_wayland_session
