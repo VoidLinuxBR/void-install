@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 06 out 2026 12:37:28 -04
+#  Updated: sáb 10 out 2026 20:13:21 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -51,7 +51,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.10.06-20261006'
+readonly _VERSION_='3.10.10-20261010'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -750,6 +750,13 @@ sh_configure_display_manager() {
 				papirus-icon-theme
 			)
 			custom=(voidbr-lightdm-themes)
+			;;
+
+		greetd)
+			aDisplaymanager=(
+				greetd
+				noctalia-greeter
+			)
 			;;
 
 		*)
@@ -3032,7 +3039,7 @@ sh_activating_services() {
 	# O continue protege o escolhido, então se o usuário não trocou nada,
 	# nenhum link é removido.
 	if [[ "${AConfMirror[_SOURCE]}" = "local" ]] && $LUPDATELOCAL && [[ "$_DISPLAYMANAGER" != "None" ]]; then
-		for service in lightdm sddm gdm lxdm; do
+		for service in lightdm sddm gdm lxdm greetd; do
 			[[ "$service" = "$_DISPLAYMANAGER" ]] && continue
 			sh_chroot_job "$(gettext 'Desativando serviço') $service" \
 				"rm -f /etc/runit/runsvdir/current/$service" \
@@ -5704,7 +5711,7 @@ sh_choose_wm() {
 		AConfAudio[_AUDIOSERVER]="Pipewire"
 		case "$_realwm" in
 		umbriel)
-			_DISPLAYMANAGER="sddm"
+			_DISPLAYMANAGER="greetd"
 			LUMBRIEL=true
 			LMETA=true
 			;;
@@ -6087,6 +6094,7 @@ sh_choose_dm() {
 	aDm[sddm]="Display manager moderno, Xorg e Wayland"
 	aDm[gdm]="Moderno, Xorg e Wayland"
 	aDm[lightdm]="Leve e flexível, Xorg (Wayland limitado)"
+	aDm[greetd]="Minimal and flexible login manager daemon"
 	aDm[None]="None"
 
 	for x in "${!aDm[@]}"; do
@@ -6105,6 +6113,7 @@ sh_choose_dm() {
 		sddm "${aDm[sddm]}" "${aFlag[sddm]}" \
 		gdm "${aDm[gdm]}" "${aFlag[gdm]}" \
 		lightdm "${aDm[lightdm]}" "${aFlag[lightdm]}" \
+		greetd "${aDm[greetd]}" "${aFlag[greetd]}" \
 		None "${aDm[None]}" "${aFlag[None]}" \
 		2>&1 >/dev/tty)
 
@@ -6118,12 +6127,22 @@ sh_choose_dm() {
 	LDM=true
 	_DISPLAYMANAGER="$dm"
 
-	if $LHYPRLAND || $LSWAY || $LMANGO || $LRIVER | $LGNOME | $LUMBRIEL; then
+	if $LHYPRLAND || $LSWAY || $LMANGO || $LRIVER | $LGNOME; then
 		if [[ "$dm" != "None" && "$dm" != "sddm" ]]; then
 			if conf "=== ${cmsg_Dm^^} ===" \
 				"\n${BOLD}${CYAN}$(gettext "É aconselhável escolhar sddm para compatibilidade")" \
 				"\n\n${BOLD}${RED}$(gettext "Deseja ativar o sddm como Display Manager?")\n\n"; then
 				_DISPLAYMANAGER="sddm"
+			fi
+		fi
+	fi
+
+	if $LUMBRIEL; then
+		if [[ "$dm" != "None" && "$dm" != "greetd" ]]; then
+			if conf "=== ${cmsg_Dm^^} ===" \
+				"\n${BOLD}${CYAN}$(gettext "É aconselhável escolhar greetd para compatibilidade")" \
+				"\n\n${BOLD}${RED}$(gettext "Deseja ativar o greetd como Display Manager?")\n\n"; then
+				_DISPLAYMANAGER="greetd"
 			fi
 		fi
 	fi
@@ -6854,7 +6873,7 @@ sh_install_pkgs_in_chroot() {
 		"$err_not_fatal"
 }
 
-# Nome da sessão gravado no autologin do DM (sddm/gdm/lxdm/lightdm).
+# Nome da sessão gravado no autologin do DM (sddm/gdm/lxdm/lightdm/greetd).
 # Mapa chave→sessão: o .desktop nem sempre usa o nome do WM (lxde → LXDE).
 # Sessões vêm de /usr/share/{xsessions,wayland-sessions}.
 # tty/server/xorg ficam de fora: não têm sessão, e nesses casos
@@ -7430,6 +7449,7 @@ sh_install() {
 			sddm) sh_update_sddm_conf ;;
 			gdm) sh_update_gdm_conf ;;
 			lightdm) sh_update_lightdm_conf ;;
+			greetd) ;;
 			esac
 
 			sh_fix_gnome_wayland_session
