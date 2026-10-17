@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: sex 16 out 2026 21:57:46 -04
+#  Updated: sex 16 out 2026 22:05:18 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -5886,116 +5886,116 @@ sh_choose_custom_packages() {
 
 	topico="$(gettext 'Navegadores')"
 	if ! $LONLY_TTY; then
-		sh_custom_add 'brave-bin' "$(gettext 'Web browser that blocks ads and trackers by default (binary release)')"
-		sh_custom_add 'chromium' "$(gettext 'Google attempt at creating a safer, faster, and more stable browser')"
-		sh_custom_add 'google-chrome' "$(gettext 'The popular web browser by Google (Stable Channel)')"
-		sh_custom_add 'microsoft-edge-stable-bin' "$(gettext 'A browser that combines a minimal design with sophisticated technology to make the web faster, safer, and easier')"
-		sh_custom_add 'opera' "$(gettext 'Fast, secure, easy to use browser')"
-		sh_custom_add 'qutebrowser' "$(gettext 'Keyboard-focused browser with a minimal GUI')"
-		sh_custom_add 'vivaldi' "$(gettext 'Advanced browser made with the power user in mind')"
+		sh_custom_add 'brave-bin' "$(gettext 'Navegador que bloqueia anúncios e rastreadores por padrão (versão binária)')"
+		sh_custom_add 'chromium' "$(gettext 'Navegador de código aberto do Google, mais seguro, rápido e estável')"
+		sh_custom_add 'google-chrome' "$(gettext 'O navegador popular do Google (canal estável)')"
+		sh_custom_add 'microsoft-edge-stable-bin' "$(gettext 'Navegador da Microsoft, de visual simples, mais rápido e seguro')"
+		sh_custom_add 'opera' "$(gettext 'Navegador rápido, seguro e fácil de usar')"
+		sh_custom_add 'qutebrowser' "$(gettext 'Navegador focado no teclado, com interface mínima')"
+		sh_custom_add 'vivaldi' "$(gettext 'Navegador avançado, feito para usuários exigentes')"
 	fi
 
 	topico="$(gettext 'Escritório')"
 	if ! $LONLY_TTY; then
-		sh_custom_add 'libreoffice' "$(gettext 'Productivity suite')"
-		sh_custom_add 'voidbr-onlyoffice-bin' "$(gettext 'An office suite that combines text, spreadsheet and presentation editors')"
+		sh_custom_add 'libreoffice' "$(gettext 'Suíte de escritório (texto, planilha e apresentação)')"
+		sh_custom_add 'voidbr-onlyoffice-bin' "$(gettext 'Suíte de escritório com editores de texto, planilha e apresentação')"
 	fi
 
 	topico="$(gettext 'Editores')"
 	if ! $LONLY_TTY; then
-		sh_custom_add 'visual-studio-code-bin' "$(gettext 'Visual Studio Code (vscode): Editor for building and debugging modern web and cloud applications (official binary version)')"
-		sh_custom_add 'mousepad' "$(gettext 'Simple text editor for Xfce based on Leafpad')"
+		sh_custom_add 'visual-studio-code-bin' "$(gettext 'Visual Studio Code (vscode): editor para criar e depurar aplicações (binário oficial)')"
+		sh_custom_add 'mousepad' "$(gettext 'Editor de texto simples do Xfce, baseado no Leafpad')"
 	fi
-	sh_custom_add 'micro' "$(gettext 'Modern and intuitive terminal-based text editor')"
-	sh_custom_add 'vim' "$(gettext 'Vim editor (vi clone)')"
-	sh_custom_add 'neovim' "$(gettext 'Fork of Vim aiming to improve user experience, plugins and GUIs')"
+	sh_custom_add 'micro' "$(gettext 'Editor de texto moderno e intuitivo para o terminal')"
+	sh_custom_add 'vim' "$(gettext 'Editor Vim (clone do vi)')"
+	sh_custom_add 'neovim' "$(gettext 'Fork do Vim que melhora a experiência de uso, os plugins e as interfaces')"
 
 	topico="$(gettext 'Desenvolvimento')"
-	sh_custom_add 'harbour-bin' "$(gettext 'Harbour Compiler (xBase language)')"
-	sh_custom_add 'opencode' "$(gettext 'The open source coding agent')"
-	sh_custom_add 'dosemu' "$(gettext 'DOS emulator')"
-	sh_custom_add 'xtools' "$(gettext 'Opinionated helpers for working with XBPS')"
+	sh_custom_add 'harbour-bin' "$(gettext 'Compilador Harbour (linguagem xBase)')"
+	sh_custom_add 'opencode' "$(gettext 'Agente de programação de código aberto')"
+	sh_custom_add 'dosemu' "$(gettext 'Emulador de DOS')"
+	sh_custom_add 'xtools' "$(gettext 'Utilitários para trabalhar com o XBPS')"
 
 	topico="$(gettext 'Multimídia e imagens')"
 	if ! $LONLY_TTY; then
-		sh_custom_add 'mpv' "$(gettext 'Video player based on MPlayer/mplayer2')"
-		sh_custom_add 'celluloid' "$(gettext 'Simple GTK+ frontend for mpv')"
-		sh_custom_add 'vlc' "$(gettext 'Cross-platform multimedia player')"
-		sh_custom_add 'gwenview' "$(gettext 'Fast and easy to use image viewer by KD')"
-		sh_custom_add 'eog' "$(gettext 'Eye of GNOME graphics viewer program')"
+		sh_custom_add 'mpv' "$(gettext 'Reprodutor de vídeo baseado no MPlayer/mplayer2')"
+		sh_custom_add 'celluloid' "$(gettext 'Interface GTK simples para o mpv')"
+		sh_custom_add 'vlc' "$(gettext 'Reprodutor multimídia multiplataforma')"
+		sh_custom_add 'gwenview' "$(gettext 'Visualizador de imagens rápido e fácil de usar, do KDE')"
+		sh_custom_add 'eog' "$(gettext 'Visualizador de imagens do GNOME (Eye of GNOME)')"
 	fi
 
 	topico="$(gettext 'Acesso remoto')"
 	if ! $LONLY_TTY; then
-		sh_custom_add 'anydesk-bin' "$(gettext 'The Fast Remote Desktop Application')"
-		sh_custom_add 'rustdesk-bin' "$(gettext 'Yet another remote desktop software, written in Rust. Works out of the box, no configuration required')"
+		sh_custom_add 'anydesk-bin' "$(gettext 'Acesso remoto rápido à área de trabalho')"
+		sh_custom_add 'rustdesk-bin' "$(gettext 'Acesso remoto à área de trabalho, escrito em Rust; funciona sem configurar nada')"
 	fi
-	sh_custom_add 'tailscale' "$(gettext 'Easy, secure, cross platform WireGuard, oauth2, and 2FA/SSO')"
-	sh_custom_add 'tmate' "$(gettext 'Instant Terminal Sharing')"
+	sh_custom_add 'tailscale' "$(gettext 'VPN fácil e segura baseada em WireGuard, com login único (SSO) e 2FA')"
+	sh_custom_add 'tmate' "$(gettext 'Compartilhamento instantâneo do terminal')"
 
 	topico="$(gettext 'Impressão')"
 	if ! $LONLY_TTY; then
-		sh_custom_add 'cups' "$(gettext 'Common Unix Printing System')"
-		sh_custom_add 'cups-pdf' "$(gettext 'PDF printer for cups')"
-		sh_custom_add 'bluez-cups' "$(gettext 'CUPS printer backend for Bluetooth printers')"
-		sh_custom_add 'samba-cups' "$(gettext 'SMB backend for cups (transitional dummy package)')"
-		sh_custom_add 'splix' "$(gettext 'CUPS driver for SPL printers (Samsung and several Xerox printers)')"
-		sh_custom_add 'samsung-unified-driver' "$(gettext 'Unified Linux Driver for Samsung printers and scanners')"
-		sh_custom_add 'system-config-printer' "$(gettext 'CUPS printer configuration tool and status applet')"
+		sh_custom_add 'cups' "$(gettext 'Sistema de impressão do Linux (CUPS)')"
+		sh_custom_add 'cups-pdf' "$(gettext 'Impressora virtual que gera PDF, para o CUPS')"
+		sh_custom_add 'bluez-cups' "$(gettext 'Suporte do CUPS a impressoras Bluetooth')"
+		sh_custom_add 'samba-cups' "$(gettext 'Suporte do CUPS a impressoras compartilhadas por SMB (pacote de transição)')"
+		sh_custom_add 'splix' "$(gettext 'Driver CUPS para impressoras SPL (Samsung e várias Xerox)')"
+		sh_custom_add 'samsung-unified-driver' "$(gettext 'Driver unificado para impressoras e scanners Samsung')"
+		sh_custom_add 'system-config-printer' "$(gettext 'Configuração de impressoras do CUPS, com ícone de status')"
 	fi
 
 	topico="$(gettext 'Rede e servidores')"
 	if $LSERVER; then
-		sh_custom_add 'voidbr-network-tools' "$(gettext 'Meta‑pacote com utilitários essenciais de rede e monitoramento para Void Linux')"
+		sh_custom_add 'voidbr-network-tools' "$(gettext 'Metapacote com utilitários essenciais de rede e monitoramento')"
 	fi
-	sh_custom_add 'voidbr-samba' "$(gettext 'SMB/CIFS file, print, and login server for Unix')"
-	sh_custom_add 'net-snmp' "$(gettext 'Simple Network Management Protocol (SNMP) suite')"
-	sh_custom_add 'avahi' "$(gettext 'Multicast DNS Service Discovery')"
-	sh_custom_add 'avahi-discover' "$(gettext 'Service discovery user interface for avahi')"
+	sh_custom_add 'voidbr-samba' "$(gettext 'Servidor de arquivos, impressão e login SMB/CIFS (Samba)')"
+	sh_custom_add 'net-snmp' "$(gettext 'Conjunto de ferramentas do protocolo de gerenciamento de rede SNMP')"
+	sh_custom_add 'avahi' "$(gettext 'Descoberta de serviços na rede local (mDNS/DNS-SD)')"
+	sh_custom_add 'avahi-discover' "$(gettext 'Interface gráfica para ver os serviços descobertos pelo avahi')"
 
 	topico="$(gettext 'Laboratório (Epoptes)')"
 	if ! $LONLY_TTY; then
-		sh_custom_add 'voidbr-epoptes' "$(gettext 'An opensource computer lab management and monitoring tool (server)')"
+		sh_custom_add 'voidbr-epoptes' "$(gettext 'Gerenciamento e monitoramento de laboratório de informática (servidor)')"
 	fi
-	sh_custom_add 'voidbr-epoptes-client' "$(gettext 'An opensource computer lab management and monitoring tool (client)')"
+	sh_custom_add 'voidbr-epoptes-client' "$(gettext 'Gerenciamento e monitoramento de laboratório de informática (cliente)')"
 
 	topico="$(gettext 'Containers')"
-	sh_custom_add 'docker' "$(gettext 'Docker container runtim')"
-	sh_custom_add 'podman' "$(gettext 'Simple management tool for containers and images')"
-	sh_custom_add 'voidbr-distrobox' "$(gettext 'Use any linux distribution inside your terminal')"
+	sh_custom_add 'docker' "$(gettext 'Plataforma de contêineres Docker')"
+	sh_custom_add 'podman' "$(gettext 'Gerenciador simples de contêineres e imagens')"
+	sh_custom_add 'voidbr-distrobox' "$(gettext 'Use qualquer distribuição Linux dentro do seu terminal')"
 
 	topico="$(gettext 'Backup e snapshots')"
-	sh_custom_add 'timeshift' "$(gettext 'System restore tool')"
+	sh_custom_add 'timeshift' "$(gettext 'Ferramenta de restauração do sistema')"
 	sh_custom_add 'voidbr-snapper-manager' "$(gettext 'Snapshots btrfs+snapper automáticos no xbps (hooks pre/post)')"
 
 	topico="$(gettext 'Compactadores')"
-	sh_custom_add 'zip' "$(gettext 'Create/update ZIP files compatible with pkzip')"
-	sh_custom_add 'bzip2' "$(gettext 'Freely available, patent free, high-quality data compressor')"
-	sh_custom_add 'p7zip' "$(gettext 'Command-line version of the 7zip compressed file archive (transitional dummy package)')"
-	sh_custom_add '7zip-unrar' "$(gettext 'File archiver with a high compression ratio - RAR support')"
+	sh_custom_add 'zip' "$(gettext 'Cria e atualiza arquivos ZIP compatíveis com o pkzip')"
+	sh_custom_add 'bzip2' "$(gettext 'Compactador de dados livre e de alta qualidade')"
+	sh_custom_add 'p7zip' "$(gettext 'Versão de linha de comando do 7zip (pacote de transição)')"
+	sh_custom_add '7zip-unrar' "$(gettext 'Compactador com alta taxa de compressão, com suporte a RAR')"
 
 	topico="$(gettext 'Sistema e utilitários')"
-	sh_custom_add 'htop' "$(gettext 'Interactive process viewer')"
-	sh_custom_add 'inxi' "$(gettext 'Full featured system information script')"
-	sh_custom_add 'pfetch' "$(gettext 'System information tool written in POSIX sh')"
-	sh_custom_add 'dfc' "$(gettext 'Display file system space usage using graphs and colors')"
-	sh_custom_add 'irqbalance' "$(gettext 'Handholding your interrupts for power and performance')"
-	sh_custom_add 'acpi' "$(gettext 'Informations about ACPI devices (battery, thermal sensors and power)')"
-	sh_custom_add 'acpid' "$(gettext 'ACPI Daemon (acpid) With Netlink Support)')"
+	sh_custom_add 'htop' "$(gettext 'Visualizador interativo de processos')"
+	sh_custom_add 'inxi' "$(gettext 'Script completo de informações do sistema')"
+	sh_custom_add 'pfetch' "$(gettext 'Informações do sistema, escrito em POSIX sh')"
+	sh_custom_add 'dfc' "$(gettext 'Uso do espaço em disco com gráficos e cores')"
+	sh_custom_add 'irqbalance' "$(gettext 'Distribui as interrupções entre os processadores, para economia e desempenho')"
+	sh_custom_add 'acpi' "$(gettext 'Informações dos dispositivos ACPI (bateria, sensores térmicos e energia)')"
+	sh_custom_add 'acpid' "$(gettext 'Serviço ACPI (acpid) com suporte a Netlink')"
 	if ! $LONLY_TTY; then
-		sh_custom_add 'gparted' "$(gettext 'Gnome Partition Editor)')"
-		sh_custom_add 'Thunar' "$(gettext 'Thunar File Manager')"
-		sh_custom_add 'thunar-archive-plugin' "$(gettext 'Create and extract archives in Thunar')"
-		sh_custom_add 'menulibre' "$(gettext 'Advanced menu editor')"
-		sh_custom_add 'mugshot' "$(gettext 'Program to update personal user details')"
-		sh_custom_add 'ocs-url' "$(gettext 'Install helper program for OpenCollaborationServices (ocs://)')"
-		sh_custom_add 'cool-retro-term' "$(gettext 'Good looking terminal emulator which mimics the old cathode display')"
+		sh_custom_add 'gparted' "$(gettext 'Editor de partições do GNOME')"
+		sh_custom_add 'Thunar' "$(gettext 'Gerenciador de arquivos Thunar')"
+		sh_custom_add 'thunar-archive-plugin' "$(gettext 'Cria e extrai arquivos compactados no Thunar')"
+		sh_custom_add 'menulibre' "$(gettext 'Editor avançado de menus')"
+		sh_custom_add 'mugshot' "$(gettext 'Atualiza os dados pessoais do usuário')"
+		sh_custom_add 'ocs-url' "$(gettext 'Instalador de itens do OpenCollaborationServices (links ocs://)')"
+		sh_custom_add 'cool-retro-term' "$(gettext 'Terminal com visual dos antigos monitores de tubo')"
 	fi
 
 	topico="$(gettext 'Igreja')"
 	if ! $LONLY_TTY; then
-		sh_custom_add 'louvorja-piano' "$(gettext 'LouvorJA - PIANO - aplicativo desktop para gerenciamento de culto)')"
-		sh_custom_add 'voidbr-louvorja-piano-config' "$(gettext 'Skel config for VoidBR with LouvorJa-Piano')"
+		sh_custom_add 'louvorja-piano' "$(gettext 'LouvorJA - PIANO - aplicativo desktop para gerenciamento de culto')"
+		sh_custom_add 'voidbr-louvorja-piano-config' "$(gettext 'Configuração padrão (skel) do VoidBR para o LouvorJA-Piano')"
 	fi
 
 	# seleção inicial: o que já foi escolhido antes (ao voltar a esta tela)
