@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: sex 16 out 2026 21:50:24 -04
+#  Updated: sex 16 out 2026 21:57:46 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -5880,7 +5880,7 @@ sh_choose_custom_packages() {
 	local -A aTopicoVisto=() # tópicos que têm ao menos um pacote
 	local -A aSel=()         # pacote -> on/off (seleção em andamento)
 	local -a aTopicos=()     # tópicos na ordem em que aparecem no menu
-	local topico x n escolha custom exit_status
+	local topico x n nitens escolha custom exit_status
 	local -a menu_items dialog_items marcados
 	local cConcluir=">> $(gettext 'Concluir')"
 
@@ -6025,6 +6025,11 @@ sh_choose_custom_packages() {
 		done
 		menu_items+=("$cConcluir" "$(gettext 'Aceitar os pacotes marcados')")
 
+		# altura calculada: o tamanho automático (0 70 0) erra por 1 linha
+		# porque o texto de ajuda quebra em 3 linhas, e o ">> Concluir"
+		# ficava escondido; 9 = bordas + texto de ajuda + botões
+		nitens=$((${#menu_items[@]} / 2))
+
 		escolha=$(
 			${DIALOG} \
 				--stdout \
@@ -6035,7 +6040,7 @@ sh_choose_custom_packages() {
 				--cancel-label "${cmsg_ButtonBack}" \
 				--ok-label "$(gettext 'Abrir')" \
 				--menu "${cmsg_MENU}" \
-				0 70 0 \
+				$((nitens + 9)) 70 "$nitens" \
 				"${menu_items[@]}"
 		)
 		exit_status=$?
