@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: sex 16 out 2026 21:18:58 -04
+#  Updated: sex 16 out 2026 21:50:24 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -5861,129 +5861,234 @@ sh_configure_custom_packages() {
 	done
 }
 
+# sh_custom_add <pacote> <descrição>
+# Registra um pacote extra no tópico atual ($topico).
+# Escreve nos arrays aCustom/aTopico e na lista aTopicos de quem chamou
+# (sh_choose_custom_packages), pelo escopo dinâmico do bash.
+sh_custom_add() {
+	aCustom[$1]="$2"
+	aTopico[$1]="$topico"
+	if [[ -z "${aTopicoVisto[$topico]}" ]]; then
+		aTopicoVisto[$topico]=1
+		aTopicos+=("$topico")
+	fi
+}
+
 sh_choose_custom_packages() {
-	declare -A aFlag
-	declare -A aCustom
-	local x
-	local custom
+	local -A aCustom=()      # pacote -> descrição
+	local -A aTopico=()      # pacote -> tópico
+	local -A aTopicoVisto=() # tópicos que têm ao menos um pacote
+	local -A aSel=()         # pacote -> on/off (seleção em andamento)
+	local -a aTopicos=()     # tópicos na ordem em que aparecem no menu
+	local topico x n escolha custom exit_status
+	local -a menu_items dialog_items marcados
+	local cConcluir=">> $(gettext 'Concluir')"
 
+	topico="$(gettext 'Navegadores')"
 	if ! $LONLY_TTY; then
-		aCustom['visual-studio-code-bin']="$(gettext 'Visual Studio Code (vscode): Editor for building and debugging modern web and cloud applications (official binary version)')"
-		aCustom['voidbr-onlyoffice-bin']="$(gettext 'An office suite that combines text, spreadsheet and presentation editors')"
-		aCustom['rustdesk-bin']="$(gettext 'Yet another remote desktop software, written in Rust. Works out of the box, no configuration required')"
-		aCustom['microsoft-edge-stable-bin']="$(gettext 'A browser that combines a minimal design with sophisticated technology to make the web faster, safer, and easier')"
-		aCustom['anydesk-bin']="$(gettext 'The Fast Remote Desktop Application')"
-		aCustom['louvorja-piano']="$(gettext 'LouvorJA - PIANO - aplicativo desktop para gerenciamento de culto)')"
-		aCustom['voidbr-louvorja-piano-config']="$(gettext 'Skel config for VoidBR with LouvorJa-Piano')"
-		aCustom['voidbr-epoptes']="$(gettext 'An opensource computer lab management and monitoring tool (server)')"
-		aCustom['gwenview']="$(gettext 'Fast and easy to use image viewer by KD')"
-		aCustom['Thunar']="$(gettext 'Thunar File Manager')"
-		aCustom['thunar-archive-plugin']="$(gettext 'Create and extract archives in Thunar')"
-		aCustom['opera']="$(gettext 'Fast, secure, easy to use browser')"
-		aCustom['eog']="$(gettext 'Eye of GNOME graphics viewer program')"
-		aCustom['chromium']="$(gettext 'Google attempt at creating a safer, faster, and more stable browser')"
-		aCustom['qutebrowser']="$(gettext 'Keyboard-focused browser with a minimal GUI')"
-		aCustom['vivaldi']="$(gettext 'Advanced browser made with the power user in mind')"
-		aCustom['brave-bin']="$(gettext 'Web browser that blocks ads and trackers by default (binary release)')"
-		aCustom['celluloid']="$(gettext 'Simple GTK+ frontend for mpv')"
-		aCustom['mpv']="$(gettext 'Video player based on MPlayer/mplayer2')"
-		aCustom['cool-retro-term']="$(gettext 'Good looking terminal emulator which mimics the old cathode display')"
-		aCustom['gparted']="$(gettext 'Gnome Partition Editor)')"
-		aCustom['google-chrome']="$(gettext 'The popular web browser by Google (Stable Channel)')"
-		aCustom['libreoffice']="$(gettext 'Productivity suite')"
-		aCustom['menulibre']="$(gettext 'Advanced menu editor')"
-		aCustom['mousepad']="$(gettext 'Simple text editor for Xfce based on Leafpad')"
-		aCustom['mugshot']="$(gettext 'Program to update personal user details')"
-		aCustom['ocs-url']="$(gettext 'Install helper program for OpenCollaborationServices (ocs://)')"
-		aCustom['vlc']="$(gettext 'Cross-platform multimedia player')"
-		aCustom['samsung-unified-driver']="$(gettext 'Unified Linux Driver for Samsung printers and scanners')"
-		aCustom['splix']="$(gettext 'CUPS driver for SPL printers (Samsung and several Xerox printers)')"
-		aCustom['system-config-printer']="$(gettext 'CUPS printer configuration tool and status applet')"
-		aCustom['bluez-cups']="$(gettext 'CUPS printer backend for Bluetooth printers')"
-		aCustom['cups-pdf']="$(gettext 'PDF printer for cups')"
-		aCustom['samba-cups']="$(gettext 'SMB backend for cups (transitional dummy package)')"
-		aCustom['cups']="$(gettext 'Common Unix Printing System')"
+		sh_custom_add 'brave-bin' "$(gettext 'Web browser that blocks ads and trackers by default (binary release)')"
+		sh_custom_add 'chromium' "$(gettext 'Google attempt at creating a safer, faster, and more stable browser')"
+		sh_custom_add 'google-chrome' "$(gettext 'The popular web browser by Google (Stable Channel)')"
+		sh_custom_add 'microsoft-edge-stable-bin' "$(gettext 'A browser that combines a minimal design with sophisticated technology to make the web faster, safer, and easier')"
+		sh_custom_add 'opera' "$(gettext 'Fast, secure, easy to use browser')"
+		sh_custom_add 'qutebrowser' "$(gettext 'Keyboard-focused browser with a minimal GUI')"
+		sh_custom_add 'vivaldi' "$(gettext 'Advanced browser made with the power user in mind')"
 	fi
 
+	topico="$(gettext 'Escritório')"
+	if ! $LONLY_TTY; then
+		sh_custom_add 'libreoffice' "$(gettext 'Productivity suite')"
+		sh_custom_add 'voidbr-onlyoffice-bin' "$(gettext 'An office suite that combines text, spreadsheet and presentation editors')"
+	fi
+
+	topico="$(gettext 'Editores')"
+	if ! $LONLY_TTY; then
+		sh_custom_add 'visual-studio-code-bin' "$(gettext 'Visual Studio Code (vscode): Editor for building and debugging modern web and cloud applications (official binary version)')"
+		sh_custom_add 'mousepad' "$(gettext 'Simple text editor for Xfce based on Leafpad')"
+	fi
+	sh_custom_add 'micro' "$(gettext 'Modern and intuitive terminal-based text editor')"
+	sh_custom_add 'vim' "$(gettext 'Vim editor (vi clone)')"
+	sh_custom_add 'neovim' "$(gettext 'Fork of Vim aiming to improve user experience, plugins and GUIs')"
+
+	topico="$(gettext 'Desenvolvimento')"
+	sh_custom_add 'harbour-bin' "$(gettext 'Harbour Compiler (xBase language)')"
+	sh_custom_add 'opencode' "$(gettext 'The open source coding agent')"
+	sh_custom_add 'dosemu' "$(gettext 'DOS emulator')"
+	sh_custom_add 'xtools' "$(gettext 'Opinionated helpers for working with XBPS')"
+
+	topico="$(gettext 'Multimídia e imagens')"
+	if ! $LONLY_TTY; then
+		sh_custom_add 'mpv' "$(gettext 'Video player based on MPlayer/mplayer2')"
+		sh_custom_add 'celluloid' "$(gettext 'Simple GTK+ frontend for mpv')"
+		sh_custom_add 'vlc' "$(gettext 'Cross-platform multimedia player')"
+		sh_custom_add 'gwenview' "$(gettext 'Fast and easy to use image viewer by KD')"
+		sh_custom_add 'eog' "$(gettext 'Eye of GNOME graphics viewer program')"
+	fi
+
+	topico="$(gettext 'Acesso remoto')"
+	if ! $LONLY_TTY; then
+		sh_custom_add 'anydesk-bin' "$(gettext 'The Fast Remote Desktop Application')"
+		sh_custom_add 'rustdesk-bin' "$(gettext 'Yet another remote desktop software, written in Rust. Works out of the box, no configuration required')"
+	fi
+	sh_custom_add 'tailscale' "$(gettext 'Easy, secure, cross platform WireGuard, oauth2, and 2FA/SSO')"
+	sh_custom_add 'tmate' "$(gettext 'Instant Terminal Sharing')"
+
+	topico="$(gettext 'Impressão')"
+	if ! $LONLY_TTY; then
+		sh_custom_add 'cups' "$(gettext 'Common Unix Printing System')"
+		sh_custom_add 'cups-pdf' "$(gettext 'PDF printer for cups')"
+		sh_custom_add 'bluez-cups' "$(gettext 'CUPS printer backend for Bluetooth printers')"
+		sh_custom_add 'samba-cups' "$(gettext 'SMB backend for cups (transitional dummy package)')"
+		sh_custom_add 'splix' "$(gettext 'CUPS driver for SPL printers (Samsung and several Xerox printers)')"
+		sh_custom_add 'samsung-unified-driver' "$(gettext 'Unified Linux Driver for Samsung printers and scanners')"
+		sh_custom_add 'system-config-printer' "$(gettext 'CUPS printer configuration tool and status applet')"
+	fi
+
+	topico="$(gettext 'Rede e servidores')"
 	if $LSERVER; then
-		aCustom['voidbr-network-tools']="$(gettext 'Meta‑pacote com utilitários essenciais de rede e monitoramento para Void Linux')"
+		sh_custom_add 'voidbr-network-tools' "$(gettext 'Meta‑pacote com utilitários essenciais de rede e monitoramento para Void Linux')"
+	fi
+	sh_custom_add 'voidbr-samba' "$(gettext 'SMB/CIFS file, print, and login server for Unix')"
+	sh_custom_add 'net-snmp' "$(gettext 'Simple Network Management Protocol (SNMP) suite')"
+	sh_custom_add 'avahi' "$(gettext 'Multicast DNS Service Discovery')"
+	sh_custom_add 'avahi-discover' "$(gettext 'Service discovery user interface for avahi')"
+
+	topico="$(gettext 'Laboratório (Epoptes)')"
+	if ! $LONLY_TTY; then
+		sh_custom_add 'voidbr-epoptes' "$(gettext 'An opensource computer lab management and monitoring tool (server)')"
+	fi
+	sh_custom_add 'voidbr-epoptes-client' "$(gettext 'An opensource computer lab management and monitoring tool (client)')"
+
+	topico="$(gettext 'Containers')"
+	sh_custom_add 'docker' "$(gettext 'Docker container runtim')"
+	sh_custom_add 'podman' "$(gettext 'Simple management tool for containers and images')"
+	sh_custom_add 'voidbr-distrobox' "$(gettext 'Use any linux distribution inside your terminal')"
+
+	topico="$(gettext 'Backup e snapshots')"
+	sh_custom_add 'timeshift' "$(gettext 'System restore tool')"
+	sh_custom_add 'voidbr-snapper-manager' "$(gettext 'Snapshots btrfs+snapper automáticos no xbps (hooks pre/post)')"
+
+	topico="$(gettext 'Compactadores')"
+	sh_custom_add 'zip' "$(gettext 'Create/update ZIP files compatible with pkzip')"
+	sh_custom_add 'bzip2' "$(gettext 'Freely available, patent free, high-quality data compressor')"
+	sh_custom_add 'p7zip' "$(gettext 'Command-line version of the 7zip compressed file archive (transitional dummy package)')"
+	sh_custom_add '7zip-unrar' "$(gettext 'File archiver with a high compression ratio - RAR support')"
+
+	topico="$(gettext 'Sistema e utilitários')"
+	sh_custom_add 'htop' "$(gettext 'Interactive process viewer')"
+	sh_custom_add 'inxi' "$(gettext 'Full featured system information script')"
+	sh_custom_add 'pfetch' "$(gettext 'System information tool written in POSIX sh')"
+	sh_custom_add 'dfc' "$(gettext 'Display file system space usage using graphs and colors')"
+	sh_custom_add 'irqbalance' "$(gettext 'Handholding your interrupts for power and performance')"
+	sh_custom_add 'acpi' "$(gettext 'Informations about ACPI devices (battery, thermal sensors and power)')"
+	sh_custom_add 'acpid' "$(gettext 'ACPI Daemon (acpid) With Netlink Support)')"
+	if ! $LONLY_TTY; then
+		sh_custom_add 'gparted' "$(gettext 'Gnome Partition Editor)')"
+		sh_custom_add 'Thunar' "$(gettext 'Thunar File Manager')"
+		sh_custom_add 'thunar-archive-plugin' "$(gettext 'Create and extract archives in Thunar')"
+		sh_custom_add 'menulibre' "$(gettext 'Advanced menu editor')"
+		sh_custom_add 'mugshot' "$(gettext 'Program to update personal user details')"
+		sh_custom_add 'ocs-url' "$(gettext 'Install helper program for OpenCollaborationServices (ocs://)')"
+		sh_custom_add 'cool-retro-term' "$(gettext 'Good looking terminal emulator which mimics the old cathode display')"
 	fi
 
-	# tty
-	aCustom['opencode']="$(gettext 'The open source coding agent')"
-	aCustom['harbour-bin']="$(gettext 'Harbour Compiler (xBase language)')"
-	aCustom['dosemu']="$(gettext 'DOS emulator')"
-	aCustom['voidbr-snapper-manager']="$(gettext 'Snapshots btrfs+snapper automáticos no xbps (hooks pre/post)')"
-	aCustom['timeshift']="$(gettext 'System restore tool')"
-	aCustom['voidbr-distrobox']="$(gettext 'Use any linux distribution inside your terminal')"
-	aCustom['net-snmp']="$(gettext 'Simple Network Management Protocol (SNMP) suite')"
-	aCustom['voidbr-samba']="$(gettext 'SMB/CIFS file, print, and login server for Unix')"
-	aCustom['docker']="$(gettext 'Docker container runtim')"
-	aCustom['podman']="$(gettext 'Simple management tool for containers and images')"
-	aCustom['voidbr-epoptes-client']="$(gettext 'An opensource computer lab management and monitoring tool (client)')"
-	aCustom['irqbalance']="$(gettext 'Handholding your interrupts for power and performance')"
-	aCustom['acpi']="$(gettext 'Informations about ACPI devices (battery, thermal sensors and power)')"
-	aCustom['acpid']="$(gettext 'ACPI Daemon (acpid) With Netlink Support)')"
-	aCustom['tailscale']="$(gettext 'Easy, secure, cross platform WireGuard, oauth2, and 2FA/SSO')"
-	aCustom['micro']="$(gettext 'Modern and intuitive terminal-based text editor')"
-	aCustom['inxi']="$(gettext 'Full featured system information script')"
-	aCustom['htop']="$(gettext 'Interactive process viewer')"
-	aCustom['vim']="$(gettext 'Vim editor (vi clone)')"
-	aCustom['neovim']="$(gettext 'Fork of Vim aiming to improve user experience, plugins and GUIs')"
-	aCustom['tmate']="$(gettext 'Instant Terminal Sharing')"
-	aCustom['bzip2']="$(gettext 'Freely available, patent free, high-quality data compressor')"
-	aCustom['p7zip']="$(gettext 'Command-line version of the 7zip compressed file archive (transitional dummy package)')"
-	aCustom['zip']="$(gettext 'Create/update ZIP files compatible with pkzip')"
-	aCustom['7zip-unrar']="$(gettext 'File archiver with a high compression ratio - RAR support')"
-	aCustom['avahi']="$(gettext 'Multicast DNS Service Discovery')"
-	aCustom['avahi-discover']="$(gettext 'Service discovery user interface for avahi')"
-	aCustom['dfc']="$(gettext 'Display file system space usage using graphs and colors')"
-	aCustom['pfetch']="$(gettext 'System information tool written in POSIX sh')"
-	aCustom['xtools']="$(gettext 'Opinionated helpers for working with XBPS')"
+	topico="$(gettext 'Igreja')"
+	if ! $LONLY_TTY; then
+		sh_custom_add 'louvorja-piano' "$(gettext 'LouvorJA - PIANO - aplicativo desktop para gerenciamento de culto)')"
+		sh_custom_add 'voidbr-louvorja-piano-config' "$(gettext 'Skel config for VoidBR with LouvorJa-Piano')"
+	fi
 
+	# seleção inicial: o que já foi escolhido antes (ao voltar a esta tela)
 	for x in "${!aCustom[@]}"; do
-		aFlag[$x]='off'
+		aSel[$x]='off'
 	done
-
 	for x in "${aCustomPackages[@]}"; do
-		aFlag[$x]='on'
+		[[ -n "${aCustom[$x]}" ]] && aSel[$x]='on'
 	done
 
-	local dialog_items=()
-	for x in $(printf '%s\n' "${!aCustom[@]}" | sort); do
-		dialog_items+=(
-			"$x"
-			"${aCustom[$x]}"
-			"${aFlag[$x]}"
+	escolha="${aTopicos[0]}"
+	while true; do
+		# 1ª tela: menu de tópicos, com a contagem de marcados em cada um
+		menu_items=()
+		for topico in "${aTopicos[@]}"; do
+			n=0
+			for x in "${!aTopico[@]}"; do
+				[[ "${aTopico[$x]}" == "$topico" && "${aSel[$x]}" == 'on' ]] && ((n++))
+			done
+			if ((n == 1)); then
+				menu_items+=("$topico" "(1 $(gettext 'marcado'))")
+			elif ((n > 1)); then
+				menu_items+=("$topico" "($n $(gettext 'marcados'))")
+			else
+				menu_items+=("$topico" "")
+			fi
+		done
+		menu_items+=("$cConcluir" "$(gettext 'Aceitar os pacotes marcados')")
+
+		escolha=$(
+			${DIALOG} \
+				--stdout \
+				--backtitle "$ccabec" \
+				--title "=== $(gettext 'Pacotes Extras') ===" \
+				--colors \
+				--default-item "$escolha" \
+				--cancel-label "${cmsg_ButtonBack}" \
+				--ok-label "$(gettext 'Abrir')" \
+				--menu "${cmsg_MENU}" \
+				0 70 0 \
+				"${menu_items[@]}"
 		)
+		exit_status=$?
+		case $exit_status in
+		"$D_ESC" | "$D_CANCEL")
+			# Voltar: descarta tudo o que foi marcado nesta visita
+			return
+			;;
+		esac
+
+		[[ "$escolha" == "$cConcluir" ]] && break
+
+		# 2ª tela: checklist só dos pacotes do tópico escolhido
+		dialog_items=()
+		for x in $(printf '%s\n' "${!aTopico[@]}" | sort); do
+			[[ "${aTopico[$x]}" == "$escolha" ]] || continue
+			dialog_items+=("$x" "${aCustom[$x]}" "${aSel[$x]}")
+		done
+
+		custom=$(
+			${DIALOG} \
+				--stdout \
+				--backtitle "$ccabec" \
+				--title "=== $(gettext 'Pacotes Extras'): $escolha ===" \
+				--colors \
+				--cancel-label "${cmsg_ButtonBack}" \
+				--ok-label "${cmsg_Aceitar}" \
+				--checklist "${cmsg_MENU}" \
+				0 0 0 \
+				"${dialog_items[@]}"
+		)
+		exit_status=$?
+		case $exit_status in
+		"$D_ESC" | "$D_CANCEL")
+			# Voltar: mantém este tópico como estava e volta ao menu
+			continue
+			;;
+		esac
+
+		# atualiza só os pacotes deste tópico
+		for x in "${!aTopico[@]}"; do
+			[[ "${aTopico[$x]}" == "$escolha" ]] && aSel[$x]='off'
+		done
+		read -r -a marcados <<<"$custom"
+		for x in "${marcados[@]}"; do
+			aSel[$x]='on'
+		done
 	done
 
-	custom=$(
-		${DIALOG} \
-			--stdout \
-			--backtitle "$ccabec" \
-			--title "=== Pacotes Extras ===" \
-			--colors \
-			--cancel-label "${cmsg_ButtonBack}" \
-			--ok-label "${cmsg_Aceitar}" \
-			--checklist "${cmsg_MENU}" \
-			25 0 2 \
-			"${dialog_items[@]}"
-	)
-
-	# debug "$custom"
-
-	exit_status=$?
-	case $exit_status in
-	"$D_ESC" | "$D_CANCEL")
-		return
-		;;
-	esac
-
-	# mapfile -t aCustomPackages= <<<"$custom"
-	# read -r -a aCustomPackages <<< "$custom"
-	aCustomPackages=($(strtoarray "$custom"))
-
+	aCustomPackages=()
+	for x in $(printf '%s\n' "${!aSel[@]}" | sort); do
+		[[ "${aSel[$x]}" == 'on' ]] && aCustomPackages+=("$x")
+	done
 }
 
 sh_configure_dhcpcd_static_ip_dialog() {
