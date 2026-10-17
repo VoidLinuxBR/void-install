@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: dom 11 out 2026 16:33:54 -04
+#  Updated: sex 16 out 2026 21:18:58 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -33,6 +33,7 @@ export LANGUAGE="${LANGUAGE:-pt_BR}"
 export TEXTDOMAINDIR=/usr/share/locale
 export TEXTDOMAIN=void-install
 export VOIDBR_INSTALLER=true
+export XBPS_PARALLEL_DOWNLOADS=16
 
 #todo
 #usermod -a -G bluetooth $USER
@@ -51,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.10.11-20261011'
+readonly _VERSION_='3.10.16-20261016'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -5867,6 +5868,11 @@ sh_choose_custom_packages() {
 	local custom
 
 	if ! $LONLY_TTY; then
+		aCustom['visual-studio-code-bin']="$(gettext 'Visual Studio Code (vscode): Editor for building and debugging modern web and cloud applications (official binary version)')"
+		aCustom['voidbr-onlyoffice-bin']="$(gettext 'An office suite that combines text, spreadsheet and presentation editors')"
+		aCustom['rustdesk-bin']="$(gettext 'Yet another remote desktop software, written in Rust. Works out of the box, no configuration required')"
+		aCustom['microsoft-edge-stable-bin']="$(gettext 'A browser that combines a minimal design with sophisticated technology to make the web faster, safer, and easier')"
+		aCustom['anydesk-bin']="$(gettext 'The Fast Remote Desktop Application')"
 		aCustom['louvorja-piano']="$(gettext 'LouvorJA - PIANO - aplicativo desktop para gerenciamento de culto)')"
 		aCustom['voidbr-louvorja-piano-config']="$(gettext 'Skel config for VoidBR with LouvorJa-Piano')"
 		aCustom['voidbr-epoptes']="$(gettext 'An opensource computer lab management and monitoring tool (server)')"
@@ -5904,6 +5910,9 @@ sh_choose_custom_packages() {
 	fi
 
 	# tty
+	aCustom['opencode']="$(gettext 'The open source coding agent')"
+	aCustom['harbour-bin']="$(gettext 'Harbour Compiler (xBase language)')"
+	aCustom['dosemu']="$(gettext 'DOS emulator')"
 	aCustom['voidbr-snapper-manager']="$(gettext 'Snapshots btrfs+snapper automáticos no xbps (hooks pre/post)')"
 	aCustom['timeshift']="$(gettext 'System restore tool')"
 	aCustom['voidbr-distrobox']="$(gettext 'Use any linux distribution inside your terminal')"
