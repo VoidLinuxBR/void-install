@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: dom 25 out 2026 13:40:32 -04
+#  Updated: dom 25 out 2026 13:45:09 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -5827,9 +5827,7 @@ sh_choose_wm() {
 	LDM=true
 	LDHCP=false
 
-	if $LSERVER; then
-		sh_configure_server_network
-	fi
+	sh_configure_network
 
 	#  debug "${_DISPLAYMANAGER[@]}" "\n${_WINDOWMANAGER[@]}" "\nLONLY_TTY=$LONLY_TTY" "\nLXORG=$LXORG"
 
@@ -6131,11 +6129,23 @@ sh_get_iface_info() {
 	printf '%s %s %s %s' "$tipo" "$mac" "$state" "${drv:-?}"
 }
 
-sh_configure_server_network() {
+sh_configure_network() {
 	local -a aIfaces menu_items
 	local iface mode tipo mac state drv
+	local ctitle="=== $(gettext 'REDE') ==="
 
-	mapfile -t aIfaces < <(sh_get_net_ifaces)
+	if $LSERVER; then
+		ctitle="=== IP SERVER ==="
+		mapfile -t aIfaces < <(sh_get_net_ifaces)
+	else
+		# fora do Server quem cuida da rede é o NetworkManager; wifi fica de
+		# fora porque IP fixo no wifi depende da rede (SSID) escolhida
+		for iface in $(sh_get_net_ifaces); do
+			[[ -d "/sys/class/net/$iface/wireless" ]] || aIfaces+=("$iface")
+		done
+		# sem placa cabeada não há o que configurar aqui
+		((${#aIfaces[@]})) || return 0
+	fi
 	sh_setAsDhcp
 
 	while true; do
@@ -6149,7 +6159,7 @@ sh_configure_server_network() {
 
 			iface=$(dialog \
 				--backtitle "$ccabec" \
-				--title "=== IP SERVER ===" \
+				--title "$ctitle" \
 				--default-item "${AsDhcp[IFACE]}" \
 				--menu "\n$(gettext 'Placas de rede detectadas'): ${#aIfaces[@]}\n$(gettext 'Escolha a placa a configurar'):" \
 				$((${#aIfaces[@]} + 10)) 76 ${#aIfaces[@]} "${menu_items[@]}" \
@@ -6200,7 +6210,7 @@ sh_configure_dhcpcd_static_ip_dialog() {
 	while true; do
 		dhcptext=$(dialog \
 			--backtitle "$ccabec" \
-			--title "$(gettext "Configuração de IP fixo (dhcpcd)")" \
+			--title "$(gettext "Configuração de IP fixo") ($($LSERVER && echo dhcpcd || echo NetworkManager))" \
 			--form "$(gettext "Preencha os dados:")" \
 			15 60 6 \
 			"Interface      : " 1 1 "${AsDhcp[IFACE]}" 1 $ncol 20 0 \
@@ -6258,6 +6268,37 @@ sh_create_empty_iptables_rules() {
 :OUTPUT ACCEPT [0:0]
 COMMIT
 EOF
+}
+
+sh_build_and_apply_nm_config() {
+	local cdir="$dir_install/etc/NetworkManager/system-connections"
+	local CONFIG_FILE="$cdir/${AsDhcp[IFACE]}.nmconnection"
+
+	sh_info_msg "$(gettext 'Aplicando configuração do NetworkManager')"
+	mkdir -p "$cdir"
+
+	{
+		printf '[connection]\n'
+		printf 'id=%s\n' "${AsDhcp[IFACE]}"
+		printf 'type=ethernet\n'
+		printf 'interface-name=%s\n' "${AsDhcp[IFACE]}"
+		printf 'autoconnect=true\n'
+		printf '\n[ethernet]\n'
+		printf '\n[ipv4]\n'
+		printf 'method=manual\n'
+		printf 'address1=%s/%s\n' "${AsDhcp[IP]}" "${AsDhcp[CIDR]}"
+		[[ -n "${AsDhcp[GATEWAY]}" ]] && printf 'gateway=%s\n' "${AsDhcp[GATEWAY]}"
+		printf 'dns='
+		[[ -n "${AsDhcp[DNS1]}" ]] && printf '%s;' "${AsDhcp[DNS1]}"
+		[[ -n "${AsDhcp[DNS2]}" ]] && printf '%s;' "${AsDhcp[DNS2]}"
+		printf '\n'
+		printf '\n[ipv6]\n'
+		printf 'method=auto\n'
+	} >"$CONFIG_FILE"
+
+	# o NetworkManager ignora o arquivo se outro usuário puder ler/gravar
+	chown root:root "$CONFIG_FILE"
+	chmod 600 "$CONFIG_FILE"
 }
 
 sh_build_and_apply_dhcpcd_config() {
@@ -7690,6 +7731,9 @@ sh_install() {
 					sh_build_and_apply_dhcpcd_config
 				fi
 			else
+				if $LDHCP; then
+					sh_build_and_apply_nm_config
+				fi
 				sh_update_sshd
 			fi
 
