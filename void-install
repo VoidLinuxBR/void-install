@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: dom 25 out 2026 13:14:25 -04
+#  Updated: dom 25 out 2026 13:50:01 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -235,9 +235,6 @@ declare -gA AsDhcp=(
 	['DNS1']="1.1.1.1"
 	['DNS2']="8.8.8.8"
 )
-# placas de rede no modo Server, chave "<iface>|<campo>"
-# campos: MODE (dhcp | static | off), IP, CIDR, GATEWAY
-declare -gA AsNic=()
 declare -gA AsDiskPercent=(
 	[_DISKTABLE]="EFI"
 	[root]="100"
@@ -983,7 +980,6 @@ sh_touchConf() {
 		declare -p AsUser
 		declare -p Amkfs
 		declare -p AsDhcp
-		declare -p AsNic
 		declare -p AsDiskPercent
 		declare -p AsFs
 		declare -p Amntpoint
@@ -5831,9 +5827,7 @@ sh_choose_wm() {
 	LDM=true
 	LDHCP=false
 
-	if $LSERVER; then
-		sh_configure_server_network
-	fi
+	sh_configure_network
 
 	#  debug "${_DISPLAYMANAGER[@]}" "\n${_WINDOWMANAGER[@]}" "\nLONLY_TTY=$LONLY_TTY" "\nLXORG=$LXORG"
 
@@ -6023,7 +6017,7 @@ sh_choose_custom_packages() {
 		[[ -n "${aCustom[$x]}" ]] && aSel[$x]='on'
 	done
 
-	escolha="${aTopicos[0]}"
+	escolha="$cConcluir"
 	while true; do
 		# 1ª tela: menu de tópicos, com a contagem de marcados em cada um
 		menu_items=()
@@ -6135,154 +6129,72 @@ sh_get_iface_info() {
 	printf '%s %s %s %s' "$tipo" "$mac" "$state" "${drv:-?}"
 }
 
-sh_configure_server_network() {
-	local -a aIfaces
+sh_configure_network() {
+	local -a aIfaces menu_items
+	local iface mode tipo mac state drv
+	local ctitle="=== $(gettext 'REDE') ==="
 
-	mapfile -t aIfaces < <(sh_get_net_ifaces)
-
-	# 0 ou 1 placa: mantém o fluxo antigo
-	if ((${#aIfaces[@]} < 2)); then
-		AsNic=()
-		if conf "=== IP SERVER ===" \
-			"\n${BOLD}${WHITE}$(gettext "Uma instalação SERVIDOR foi escolhida")\n" \
-			"\n${BOLD}${RED}$(gettext "Deseja configurar IP fixo?")\n\n"; then
-			sh_configure_dhcpcd_static_ip_dialog
-		fi
-		return
+	if $LSERVER; then
+		ctitle="=== IP SERVER ==="
+		mapfile -t aIfaces < <(sh_get_net_ifaces)
+	else
+		# fora do Server quem cuida da rede é o NetworkManager; wifi fica de
+		# fora porque IP fixo no wifi depende da rede (SSID) escolhida
+		for iface in $(sh_get_net_ifaces); do
+			[[ -d "/sys/class/net/$iface/wireless" ]] || aIfaces+=("$iface")
+		done
+		# sem placa cabeada não há o que configurar aqui
+		((${#aIfaces[@]})) || return 0
 	fi
-
-	sh_configure_multi_nic_dialog "${aIfaces[@]}"
-}
-
-sh_configure_multi_nic_dialog() {
-	local -a aIfaces=("$@")
-	local -a menu_items
-	local iface escolha mode tipo mac state drv
-	local ngw=0
-	local cConcluir=">> $(gettext 'Concluir')"
-
 	sh_setAsDhcp
 
-	# descarta placas salvas que não existem mais nesta máquina
-	for iface in "${!AsNic[@]}"; do
-		[[ " ${aIfaces[*]} " == *" ${iface%%|*} "* ]] || unset "AsNic[$iface]"
-	done
-	for iface in "${aIfaces[@]}"; do
-		AsNic[$iface|MODE]="${AsNic[$iface|MODE]:-dhcp}"
-	done
-
 	while true; do
-		menu_items=()
-		for iface in "${aIfaces[@]}"; do
-			read -r tipo mac state drv <<<"$(sh_get_iface_info "$iface")"
-			case "${AsNic[$iface|MODE]}" in
-			static) mode="IP ${AsNic[$iface|IP]}/${AsNic[$iface|CIDR]}" ;;
-			off) mode="$(gettext 'desativada')" ;;
-			*) mode='DHCP' ;;
-			esac
-			menu_items+=("$iface" "$(printf '%-22s %-4s %s %-5s %s' "[$mode]" "$tipo" "$mac" "$state" "$drv")")
+		# 1) placas detectadas
+		if ((${#aIfaces[@]})); then
+			menu_items=()
+			for iface in "${aIfaces[@]}"; do
+				read -r tipo mac state drv <<<"$(sh_get_iface_info "$iface")"
+				menu_items+=("$iface" "$(printf '%-4s %s %-5s %s' "$tipo" "$mac" "$state" "$drv")")
+			done
+
+			iface=$(dialog \
+				--backtitle "$ccabec" \
+				--title "$ctitle" \
+				--colors \
+				--default-item "${AsDhcp[IFACE]}" \
+				--menu "\n$(gettext 'Placas de rede detectadas'): ${YELLOW}${#aIfaces[@]}${RST}\n$(gettext 'Escolha a placa a configurar'):\n${RED}$(gettext 'Se cancelar, a rede fica em DHCP (automático).')${RST}" \
+				$((${#aIfaces[@]} + 11)) 76 ${#aIfaces[@]} "${menu_items[@]}" \
+				2>&1 >/dev/tty) || return 0
+			AsDhcp[IFACE]="$iface"
+		fi
+
+		while true; do
+			# 2) dhcp ou ip fixo
+			mode=$(dialog \
+				--backtitle "$ccabec" \
+				--title "=== ${AsDhcp[IFACE]} ===" \
+				--default-item "$($LDHCP && echo static || echo dhcp)" \
+				--menu "\n$(gettext 'Como configurar a placa') ${AsDhcp[IFACE]}?" \
+				11 50 2 \
+				dhcp "$(gettext 'Automático (DHCP)')" \
+				static "$(gettext 'IP fixo')" \
+				2>&1 >/dev/tty) || break
+
+			# 3) dhcp segue adiante
+			if [[ "$mode" == dhcp ]]; then
+				LDHCP=false
+				return 0
+			fi
+
+			# ip fixo abre o formulário; cancelado volta para dhcp/ip fixo
+			LDHCP=false
+			sh_configure_dhcpcd_static_ip_dialog
+			$LDHCP && return 0
 		done
-		menu_items+=('DNS' "${AsDhcp[DNS1]} ${AsDhcp[DNS2]}")
-		menu_items+=("$cConcluir" '')
 
-		escolha=$(dialog \
-			--backtitle "$ccabec" \
-			--title "=== IP SERVER ===" \
-			--default-item "${escolha:-${aIfaces[0]}}" \
-			--menu "\n$(gettext 'Placas de rede detectadas'): ${#aIfaces[@]}\n$(gettext 'Escolha uma placa para configurar'):" \
-			0 0 0 "${menu_items[@]}" \
-			2>&1 >/dev/tty) || return
-
-		case "$escolha" in
-		"$cConcluir") break ;;
-		DNS) sh_configure_nic_dns ;;
-		*) sh_configure_nic "$escolha" ;;
-		esac
+		# cancelou dhcp/ip fixo: volta para a lista de placas
+		((${#aIfaces[@]})) || return 0
 	done
-
-	# só grava o dhcpcd.conf se alguma placa não ficou em DHCP
-	LDHCP=false
-	for iface in "${aIfaces[@]}"; do
-		case "${AsNic[$iface|MODE]}" in
-		static)
-			LDHCP=true
-			[[ -n "${AsNic[$iface|GATEWAY]}" ]] && ((++ngw))
-			;;
-		off) LDHCP=true ;;
-		esac
-	done
-
-	if ((ngw > 1)); then
-		alerta "=== IP SERVER ===" \
-			"${YELLOW}$(gettext 'Mais de uma placa com gateway definido.')${RST}" \
-			"$(gettext 'Normalmente só a placa de saída para a internet (WAN) tem gateway.')" \
-			"$(gettext 'O dhcpcd vai criar uma rota padrão para cada uma, por métrica.')"
-	fi
-	return 0
-}
-
-# sh_configure_nic <iface>
-sh_configure_nic() {
-	local iface="$1"
-	local mode texto gw
-	local -a aval
-
-	mode=$(dialog \
-		--backtitle "$ccabec" \
-		--title "=== $iface ===" \
-		--default-item "${AsNic[$iface|MODE]}" \
-		--menu "\n$(gettext 'Como configurar a placa') $iface?" \
-		0 0 0 \
-		dhcp "$(gettext 'Automático (DHCP)')" \
-		static "$(gettext 'IP fixo')" \
-		off "$(gettext 'Desativada (o dhcpcd ignora esta placa)')" \
-		2>&1 >/dev/tty) || return 0
-
-	if [[ "$mode" != static ]]; then
-		AsNic[$iface|MODE]="$mode"
-		return 0
-	fi
-
-	# gateway só vem preenchido na placa que hoje tem a rota padrão
-	if [[ -v "AsNic[$iface|GATEWAY]" ]]; then
-		gw="${AsNic[$iface|GATEWAY]}"
-	elif [[ "$iface" == "$(get_default_iface)" ]]; then
-		gw="${AsDhcp[GATEWAY]}"
-	fi
-
-	texto=$(dialog \
-		--backtitle "$ccabec" \
-		--title "$(gettext 'IP fixo') - $iface" \
-		--form "$(gettext 'Deixe o Gateway em branco se esta placa não for a saída para a internet'):" \
-		12 64 3 \
-		"IP             : " 1 1 "${AsNic[$iface|IP]:-${AsDhcp[IP]}}" 1 18 20 0 \
-		"Máscara (CIDR) : " 2 1 "${AsNic[$iface|CIDR]:-${AsDhcp[CIDR]}}" 2 18 20 0 \
-		"Gateway        : " 3 1 "$gw" 3 18 20 0 \
-		2>&1 >/dev/tty) || return 0
-
-	mapfile -t aval <<<"$texto"
-	AsNic[$iface|MODE]='static'
-	AsNic[$iface|IP]="${aval[0]}"
-	AsNic[$iface|CIDR]="${aval[1]}"
-	AsNic[$iface|GATEWAY]="${aval[2]}"
-}
-
-sh_configure_nic_dns() {
-	local texto
-	local -a aval
-
-	texto=$(dialog \
-		--backtitle "$ccabec" \
-		--title "DNS" \
-		--form "$(gettext 'Servidores DNS das placas com IP fixo'):" \
-		10 60 2 \
-		"DNS 1 : " 1 1 "${AsDhcp[DNS1]}" 1 10 20 0 \
-		"DNS 2 : " 2 1 "${AsDhcp[DNS2]}" 2 10 20 0 \
-		2>&1 >/dev/tty) || return 0
-
-	mapfile -t aval <<<"$texto"
-	AsDhcp[DNS1]="${aval[0]}"
-	AsDhcp[DNS2]="${aval[1]}"
 }
 
 sh_configure_dhcpcd_static_ip_dialog() {
@@ -6299,7 +6211,7 @@ sh_configure_dhcpcd_static_ip_dialog() {
 	while true; do
 		dhcptext=$(dialog \
 			--backtitle "$ccabec" \
-			--title "$(gettext "Configuração de IP fixo (dhcpcd)")" \
+			--title "$(gettext "Configuração de IP fixo") ($($LSERVER && echo dhcpcd || echo NetworkManager))" \
 			--form "$(gettext "Preencha os dados:")" \
 			15 60 6 \
 			"Interface      : " 1 1 "${AsDhcp[IFACE]}" 1 $ncol 20 0 \
@@ -6359,37 +6271,35 @@ COMMIT
 EOF
 }
 
-# sh_build_dhcpcd_multi_nic <dhcpcd.conf original> => conteúdo novo no stdout
-sh_build_dhcpcd_multi_nic() {
-	local orig="$1"
-	local key iface
-	local -a aIfaces aDeny=()
+sh_build_and_apply_nm_config() {
+	local cdir="$dir_install/etc/NetworkManager/system-connections"
+	local CONFIG_FILE="$cdir/${AsDhcp[IFACE]}.nmconnection"
 
-	mapfile -t aIfaces < <(
-		for key in "${!AsNic[@]}"; do
-			[[ "$key" == *'|MODE' ]] && printf '%s\n' "${key%|MODE}"
-		done | sort
-	)
+	sh_info_msg "$(gettext 'Aplicando configuração do NetworkManager')"
+	mkdir -p "$cdir"
 
-	[[ -f "$orig" ]] && cat "$orig" || printf '# See dhcpcd.conf(5) for details.\n'
+	{
+		printf '[connection]\n'
+		printf 'id=%s\n' "${AsDhcp[IFACE]}"
+		printf 'type=ethernet\n'
+		printf 'interface-name=%s\n' "${AsDhcp[IFACE]}"
+		printf 'autoconnect=true\n'
+		printf '\n[ethernet]\n'
+		printf '\n[ipv4]\n'
+		printf 'method=manual\n'
+		printf 'address1=%s/%s\n' "${AsDhcp[IP]}" "${AsDhcp[CIDR]}"
+		[[ -n "${AsDhcp[GATEWAY]}" ]] && printf 'gateway=%s\n' "${AsDhcp[GATEWAY]}"
+		printf 'dns='
+		[[ -n "${AsDhcp[DNS1]}" ]] && printf '%s;' "${AsDhcp[DNS1]}"
+		[[ -n "${AsDhcp[DNS2]}" ]] && printf '%s;' "${AsDhcp[DNS2]}"
+		printf '\n'
+		printf '\n[ipv6]\n'
+		printf 'method=auto\n'
+	} >"$CONFIG_FILE"
 
-	printf '\n# void-install: modo Server\n'
-	for iface in "${aIfaces[@]}"; do
-		[[ "${AsNic[$iface|MODE]}" == off ]] && aDeny+=("$iface")
-	done
-	if ((${#aDeny[@]})); then
-		printf 'denyinterfaces %s\n' "${aDeny[*]}"
-	fi
-
-	for iface in "${aIfaces[@]}"; do
-		[[ "${AsNic[$iface|MODE]}" == static ]] || continue
-		printf '\ninterface %s\n' "$iface"
-		printf 'static ip_address=%s/%s\n' "${AsNic[$iface|IP]}" "${AsNic[$iface|CIDR]}"
-		if [[ -n "${AsNic[$iface|GATEWAY]}" ]]; then
-			printf 'static routers=%s\n' "${AsNic[$iface|GATEWAY]}"
-		fi
-		printf 'static domain_name_servers=%s %s\n' "${AsDhcp[DNS1]}" "${AsDhcp[DNS2]}"
-	done
+	# o NetworkManager ignora o arquivo se outro usuário puder ler/gravar
+	chown root:root "$CONFIG_FILE"
+	chmod 600 "$CONFIG_FILE"
 }
 
 sh_build_and_apply_dhcpcd_config() {
@@ -6400,12 +6310,6 @@ sh_build_and_apply_dhcpcd_config() {
 	# backup somente se existir
 	if [[ -f "$CONFIG_FILE" ]]; then
 		mv -f "$CONFIG_FILE" "$BACKUP_FILE"
-	fi
-
-	# várias placas: parte do dhcpcd.conf original e acrescenta os blocos
-	if ((${#AsNic[@]})); then
-		sh_build_dhcpcd_multi_nic "$BACKUP_FILE" >"$CONFIG_FILE"
-		return
 	fi
 
 	# cria novo arquivo
@@ -7828,6 +7732,9 @@ sh_install() {
 					sh_build_and_apply_dhcpcd_config
 				fi
 			else
+				if $LDHCP; then
+					sh_build_and_apply_nm_config
+				fi
 				sh_update_sshd
 			fi
 
