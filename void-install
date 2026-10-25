@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: dom 25 out 2026 13:14:25 -04
+#  Updated: dom 25 out 2026 13:27:40 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -6140,8 +6140,8 @@ sh_configure_server_network() {
 
 	mapfile -t aIfaces < <(sh_get_net_ifaces)
 
-	# 0 ou 1 placa: mantém o fluxo antigo
-	if ((${#aIfaces[@]} < 2)); then
+	# nenhuma placa detectada: mantém o fluxo antigo (interface digitada à mão)
+	if ((${#aIfaces[@]} == 0)); then
 		AsNic=()
 		if conf "=== IP SERVER ===" \
 			"\n${BOLD}${WHITE}$(gettext "Uma instalação SERVIDOR foi escolhida")\n" \
