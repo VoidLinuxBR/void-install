@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: dom 25 out 2026 13:45:09 -04
+#  Updated: dom 25 out 2026 13:50:01 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -6160,9 +6160,10 @@ sh_configure_network() {
 			iface=$(dialog \
 				--backtitle "$ccabec" \
 				--title "$ctitle" \
+				--colors \
 				--default-item "${AsDhcp[IFACE]}" \
-				--menu "\n$(gettext 'Placas de rede detectadas'): ${#aIfaces[@]}\n$(gettext 'Escolha a placa a configurar'):" \
-				$((${#aIfaces[@]} + 10)) 76 ${#aIfaces[@]} "${menu_items[@]}" \
+				--menu "\n$(gettext 'Placas de rede detectadas'): ${YELLOW}${#aIfaces[@]}${RST}\n$(gettext 'Escolha a placa a configurar'):\n${RED}$(gettext 'Se cancelar, a rede fica em DHCP (automático).')${RST}" \
+				$((${#aIfaces[@]} + 11)) 76 ${#aIfaces[@]} "${menu_items[@]}" \
 				2>&1 >/dev/tty) || return 0
 			AsDhcp[IFACE]="$iface"
 		fi
