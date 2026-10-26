@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: dom 25 out 2026 13:50:01 -04
+#  Updated: dom 25 out 2026 23:21:30 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -6197,6 +6197,45 @@ sh_configure_network() {
 	done
 }
 
+# sh_valid_ipv4 <ip> => 0 se for um IPv4 válido (4 números de 0 a 255)
+# zero à esquerda é recusado: alguns programas leem 010 como octal (8)
+sh_valid_ipv4() {
+	local ip="$1" n
+	local -a aOct
+
+	[[ "$ip" =~ ^(0|[1-9][0-9]{0,2})(\.(0|[1-9][0-9]{0,2})){3}$ ]] || return 1
+	IFS='.' read -r -a aOct <<<"$ip"
+	for n in "${aOct[@]}"; do
+		((n <= 255)) || return 1
+	done
+	return 0
+}
+
+# sh_check_static_ip => valida AsDhcp; em erro avisa e retorna 1
+sh_check_static_ip() {
+	local cerro=""
+
+	if [[ -z "${AsDhcp[IFACE]}" ]]; then
+		cerro="$(gettext 'Interface não informada')"
+	elif [[ -n "$(sh_get_net_ifaces)" && ! -e "/sys/class/net/${AsDhcp[IFACE]}" ]]; then
+		cerro="$(gettext 'Interface inexistente'): ${AsDhcp[IFACE]}"
+	elif ! sh_valid_ipv4 "${AsDhcp[IP]}"; then
+		cerro="$(gettext 'IP inválido'): ${AsDhcp[IP]}"
+	elif [[ ! "${AsDhcp[CIDR]}" =~ ^([1-9]|[12][0-9]|3[0-2])$ ]]; then
+		cerro="$(gettext 'Máscara (CIDR) inválida, use de 1 a 32'): ${AsDhcp[CIDR]}"
+	elif [[ -n "${AsDhcp[GATEWAY]}" ]] && ! sh_valid_ipv4 "${AsDhcp[GATEWAY]}"; then
+		cerro="$(gettext 'Gateway inválido'): ${AsDhcp[GATEWAY]}"
+	elif [[ -n "${AsDhcp[DNS1]}" ]] && ! sh_valid_ipv4 "${AsDhcp[DNS1]}"; then
+		cerro="$(gettext 'DNS 1 inválido'): ${AsDhcp[DNS1]}"
+	elif [[ -n "${AsDhcp[DNS2]}" ]] && ! sh_valid_ipv4 "${AsDhcp[DNS2]}"; then
+		cerro="$(gettext 'DNS 2 inválido'): ${AsDhcp[DNS2]}"
+	fi
+
+	[[ -z "$cerro" ]] && return 0
+	alerta "=== $(gettext 'IP fixo') ===" "${RED}${cerro}${RST}"
+	return 1
+}
+
 sh_configure_dhcpcd_static_ip_dialog() {
 	local CONFIG_FILE="/etc/dhcpcd.conf"
 	local DEFAULT_IFACE
@@ -6236,6 +6275,9 @@ sh_configure_dhcpcd_static_ip_dialog() {
 			AsDhcp[GATEWAY]="${adhcp[3]}"
 			AsDhcp[DNS1]="${adhcp[4]}"
 			AsDhcp[DNS2]="${adhcp[5]}"
+
+			# dado inválido: avisa e reabre o formulário com o que foi digitado
+			sh_check_static_ip || continue
 
 			# mensagem confirmação
 			CONFIRM_MSG="$(printf "%s\n\n%-20s: %s\n%-20s: %s/%s\n%-20s: %s\n%-20s: %s %s" \
@@ -6289,10 +6331,12 @@ sh_build_and_apply_nm_config() {
 		printf 'method=manual\n'
 		printf 'address1=%s/%s\n' "${AsDhcp[IP]}" "${AsDhcp[CIDR]}"
 		[[ -n "${AsDhcp[GATEWAY]}" ]] && printf 'gateway=%s\n' "${AsDhcp[GATEWAY]}"
-		printf 'dns='
-		[[ -n "${AsDhcp[DNS1]}" ]] && printf '%s;' "${AsDhcp[DNS1]}"
-		[[ -n "${AsDhcp[DNS2]}" ]] && printf '%s;' "${AsDhcp[DNS2]}"
-		printf '\n'
+		if [[ -n "${AsDhcp[DNS1]}${AsDhcp[DNS2]}" ]]; then
+			printf 'dns='
+			[[ -n "${AsDhcp[DNS1]}" ]] && printf '%s;' "${AsDhcp[DNS1]}"
+			[[ -n "${AsDhcp[DNS2]}" ]] && printf '%s;' "${AsDhcp[DNS2]}"
+			printf '\n'
+		fi
 		printf '\n[ipv6]\n'
 		printf 'method=auto\n'
 	} >"$CONFIG_FILE"
@@ -6305,6 +6349,7 @@ sh_build_and_apply_nm_config() {
 sh_build_and_apply_dhcpcd_config() {
 	local CONFIG_FILE="$dir_install/etc/dhcpcd.conf"
 	local BACKUP_FILE="${CONFIG_FILE}.$(sh_diahora)"
+	local dns
 
 	sh_info_msg "%(gettext 'Aplicando configuração do dhcpd')"
 	# backup somente se existir
@@ -6312,16 +6357,22 @@ sh_build_and_apply_dhcpcd_config() {
 		mv -f "$CONFIG_FILE" "$BACKUP_FILE"
 	fi
 
-	# cria novo arquivo
-	cat >"$CONFIG_FILE" <<EOF
-# See dhcpcd.conf(5) for details.
-
-interface ${AsDhcp[IFACE]}
-static ip_address=${AsDhcp[IP]}/${AsDhcp[CIDR]}
-static routers=${AsDhcp[GATEWAY]}
-static domain_name_servers=${AsDhcp[DNS1]} ${AsDhcp[DNS2]}
-EOF
-
+	# parte do dhcpcd.conf original e acrescenta o bloco da interface
+	{
+		if [[ -f "$BACKUP_FILE" ]]; then
+			cat "$BACKUP_FILE"
+		else
+			printf '# See dhcpcd.conf(5) for details.\n'
+		fi
+		printf '\n# void-install: IP fixo\n'
+		printf 'interface %s\n' "${AsDhcp[IFACE]}"
+		printf 'static ip_address=%s/%s\n' "${AsDhcp[IP]}" "${AsDhcp[CIDR]}"
+		[[ -n "${AsDhcp[GATEWAY]}" ]] && printf 'static routers=%s\n' "${AsDhcp[GATEWAY]}"
+		dns="${AsDhcp[DNS1]} ${AsDhcp[DNS2]}"
+		dns="${dns# }"
+		dns="${dns% }"
+		[[ -n "$dns" ]] && printf 'static domain_name_servers=%s\n' "$dns"
+	} >"$CONFIG_FILE"
 }
 
 sh_choose_dm() {
@@ -7726,7 +7777,11 @@ sh_install() {
 			sh_fix_gnome_wayland_session
 			sh_activating_services
 
-			if $LSERVER; then
+			# fonte local copia o sistema da ISO: LSERVER/LDHCP podem ter
+			# sobrado de uma escolha anterior via rede e não valem aqui
+			if [[ "${AConfMirror[_SOURCE]}" == "local" ]]; then
+				sh_update_sshd
+			elif $LSERVER; then
 				sh_create_empty_iptables_rules
 				if $LDHCP; then
 					sh_build_and_apply_dhcpcd_config
