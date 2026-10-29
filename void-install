@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: dom 25 out 2026 23:21:30 -04
+#  Updated: qua 28 out 2026 21:15:52 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.10.25-20261025'
+readonly _VERSION_='3.10.28-20261028'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -4363,6 +4363,7 @@ sh_choose_kernel() {
 	fi
 
 	array+=("linux" "Linux kernel and modules current default" "$([[ $current_kernel == linux ]] && echo on || echo off)")
+	array+=("linux7.3" "Linux kernel and modules (7.3 series) stable" "$([[ $current_kernel == linux7.3 ]] && echo on || echo off)")
 	array+=("linux7.2" "Linux kernel and modules (7.2 series) stable" "$([[ $current_kernel == linux7.2 ]] && echo on || echo off)")
 	array+=("linux7.1" "Linux kernel and modules (7.1 series) stable" "$([[ $current_kernel == linux7.1 ]] && echo on || echo off)")
 	array+=("linux7.0" "Linux kernel and modules (7.0 series) stable" "$([[ $current_kernel == linux7.0 ]] && echo on || echo off)")
