@@ -132,6 +132,7 @@ declare LLOCALE=true
 declare LXORG=false
 declare LSWAY=false
 declare LUMBRIEL=false
+declare LCOSMIC=false
 declare LMANGO=false
 declare LHYPRLAND=false
 declare LRIVER=false
@@ -754,10 +755,14 @@ sh_configure_display_manager() {
 			;;
 
 		greetd)
-			aDisplaymanager=(
-				greetd
-				noctalia-greeter
-			)
+			if $LCOSMIC; then
+				aDisplaymanager=(greetd)
+			else
+				aDisplaymanager=(
+					greetd
+					noctalia-greeter
+				)
+			fi
 			;;
 
 		*)
@@ -950,6 +955,7 @@ sh_touchConf() {
 		declare -p LONLY_TTY
 		declare -p LSWAY
 		declare -p LUMBRIEL
+		declare -p LCOSMIC
 		declare -p LMANGO
 		declare -p LHYPRLAND
 		declare -p LRIVER
@@ -3038,6 +3044,8 @@ sh_activating_services() {
 		tty | server | xorg) continue ;;
 		*)
 			[[ "$_DISPLAYMANAGER" != "None" ]] && aServicesX+=("$_DISPLAYMANAGER")
+			# COSMIC: o cosmic-greeter precisa do daemon auxiliar junto do greetd
+			[[ "$x" = "cosmic" && "$_DISPLAYMANAGER" = "greetd" ]] && aServicesX+=(cosmic-greeter-daemon)
 			break
 			;;
 		esac
@@ -3494,6 +3502,15 @@ sh_umbriel_meta_package() {
 	local apkgs=(voidbr-umbriel)
 	apkgs+=(voidbr-base-config)
 	apkgs+=(voidbr-umbriel-config)
+
+	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
+}
+
+sh_cosmic_meta_package() {
+	local DE='COSMIC Desktop'
+	local apkgs=(voidbr-cosmic)
+	apkgs+=(voidbr-base-config)
+	apkgs+=(voidbr-cosmic-config)
 
 	sh_install_pkgs_in_chroot "Instalando ${DE}" "${apkgs[*]}"
 }
@@ -5640,6 +5657,7 @@ sh_choose_wm() {
 	aWm[xorg]="Xorg $(gettext "Minimal")"
 	aWm[bspwm]="Bspwm"
 	aWm[cinnamon]="Cinnamon"
+	aWm[cosmic]="COSMIC"
 	aWm[enlightenment]="Enlightenment"
 	aWm[gnome]="Gnome"
 	aWm[plasma]="Kde Plasma"
@@ -5676,6 +5694,7 @@ sh_choose_wm() {
 		xorg "${aWm[xorg]}" "${aFlag[xorg]}" \
 		bspwm "${aWm[bspwm]}" "${aFlag[bspwm]}" \
 		cinnamon "${aWm[cinnamon]}" "${aFlag[cinnamon]}" \
+		cosmic "${aWm[cosmic]}" "${aFlag[cosmic]}" \
 		enlightenment "${aWm[enlightenment]}" "${aFlag[enlightenment]}" \
 		fluxbox "${aWm[fluxbox]}" "${aFlag[fluxbox]}" \
 		gnome "${aWm[gnome]}" "${aFlag[gnome]}" \
@@ -5708,6 +5727,7 @@ sh_choose_wm() {
 	# pra dar resultado errado dependendo da ordem de iteração).
 	LSWAY=false
 	LUMBRIEL=false
+	LCOSMIC=false
 	LMANGO=false
 	LHYPRLAND=false
 	LRIVER=false
@@ -5732,6 +5752,11 @@ sh_choose_wm() {
 		umbriel)
 			_DISPLAYMANAGER="greetd"
 			LUMBRIEL=true
+			LMETA=true
+			;;
+		cosmic)
+			_DISPLAYMANAGER="greetd"
+			LCOSMIC=true
 			LMETA=true
 			;;
 		sway)
@@ -6430,7 +6455,7 @@ sh_choose_dm() {
 	LDM=true
 	_DISPLAYMANAGER="$dm"
 
-	if $LHYPRLAND || $LSWAY || $LMANGO || $LRIVER | $LGNOME; then
+	if $LHYPRLAND || $LSWAY || $LMANGO || $LRIVER || $LGNOME; then
 		if [[ "$dm" != "None" && "$dm" != "sddm" ]]; then
 			if conf "=== ${cmsg_Dm^^} ===" \
 				"\n${BOLD}${CYAN}$(gettext "É aconselhável escolhar sddm para compatibilidade")" \
@@ -6440,7 +6465,7 @@ sh_choose_dm() {
 		fi
 	fi
 
-	if $LUMBRIEL; then
+	if $LUMBRIEL || $LCOSMIC; then
 		if [[ "$dm" != "None" && "$dm" != "greetd" ]]; then
 			if conf "=== ${cmsg_Dm^^} ===" \
 				"\n${BOLD}${CYAN}$(gettext "É aconselhável escolhar greetd para compatibilidade")" \
@@ -7187,6 +7212,7 @@ sh_get_session_name() {
 	local -A aSession=(
 		[bspwm]=bspwm
 		[cinnamon]=cinnamon
+		[cosmic]=cosmic
 		[enlightenment]=enlightenment
 		[fluxbox]=fluxbox
 		[gnome]=gnome
@@ -7294,7 +7320,7 @@ User=$user
 Session=$session
 EOF
 
-	if $LHYPRLAND || $LSWAY || $LMANGO || $LRIVER | $LGNOME | $LUMBRIEL; then
+	if $LHYPRLAND || $LSWAY || $LMANGO || $LRIVER || $LGNOME || $LUMBRIEL || $LCOSMIC; then
 		sed -i '/^\[General\]/,/^\[/{
     /^\[/!b
     /^\[General\]/!i\
@@ -7377,11 +7403,25 @@ sh_fix_gnome_wayland_session() {
 sh_update_greetd_conf() {
 	local cuser="${AsUser[cuser]}"
 	local cfile="$dir_install/etc/greetd/config.toml"
+	local SESSION_NAME
+	local exec_cmd
 
 	sh_info_msg "Customizando Greetd $cfile"
 	mkdir -p "$dir_install/etc/greetd/"
 
-	cat >"$cfile" <<EOF
+	# COSMIC: tela do cosmic-greeter (vale também na instalação local da ISO
+	# COSMIC, em que LCOSMIC não é marcado no menu)
+	if $LCOSMIC || [[ -x "$dir_install/usr/bin/cosmic-greeter-start" ]]; then
+		cat >"$cfile" <<EOF
+[terminal]
+vt = 7
+
+[default_session]
+command = "cosmic-greeter-start"
+user = "cosmic-greeter"
+EOF
+	else
+		cat >"$cfile" <<EOF
 [terminal]
 vt = 7
 
@@ -7392,7 +7432,25 @@ source_profile = false
 command = "/usr/local/bin/noctalia-greeter-session"
 user = "_greeter"
 EOF
+	fi
 
+	# Login automático: o greetd roda a [initial_session] uma vez no boot,
+	# sem pedir senha; ao sair dela volta para a [default_session] (tela de
+	# login). O comando vem do Exec= do .desktop da sessão instalada.
+	if [[ "$LAUTOLOGIN" == true ]]; then
+		SESSION_NAME=$(sh_get_session_name)
+		exec_cmd=$(sed -n 's/^Exec=//p' "$dir_install/usr/share/wayland-sessions/${SESSION_NAME}.desktop" 2>/dev/null | head -n1)
+		if [[ -n "$exec_cmd" ]]; then
+			cat >>"$cfile" <<EOF
+
+[initial_session]
+command = "$exec_cmd"
+user = "$cuser"
+EOF
+		else
+			sh_info_msg "Greetd: sessão '${SESSION_NAME}' não encontrada, login automático não configurado"
+		fi
+	fi
 }
 
 sh_update_lightdm_conf() {
@@ -7534,6 +7592,7 @@ sh_install_DE() {
 		"cinnamon") sh_cinnamon_meta_package ;;
 		"sway") sh_sway_meta_package ;;
 		"umbriel") sh_umbriel_meta_package ;;
+		"cosmic") sh_cosmic_meta_package ;;
 		"mango") sh_mango_meta_package ;;
 		"mate") sh_mate_meta_package ;;
 		esac
