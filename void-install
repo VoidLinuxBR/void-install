@@ -7416,6 +7416,9 @@ sh_update_greetd_conf() {
 [terminal]
 vt = 7
 
+[general]
+source_profile = false
+
 [default_session]
 command = "cosmic-greeter-start"
 user = "cosmic-greeter"
