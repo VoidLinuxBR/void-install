@@ -3743,6 +3743,22 @@ sh_part_info() {
 	#	done < <(lsblk -fPAo TYPE,NAME,PATH,SIZE,TRAN,MODEL,LABEL,SERIAL,FSTYPE,PARTTYPENAME | grep -P 'TYPE="(part)"' | sort -k5,5 -k2,2)
 }
 
+# TEMPORÁRIO - só para ver as telas da checagem de disco; remover depois.
+# Uso: sudo env VOID_INSTALL_SIMULA_DISCO=desgaste ./void-install
+#      sudo env VOID_INSTALL_SIMULA_DISCO=defeito  ./void-install
+_sh_smartctl_simulado() {
+	local r5=24 r197=0 r198=0
+	[[ "$VOID_INSTALL_SIMULA_DISCO" == "defeito" ]] && { r5=312; r197=48; r198=48; }
+	case "$*" in *-H*) echo "SMART overall-health self-assessment test result: PASSED" ;; esac
+	case "$*" in *-A*)
+		printf '  5 Reallocated_Sector_Ct   0x0033 100 100 010 Pre-fail Always - %s\n' "$r5"
+		printf '187 Reported_Uncorrect      0x0032 100 100 000 Old_age  Always - 0\n'
+		printf '197 Current_Pending_Sector  0x0012 100 100 000 Old_age  Always - %s\n' "$r197"
+		printf '198 Offline_Uncorrectable   0x0010 100 100 000 Old_age  Offline - %s\n' "$r198"
+		;;
+	esac
+}
+
 # Uso: sh_check_disk_health [disco] [auto]
 #   sem "auto" (menu "Saúde do disco"): mostra o relatório completo e
 #     retorna 0=ok, 1=aviso, 2=crítico.
@@ -3801,6 +3817,12 @@ sh_check_disk_health() {
 	size=$(lsblk -dn -o SIZE "$disk" 2>/dev/null | xargs)
 	tran=$(lsblk -dn -o TRAN "$disk" 2>/dev/null | xargs)
 	pttype=$(lsblk -dn -o PTTYPE "$disk" 2>/dev/null | xargs)
+
+	# TEMPORÁRIO: simulação das telas de desgaste/defeito
+	if [[ -n "${VOID_INSTALL_SIMULA_DISCO:-}" ]]; then
+		smartctl() { _sh_smartctl_simulado "$@"; }
+		tran="sata"
+	fi
 
 	report+="Disco.............: ${CYAN}$disk${RESET}\n"
 	report+="Modelo............: ${CYAN}${model:-Desconhecido}${RESET}\n"
