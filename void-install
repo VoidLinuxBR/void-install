@@ -2493,7 +2493,6 @@ sh_mkparted() {
 		LFS=true
 		LPARTITION=true
 		LFSREVISED=true
-		# sh_check_disk_health "${AConfDisk[_DEVICE]}"
 	else
 		die "${cmsg_InstalacaoAbortada}..."
 	fi
@@ -3744,9 +3743,24 @@ sh_part_info() {
 	#	done < <(lsblk -fPAo TYPE,NAME,PATH,SIZE,TRAN,MODEL,LABEL,SERIAL,FSTYPE,PARTTYPENAME | grep -P 'TYPE="(part)"' | sort -k5,5 -k2,2)
 }
 
+# Uso: sh_check_disk_health [disco] [auto]
+#   sem "auto" (menu "Saúde do disco"): mostra o relatório completo e
+#     retorna 0=ok, 1=aviso, 2=crítico.
+#   com "auto" (chamado ao escolher o disco de instalação): olha só o
+#     HARDWARE (SMART/dmesg) — disco novo sem tabela é normal antes de
+#     instalar. Saudável: segue em silêncio. Aviso: mostra o relatório e
+#     segue. Crítico: só segue se o usuário digitar SEI DO RISCO. Retorna
+#     0=pode usar o disco, 1=escolher outro.
 sh_check_disk_health() {
 	local disk="$1"
+	local lauto=false
 	local msg
+
+	[[ "$2" == "auto" ]] && lauto=true
+	if $lauto; then
+		# sem disco válido não há o que checar; a escolha segue normal
+		[[ -b "$disk" ]] || return 0
+	fi
 
 	AConfDisk[_HEALTH]="$disk"
 	[[ -b "$disk" ]] || {
@@ -4004,7 +4018,9 @@ sh_check_disk_health() {
 			# degradação real mesmo com -H "PASSED" — um disco pode ter
 			# centenas de setores realocados e ainda "passar" no teste
 			# de saúde geral, que só falha perto do fim da vida útil.
-			local attr_id attr_name attr_raw attr_color
+			local attr_id attr_name attr_raw attr_color attr_out
+			# uma chamada só ao smartctl; os 4 atributos saem dessa saída
+			attr_out=$(smartctl -A $smart_dtype "$disk" 2>/dev/null)
 			for attr_id in 5 187 197 198; do
 				case "$attr_id" in
 				5) attr_name="Setores realocados......" ;;
@@ -4012,11 +4028,21 @@ sh_check_disk_health() {
 				197) attr_name="Setores pendentes........" ;;
 				198) attr_name="Setores incorrig. offline" ;;
 				esac
-				attr_raw=$(smartctl -A $smart_dtype "$disk" 2>/dev/null | awk -v id="$attr_id" '$1==id {print $NF}')
+				attr_raw=$(awk -v id="$attr_id" '$1==id {print $NF}' <<<"$attr_out")
 				[[ -z "$attr_raw" ]] && continue
 				if [[ "$attr_raw" != "0" ]]; then
-					attr_color="${YELLOW}"
-					((st_hardware < 1)) && st_hardware=1
+					# setores pendentes/incorrigíveis = perda de dados já
+					# acontecendo; realocados só viram crítico em grande
+					# quantidade (o disco ainda está trocando setores)
+					if [[ "$attr_raw" =~ ^[0-9]+$ ]] &&
+						{ [[ "$attr_id" == 197 || "$attr_id" == 198 ]] ||
+							{ [[ "$attr_id" == 5 ]] && ((attr_raw >= 100)); }; }; then
+						attr_color="${RED}"
+						st_hardware=2
+					else
+						attr_color="${YELLOW}"
+						((st_hardware < 1)) && st_hardware=1
+					fi
 				else
 					attr_color="${GREEN}"
 				fi
@@ -4062,6 +4088,36 @@ sh_check_disk_health() {
 	2) report+="${RED}HARDWARE.: POSSÍVEIS DEFEITOS${RESET}" ;;
 	esac
 
+	if $lauto; then
+		AConfDisk[_HEALTH_STATE]="$st_hardware"
+		AConfDisk[_HEALTH_REPORT]="$report"
+		case "$st_hardware" in
+		0) return 0 ;;
+		1)
+			${DIALOG} \
+				--colors \
+				--scrollbar \
+				--backtitle "$ccabec" \
+				--title "$(gettext 'Disco com sinais de desgaste')" \
+				--msgbox "${report}\n\n${YELLOW}$(gettext 'O disco ainda funciona, mas faça backup com frequência.')${RESET}" \
+				00 00
+			return 0
+			;;
+		2)
+			local resp
+			resp=$(${DIALOG} \
+				--colors \
+				--scrollbar \
+				--backtitle "$ccabec" \
+				--title "$(gettext 'DISCO COM DEFEITO')" \
+				--inputbox "${report}\n\n${BOLD}${RED}$(gettext 'Este disco está falhando. Instalar nele vai causar erros, travamentos e perda de dados.')${RESET}\n${CYAN}$(gettext 'Isso é defeito do disco, não do VoidBR. Troque o disco.')${RESET}\n\n$(gettext 'Para instalar mesmo assim, digite') ${BOLD}SEI DO RISCO${RESET}:" \
+				00 00 "" 2>&1 >/dev/tty)
+			[[ "$resp" == "SEI DO RISCO" ]] && return 0
+			return 1
+			;;
+		esac
+	fi
+
 	${DIALOG} \
 		--colors \
 		--scrollbar \
@@ -4071,6 +4127,23 @@ sh_check_disk_health() {
 		00 00
 
 	return "$final_status"
+}
+
+# Grava no sistema instalado que o disco já tinha defeito ou desgaste quando
+# foi instalado (só quando houve aviso na checagem automática).
+sh_write_disk_health_log() {
+	local state="${AConfDisk[_HEALTH_STATE]:-0}"
+	local log="${dir_install}/var/log/voidbr-disco.log"
+
+	((state > 0)) || return 0
+	mkdir -p "${dir_install}/var/log"
+	{
+		echo "$(date '+%F %T') void-install: disco ${AConfDisk[_DEVICE]} instalado com estado de hardware $state (1=desgaste, 2=defeito)"
+		((state == 2)) && echo "o usuário foi avisado e confirmou com SEI DO RISCO"
+		echo
+		# relatório sem os códigos de cor do dialog
+		echo -e "${AConfDisk[_HEALTH_REPORT]}" | sed 's/\\Z[0-9bBuUrRn]//g'
+	} >>"$log"
 }
 
 set_custom_install() {
@@ -5166,6 +5239,13 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 				LGRUB=true
 				LOSPROBER=false
 				return 0
+			fi
+
+			# checagem automática do hardware do disco (SMART/dmesg): em
+			# silêncio se saudável; com defeito, só segue com confirmação
+			if [[ "$exit_status" == "$D_OK" || "$exit_status" == "$D_CONFIG" ]] &&
+				! sh_check_disk_health "$sd" auto; then
+				continue
 			fi
 
 			AConfDisk[_DEVICE]="$sd"
@@ -7875,6 +7955,7 @@ sh_install() {
 
 			sh_chmod_tmp
 			sh_update_etc_issue
+			sh_write_disk_health_log
 			sh_umount_fs
 			end_datetime=$(date)
 
