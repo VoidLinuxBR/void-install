@@ -5671,7 +5671,7 @@ ${orange}     ${APP} ${reset}[-i|c|f|g|q|V|n|h]
 ${orange}     ${APP} ${reset}[--install|--chroot|--file|--grafico|--quiet|--version|--nocolor|--help]
 
 [<operations>] ${reset}
-   ${red}-i  --install${cyan}       # ${cmsg_Usage1}
+   ${red}-i  --install${cyan}       # ${cmsg_Usage1} (default)
    ${red}-c  --chroot${cyan}        # ${cmsg_Usage2}
    ${red}-f  --file${cyan}          # ${cmsg_Usage8} (default: $app_conf)
    ${red}-g  --grafico${cyan}       # ${cmsg_Usage3}
