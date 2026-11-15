@@ -3743,9 +3743,11 @@ sh_part_info() {
 	#	done < <(lsblk -fPAo TYPE,NAME,PATH,SIZE,TRAN,MODEL,LABEL,SERIAL,FSTYPE,PARTTYPENAME | grep -P 'TYPE="(part)"' | sort -k5,5 -k2,2)
 }
 
-# TEMPORÁRIO - só para ver as telas da checagem de disco; remover depois.
-# Uso: sudo env VOID_INSTALL_SIMULA_DISCO=desgaste ./void-install
-#      sudo env VOID_INSTALL_SIMULA_DISCO=defeito  ./void-install
+# Simulação das telas da checagem de disco (testar sem disco com defeito,
+# inclusive em VM). Faz o smartctl responder como um disco com desgaste ou
+# defeito. Uso:
+#   sudo env VOID_INSTALL_SIMULA_DISCO=desgaste void-install
+#   sudo env VOID_INSTALL_SIMULA_DISCO=defeito  void-install
 _sh_smartctl_simulado() {
 	local r5=24 r197=0 r198=0
 	[[ "$VOID_INSTALL_SIMULA_DISCO" == "defeito" ]] && { r5=312; r197=48; r198=48; }
@@ -3818,7 +3820,7 @@ sh_check_disk_health() {
 	tran=$(lsblk -dn -o TRAN "$disk" 2>/dev/null | xargs)
 	pttype=$(lsblk -dn -o PTTYPE "$disk" 2>/dev/null | xargs)
 
-	# TEMPORÁRIO: simulação das telas de desgaste/defeito
+	# simulação das telas de desgaste/defeito (VOID_INSTALL_SIMULA_DISCO)
 	if [[ -n "${VOID_INSTALL_SIMULA_DISCO:-}" ]]; then
 		smartctl() { _sh_smartctl_simulado "$@"; }
 		tran="sata"
@@ -5677,6 +5679,11 @@ ${orange}     ${APP} ${reset}[--install|--chroot|--file|--grafico|--quiet|--vers
    ${red}-V  --version${cyan}       # ${cmsg_Usage5}
    ${red}-n  --nocolor${cyan}       # ${cmsg_Usage6}
    ${red}-h  --help${cyan}          # ${cmsg_Usage7}${reset}
+
+[$(gettext "variáveis de ambiente")] ${reset}
+   ${red}VOID_INSTALL_SIMULA_DISCO=desgaste${cyan}   # $(gettext "simula disco com desgaste na checagem de saúde")
+   ${red}VOID_INSTALL_SIMULA_DISCO=defeito${cyan}    # $(gettext "simula disco com defeito (pede SEI DO RISCO)")${reset}
+   ${orange}sudo env VOID_INSTALL_SIMULA_DISCO=defeito ${APP}${reset}
 EOF
 }
 
