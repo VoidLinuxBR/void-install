@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: seg 16 nov 2026 17:57:12 -04
+#  Updated: seg 16 nov 2026 18:20:08 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -3139,10 +3139,15 @@ sh_configure_hyprland_audio() {
 # abertura da sessão só roda o que está no ~/.e/e/applications/startup/.order.
 # O voidbr-enlightenment-config já põe o PipeWire nele; aqui só ajusta para a
 # escolha. None deixa o padrão do pacote.
+#
+# O mixer do E (module.emix.cfg) também participa: com "no_autostart" 0 ele
+# roda "pulseaudio --start" ao abrir a sessão, antes do PipeWire subir, e o
+# PulseAudio fica com o socket (o pipewire-pulse não sobe). O pacote vem com 1;
+# na escolha PulseAudio vira 0, e é o próprio mixer que inicia o PulseAudio.
 sh_configure_enlightenment_audio() {
 	local cuser="${AsUser[cuser]}"
 	local pw=/usr/share/applications/pipewire.desktop
-	local order
+	local order no_autostart
 
 	sh_info_msg "${cmsg_Ajustando} Enlightenment (startup/.order)"
 	for order in "$dir_install/home/$cuser/.e/e/applications/startup/.order" \
@@ -3153,11 +3158,26 @@ sh_configure_enlightenment_audio() {
 			grep -qxF "$pw" "$order" || echo "$pw" >>"$order"
 			;;
 		Pulseaudio)
-			# sem o PipeWire, a libpulse (mixer do E, apps) inicia o PulseAudio
 			sed -i "\\|^${pw}\$|d" "$order"
 			;;
 		esac
 	done
+
+	case "${AConfAudio[_AUDIOSERVER]}" in
+	Pipewire) no_autostart=1 ;;
+	Pulseaudio) no_autostart=0 ;;
+	*) return 0 ;;
+	esac
+	sh_chroot_job "${cmsg_Ajustando} Enlightenment (mixer)" "
+    for f in /home/$cuser/.e/e/config/voidbr/module.emix.cfg /etc/skel/.e/e/config/voidbr/module.emix.cfg; do
+      [ -f \"\$f\" ] || continue
+      eet -d \"\$f\" config > /tmp/module.emix.src || continue
+      sed -i 's/\"no_autostart\" int: [0-9]*;/\"no_autostart\" int: $no_autostart;/' /tmp/module.emix.src
+      eet -e \"\$f\" config /tmp/module.emix.src 1
+    done
+    rm -f /tmp/module.emix.src
+    chown $cuser:$cuser /home/$cuser/.e/e/config/voidbr/module.emix.cfg 2>/dev/null
+  " $err_not_fatal
 }
 
 sh_global_audio_cleaning() {
