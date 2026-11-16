@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: sáb 14 nov 2026 23:15:24 -04
+#  Updated: seg 16 nov 2026 17:22:08 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.11.14-20261114'
+readonly _VERSION_='3.11.16-20261116'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -3034,7 +3034,10 @@ sh_activating_services() {
 	aServicesTTY+=(dbus sshd chronyd udevd uuidd dmeventd socklog-unix)
 	aServicesX+=()
 
-	if ! $LSERVER && ! $LONLY_TTY; then
+	# bluetoothd só onde há adaptador: o instalador roda no live da própria
+	# máquina, então o /sys daqui é o do destino. Sem adaptador (VM, desktop
+	# sem Bluetooth) o serviço só ocupa memória.
+	if ! $LSERVER && ! $LONLY_TTY && compgen -G '/sys/class/bluetooth/hci*' >/dev/null; then
 		aServicesX+=(bluetoothd)
 	fi
 
