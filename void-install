@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: seg 16 nov 2026 17:22:08 -04
+#  Updated: seg 16 nov 2026 17:57:12 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -3135,6 +3135,31 @@ sh_configure_hyprland_audio() {
 	esac
 }
 
+# Enlightenment não executa o autostart XDG (~/.config/autostart): na
+# abertura da sessão só roda o que está no ~/.e/e/applications/startup/.order.
+# O voidbr-enlightenment-config já põe o PipeWire nele; aqui só ajusta para a
+# escolha. None deixa o padrão do pacote.
+sh_configure_enlightenment_audio() {
+	local cuser="${AsUser[cuser]}"
+	local pw=/usr/share/applications/pipewire.desktop
+	local order
+
+	sh_info_msg "${cmsg_Ajustando} Enlightenment (startup/.order)"
+	for order in "$dir_install/home/$cuser/.e/e/applications/startup/.order" \
+		"$dir_install/etc/skel/.e/e/applications/startup/.order"; do
+		[[ -f "$order" ]] || continue
+		case "${AConfAudio[_AUDIOSERVER]}" in
+		Pipewire)
+			grep -qxF "$pw" "$order" || echo "$pw" >>"$order"
+			;;
+		Pulseaudio)
+			# sem o PipeWire, a libpulse (mixer do E, apps) inicia o PulseAudio
+			sed -i "\\|^${pw}\$|d" "$order"
+			;;
+		esac
+	done
+}
+
 sh_global_audio_cleaning() {
 	local cuser="${AsUser[cuser]}"
 
@@ -3218,7 +3243,7 @@ sh_activating_pulseaudio() {
     #AUTOSTART CORRETO (SÓ USUÁRIO)
     mkdir -p /home/$cuser/.config/autostart
     # ---- autostart do PulseAudio ----
-    cat > ~/.config/autostart/pulseaudio.desktop <<EOF
+    cat > /home/$cuser/.config/autostart/pulseaudio.desktop <<EOF
 [Desktop Entry]
 Type=Application
 Exec=pulseaudio --start
@@ -7984,6 +8009,8 @@ sh_install() {
 				sh_configure_hyprland_audio
 				sh_hack_hyprland_lib
 			fi
+
+			[[ "$_WM" == "enlightenment" ]] && sh_configure_enlightenment_audio
 
 			sh_chmod_tmp
 			sh_update_etc_issue
