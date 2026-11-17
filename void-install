@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: seg 16 nov 2026 20:03:27 -04
+#  Updated: ter 17 nov 2026 16:02:33 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.11.16-20261116'
+readonly _VERSION_='3.11.17-20261117'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -5045,27 +5045,24 @@ sh_testcommand() {
 
 sh_execUtilDisk() {
 	local exit_status
+	local cmodo
+
+	sh_getBootEFI && cmodo="UEFI" || cmodo="BIOS"
+
 	${DIALOG} \
-		--title "Modify Partition Table on ${AConfDisk[_DEVICE]}" \
+		--title "$(gettext 'Layout exigido') - ${AConfDisk[_DEVICE]}" \
 		--colors \
 		--msgbox "\n
-${BOLD}${software} $(gettext "será executado no disco") ${AConfDisk[_DEVICE]}.${RESET}\n\n
-$(gettext "Para sistemas BIOS, ")\
-$(gettext "tabelas de partições MBR (dos) ou GPT são suportadas.")\n
-$(gettext "Para usar o GPT em sistemas de BIOS de PC, ")
-$(gettext "uma partição vazia de 1 MB deve ser adicionada")\n
-$(gettext "nos primeiros 2 GB do disco com flag bios_grub ativada.")\n
-${BOLD}$(gettext "NOTA: você não precisa disso em sistemas UEFI.")${RESET}\n\n
-$(gettext "Para sistemas UEFI, GPT é obrigatório, e uma partição FAT32 com pelo menos")\n
-$(gettext "100MB deve ser criado com a flag boot,")
-$(gettext "este será usado como")\n
-$(gettext "Partição do sistema UEFI.")\
-$(gettext "Esta partição deve ter um ponto de montagem como") '/boot/efi'\n\n
-$(gettext "Pelo menos 1 partição é necessária para rootfs") '(/)'.\n
-$(gettext "Para o swap,") $(gettext "Uma RAM*2 deve ser realmente suficiente.")\
-$(gettext "Para o / minímo de 600 MB são necessários.")\n\n
-${BOLD}$(gettext "AVISO: /usr não é suportado como uma partição separada.")${RESET}\n
-${RESET}\n" 18 80
+${BOLD}${software} $(gettext "será executado no disco") ${AConfDisk[_DEVICE]}.${RESET}\n
+$(gettext "Sistema iniciado em modo:") ${BOLD}${YELLOW}${cmodo}${RESET}\n\n
+${BOLD}${CYAN}$(gettext "Crie as partições NESTA ORDEM (tabela GPT):")${RESET}\n\n
+ ${BOLD}1${RESET}  BIOS boot    2 MiB    $(gettext "tipo") ${CYAN}BIOS boot${RESET} $(gettext "(sem formatar)")\n
+ ${BOLD}2${RESET}  EFI System   512 MiB  $(gettext "tipo") ${CYAN}EFI System${RESET}  -> vfat  /boot/efi\n
+ ${BOLD}3+${RESET} /boot, swap, /home     ${YELLOW}$(gettext "(opcionais)")${RESET}\n
+ ${BOLD}..${RESET} $(gettext "raiz")          ${RED}$(gettext "obrigatória")${RESET}  -> ext4/xfs/btrfs/f2fs/jfs  /\n\n
+$(gettext "Esse é o mesmo layout do particionamento automático e funciona em BIOS e UEFI.")\n
+$(gettext "Tabela MBR (dos) só é aceita em modo BIOS, sem as partições 1 e 2.")\n\n
+${BOLD}${RED}$(gettext "AVISO:")${RESET} $(gettext "/usr não é suportado como partição separada.")\n" 20 80
 	exit_status=$?
 	if [ $exit_status -eq 0 ]; then
 		while true; do
