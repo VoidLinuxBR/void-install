@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: seg 16 nov 2026 18:20:08 -04
+#  Updated: seg 16 nov 2026 20:03:27 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -3146,7 +3146,10 @@ sh_configure_hyprland_audio() {
 # na escolha PulseAudio vira 0, e é o próprio mixer que inicia o PulseAudio.
 sh_configure_enlightenment_audio() {
 	local cuser="${AsUser[cuser]}"
-	local pw=/usr/share/applications/pipewire.desktop
+	# o voidbr-pipewire-start encerra as sobras da sessão anterior (no runit
+	# elas não terminam no logout) e só então inicia o pipewire
+	local pw=/usr/share/voidbr-enlightenment/startup/voidbr-pipewire.desktop
+	local pw_old=/usr/share/applications/pipewire.desktop
 	local order no_autostart
 
 	sh_info_msg "${cmsg_Ajustando} Enlightenment (startup/.order)"
@@ -3155,10 +3158,11 @@ sh_configure_enlightenment_audio() {
 		[[ -f "$order" ]] || continue
 		case "${AConfAudio[_AUDIOSERVER]}" in
 		Pipewire)
+			sed -i "\\|^${pw_old}\$|d" "$order"
 			grep -qxF "$pw" "$order" || echo "$pw" >>"$order"
 			;;
 		Pulseaudio)
-			sed -i "\\|^${pw}\$|d" "$order"
+			sed -i "\\|^${pw}\$|d; \\|^${pw_old}\$|d" "$order"
 			;;
 		esac
 	done
