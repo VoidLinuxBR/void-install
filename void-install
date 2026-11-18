@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qua 18 nov 2026 00:03:46 -04
+#  Updated: qua 18 nov 2026 00:10:48 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -110,7 +110,8 @@ declare LDM=true
 declare LAUTO=true
 declare LMKPARTED=false
 declare LMKPARTED_DEVICE=''
-declare LMKPARTED_AGORA=false
+declare LMKPARTED_SIG=''
+declare -gA AmntpointAuto=()
 declare LUPDATELOCAL=false
 declare LHAS_INTERNET=false
 declare LREPO_ONLINE=true
@@ -976,6 +977,7 @@ sh_touchConf() {
 		declare -p LKERNEL
 		declare -p LMKPARTED
 		declare -p LMKPARTED_DEVICE
+		declare -p LMKPARTED_SIG
 		declare -p LFSREVISED
 		declare -p LVM
 		declare -p LFDE
@@ -991,6 +993,7 @@ sh_touchConf() {
 		declare -p AsFs
 		declare -p Amntpoint
 		declare -p AmntpointFDE
+		declare -p AmntpointAuto
 		declare -p AConfDisk
 		declare -p AConfAudio
 		declare -p AConfKernel
@@ -2135,6 +2138,34 @@ sh_getPartitionsPercent() {
 			continue
 		fi
 
+		# GPT: a 1ª partição depois da EFI (/boot, ou swap, ou a raiz) começa em
+		# 512 MiB e termina na porcentagem acumulada do disco. Se esse fim cair
+		# antes de 768 MiB, o parted falha no meio e o disco fica pela metade.
+		if [[ "${AsDiskPercent[_DISKTABLE]}" != "MBR_BIOS" ]]; then
+			local nbytes npct nmin cprimeira
+			nbytes="$(lsblk -bdno SIZE "${AConfDisk[_DEVICE]}" 2>/dev/null)"
+			if [[ -n "$nbytes" ]] && ((nbytes > 0)); then
+				if ((AsDiskPercent[boot] > 0)); then
+					npct=$((AsDiskPercent[boot]))
+					cprimeira="/boot"
+				elif ((AsDiskPercent[swap] > 0)); then
+					npct=$((AsDiskPercent[swap]))
+					cprimeira="swap"
+				else
+					npct=$((AsDiskPercent[root]))
+					cprimeira="root (/)"
+				fi
+				nmin=$(((768 * 1024 * 1024 * 100 + nbytes - 1) / nbytes))
+				if ((nbytes * npct / 100 < 768 * 1024 * 1024)); then
+					info \
+						"${AConfDisk[_DEVICE]} - ${RED}${cmsg_ERRO}${RST}" \
+						"\n${cprimeira} $(gettext "ficaria pequeno demais neste disco: ele começa depois da partição EFI (512 MiB).")" \
+						"$(gettext "Use pelo menos") ${RED}${nmin}%${RST} $(gettext "para") ${cprimeira}."
+					continue
+				fi
+			fi
+		fi
+
 		# tudo OK
 		#    if conf "${xtitle}" \
 		#             "\n${BOLD}${RED}$(gettext 'Deseja reviser o particionamento ?')" \
@@ -2491,10 +2522,16 @@ sh_mkparted() {
 		Amkfs+=(["ext4"]="mkfs.ext4")
 		LMKPARTED=true
 		LMKPARTED_DEVICE="${AConfDisk[_DEVICE]}"
-		# Marca que o Amntpoint acabou de ser montado pelo automático (com os
-		# sistemas de arquivos escolhidos); o próximo set_disk_choosed não deve
-		# refazê-lo a partir do disco, que ainda não tem FS nas partições novas.
-		LMKPARTED_AGORA=true
+		# Guarda os pontos de montagem do automático (com os FS escolhidos) e a
+		# assinatura do disco recém-particionado. Enquanto o disco continuar
+		# igual, sh_rebuild_amntpoint_for_new_disk usa essa cópia em vez de
+		# deduzir: as partições novas ainda não têm FS e a dedução trocaria os
+		# FS por ext4, perderia o /boot e, no MBR, trocaria raiz e /home.
+		LMKPARTED_SIG="$(sh_disk_assinatura "${AConfDisk[_DEVICE]}")"
+		AmntpointAuto=()
+		for _p in "${!Amntpoint[@]}"; do
+			AmntpointAuto["$_p"]="${Amntpoint[$_p]}"
+		done
 		LFS=true
 		LPARTITION=true
 		LFSREVISED=true
@@ -5366,16 +5403,7 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 			# pois esse valor pode ter sido restaurado de uma execução anterior
 			# (/tmp/void-install.conf) enquanto o disco físico mudou de conteúdo
 			# (ex: já tem um LUKS de um teste anterior).
-			# Exceção: logo depois do particionamento automático deste disco, o
-			# Amntpoint já veio certo do sh_mkparted. Refazer agora trocaria os FS
-			# escolhidos por ext4 e perderia o /boot (as partições novas ainda não
-			# têm FS). LMKPARTED_AGORA não é salvo na configuração, então uma
-			# sessão restaurada sempre reconstrói.
-			if $LMKPARTED_AGORA && [[ "$LMKPARTED_DEVICE" == "$sd" ]]; then
-				LMKPARTED_AGORA=false
-			else
-				sh_rebuild_amntpoint_for_new_disk
-			fi
+			sh_rebuild_amntpoint_for_new_disk
 			AsFs[_DEVICE]="$sd"
 		}
 
@@ -8707,7 +8735,6 @@ sh_fs_particionar() {
 	antes="$(lsblk -nrpo NAME,SIZE,PARTTYPE,FSTYPE "${AConfDisk[_DEVICE]}" 2>/dev/null)"
 	sh_checkdisk "${AConfDisk[_DEVICE]}"
 	sh_menuUtilDisk
-	LMKPARTED_AGORA=false
 	depois="$(lsblk -nrpo NAME,SIZE,PARTTYPE,FSTYPE "${AConfDisk[_DEVICE]}" 2>/dev/null)"
 	if [[ "$antes" != "$depois" ]] && ! $LAUTO; then
 		sh_rebuild_amntpoint_for_new_disk
@@ -10544,6 +10571,14 @@ sh_alert_luks_remnant() {
 		"${BOLD}${YELLOW}$(gettext 'É necessário reparticionar o disco do zero para continuar.')${RST}"
 }
 
+# Assinatura do layout de um disco: tabela de partições lida direto do disco
+# pelo parted (início, fim, sistema de arquivos, nome e flags), sem depender
+# do kernel ou do udev já terem atualizado. Usada para saber se o disco
+# continua igual ao que o particionamento automático deixou.
+sh_disk_assinatura() {
+	parted -sm "$1" unit s print 2>/dev/null | tail -n +2
+}
+
 sh_rebuild_amntpoint_for_new_disk() {
 	local device="${AConfDisk[_DEVICE]}"
 	local efi_set=false
@@ -10561,6 +10596,20 @@ sh_rebuild_amntpoint_for_new_disk() {
 	#      [[ "$fs" == "$device"* ]] && return 0
 	#   done
 	#
+	# Disco particionado pelo automático e ainda igual ao que ele criou: usa os
+	# pontos de montagem que o sh_mkparted definiu (ver LMKPARTED_SIG).
+	if [[ "$LMKPARTED_DEVICE" == "$device" && -n "$LMKPARTED_SIG" ]] &&
+		[[ "$(sh_disk_assinatura "$device")" == "$LMKPARTED_SIG" ]]; then
+		Amntpoint=()
+		for fs in "${!AmntpointAuto[@]}"; do
+			Amntpoint["$fs"]="${AmntpointAuto[$fs]}"
+		done
+		_ROOT_SUGERIDA=''
+		LROOT_AVISO=false
+		((${#Amntpoint[@]})) && LMKPARTED=true || LMKPARTED=false
+		return 0
+	fi
+
 	Amntpoint=()
 
 	while read -r line; do
