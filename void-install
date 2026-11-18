@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 17 nov 2026 23:17:16 -04
+#  Updated: ter 17 nov 2026 23:18:12 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -8528,6 +8528,51 @@ ${coutros:+\n${GREEN}$(gettext 'Os outros discos') (${coutros}) $(gettext 'NÃO 
 	esac
 }
 
+# Chamada no Feito, depois da validação: se a raiz não vai ser formatada e já
+# tem arquivos, avisa que o VoidBR será instalado por cima deles e oferece
+# formatar. A partição é montada só para leitura e desmontada logo em seguida.
+sh_check_root_reuso() {
+	local part="$_PART_ROOT"
+	local fs fmt tmp
+	local lcheio=false
+	local cformatar="$(gettext 'Formatar')"
+	local cmanter="$(gettext 'Manter')"
+	local opc
+
+	[[ -n "$part" ]] || return 0
+	fs="$(sh_splitarray "${Amntpoint[$part]}" 2)"
+	fmt="$(sh_splitarray "${Amntpoint[$part]}" 3)"
+	[[ "$fmt" == "0" ]] || return 0
+
+	tmp="$(mktemp -d)"
+	if mount -o ro "$part" "$tmp" 2>/dev/null; then
+		[[ -n "$(find "$tmp" -mindepth 1 -maxdepth 1 ! -name lost+found -print -quit 2>/dev/null)" ]] && lcheio=true
+		umount "$tmp" 2>/dev/null
+	fi
+	rmdir "$tmp" 2>/dev/null
+	$lcheio || return 0
+
+	opc=$(${DIALOG} \
+		--backtitle "$ccabec" \
+		--colors \
+		--no-cancel \
+		--default-item "$cformatar" \
+		--ok-label "${cmsg_Aceitar}" \
+		--title "${cmsg_TitleFileSystem}" \
+		--menu "\n$(gettext 'A partição') ${CYAN}${part}${RST} ($(gettext 'raiz') /) ${YELLOW}$(gettext 'NÃO será formatada')${RST} $(gettext 'e já contém arquivos.')\n\
+$(gettext 'O VoidBR será instalado por cima deles, misturando com o que já existe.')\n" \
+		0 0 2 \
+		"$cformatar" "$(gettext 'Formatar a partição e instalar do zero (recomendado)')" \
+		"$cmanter" "$(gettext 'Instalar por cima mesmo assim')" \
+		2>&1 >/dev/tty)
+
+	if [[ "$opc" == "$cformatar" ]]; then
+		Amntpoint["$part"]="/|$fs|1"
+		Amkfs+=(["$fs"]="mkfs.$fs")
+	fi
+	return 0
+}
+
 # Abre o particionamento a partir do FileSystem (item ">> Particionar disco"
 # ou botão Particionamento): mesmo menu do Armazenamento. Se a tabela de
 # partições mudou por uma ferramenta manual (cfdisk, fdisk...), refaz os pontos
@@ -8680,6 +8725,7 @@ $(printf "%${nlen}s$sep%-11s$sep%6s$sep%-20s$sep%-20s$sep%-20s$sep%-8s$sep%s" \
 			# particionamento automático; o usuário também pode corrigir na lista
 			# ou voltar ao menu com o FileSystem pendente.
 			if sh_validate_filesystem; then
+				sh_check_root_reuso
 				LFS=true
 				LPARTITION=true
 				LFSREVISED=true
