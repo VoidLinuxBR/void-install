@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 17 nov 2026 22:03:14 -04
+#  Updated: ter 17 nov 2026 22:17:49 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -8150,19 +8150,31 @@ sh_splitarray() {
 	echo "${array[pos - 1]}"
 }
 
-# Devolve (stdout) o número da partição BIOS boot do disco, identificada pelo
-# GUID do tipo (mais confiável que o nome exibido pelo lsblk), em qualquer
-# posição do disco. Retorna 1 se não houver nenhuma.
-sh_get_biosboot_num() {
+# Devolve (stdout) o número da primeira partição do disco cujo tipo GPT é o
+# GUID informado em $2, em qualquer posição do disco. O tipo é mais confiável
+# que o nome exibido pelo lsblk. Partições de device-mapper (ex.:
+# /dev/mapper/pve-base1) não têm o arquivo "partition" no sysfs; nesse caso o
+# número vem do final do nome. Retorna 1 se não houver nenhuma.
+sh_get_part_num_by_type() {
 	local disk="$1"
-	local path ptype
+	local guid="$2"
+	local path ptype num
 
 	while read -r path ptype; do
-		if [[ "${ptype,,}" == "21686148-6449-6e6f-744e-656564454649" ]]; then
-			cat "/sys/class/block/${path##*/}/partition" 2>/dev/null && return 0
-		fi
+		[[ "${ptype,,}" == "$guid" ]] || continue
+		num="$(cat "/sys/class/block/$(basename "$(readlink -f "$path")")/partition" 2>/dev/null)"
+		[[ -n "$num" ]] || num="$(grep -o '[0-9]*$' <<<"$path")"
+		[[ -n "$num" ]] && echo "$num" && return 0
 	done < <(lsblk -lnpo PATH,PARTTYPE "$disk" 2>/dev/null)
 	return 1
+}
+
+sh_get_biosboot_num() {
+	sh_get_part_num_by_type "$1" "21686148-6449-6e6f-744e-656564454649"
+}
+
+sh_get_esp_num() {
+	sh_get_part_num_by_type "$1" "c12a7328-f81f-11d2-ba4b-00a0c93ec93b"
 }
 
 # Confere a partição BIOS boot no disco do bootloader e ajusta LBIOS e
@@ -8184,6 +8196,14 @@ sh_check_biosboot() {
 	fi
 
 	if sh_getBootEFI && [[ "${AConfDisk[_DISKTABLE]}" != "GPT_BIOS" ]]; then
+		# Sem BIOS boot e sem ESP o disco não inicia de jeito nenhum
+		if ! sh_get_esp_num "$disk" >/dev/null; then
+			alerta "=== UEFI ===" \
+				"${BOLD}${RED}$(gettext 'ERRO:')${RESET} $(gettext 'o sistema iniciou em UEFI, mas o disco não tem partição EFI System.')" \
+				"$(gettext 'Crie uma partição de') ${CYAN}512 MiB${RESET} $(gettext 'do tipo') ${CYAN}EFI System${RESET} (vfat) $(gettext 'no disco') ${disk}" \
+				"$(gettext 'ou use o particionamento automático.')"
+			return 1
+		fi
 		LBIOS=false
 		if $laviso; then
 			info "=== BIOS BOOT ===" \
