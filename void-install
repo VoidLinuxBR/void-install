@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qua 18 nov 2026 02:11:23 -04
+#  Updated: qua 18 nov 2026 04:12:42 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.11.18-20261118'
+readonly _VERSION_='3.11.19-20261118'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -8035,6 +8035,20 @@ sh_install() {
 			else
 				sh_limineInstall
 			fi
+
+			# Otimização de memória (swapfile + sysctl + zswap na cmdline): sempre.
+			# Depois do sh_make_fstab (que reescreve o fstab, onde entra o /swapfile)
+			# e do bootloader (precisa do /etc/default/grub ou /etc/default/limine).
+			# Com VOIDBR_INSTALLER=true (exportada no início) o otimizador só grava no
+			# destino: nada de swapon/sysctl/zswap no live, tudo vale no primeiro boot.
+			sh_chroot_job "$(gettext 'Otimizando uso de memória')" "
+        if command -v voidbr-low-ram-optimizer >/dev/null 2>&1; then
+          voidbr-low-ram-optimizer --install
+        elif command -v chili-low-ram-optimizer >/dev/null 2>&1; then
+          chili-low-ram-optimizer --install
+        fi
+        true
+      " "$err_not_fatal"
 
 			sh_set_edition_os_release "$(sh_get_edition_label)"
 
