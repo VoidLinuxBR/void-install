@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 17 nov 2026 22:49:33 -04
+#  Updated: ter 17 nov 2026 22:57:06 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -5078,6 +5078,35 @@ ${BOLD}${RED}$(gettext "AVISO:")${RESET} $(gettext "/usr não é suportado como 
 	return 0
 }
 
+# Particionamento automático. Era o bloco "automatic" de sh_menuUtilDisk;
+# virou função para também ser chamado direto do FileSystem, quando o layout
+# feito pelo usuário não está pronto para a instalação.
+sh_auto_partition() {
+	if sh_chooseTablePartition; then
+		LMKPARTED=false
+		oldgrafico=$grafico
+		grafico=1
+		sh_mkparted
+		grafico=$oldgrafico
+		sh_disk_part_info
+
+		# $LFDE/$LVM já foram decididos dentro de sh_getPartitionsPercent
+		# (chamada por sh_mkparted, via sh_ask_partition_mode). Se o usuário
+		# optou por LUKS ou LVM, encadeia direto na configuração de VG/LVs
+		# (senha também, se for LUKS), sem precisar que ele ache o menu
+		# "Fde"/"Lvm" manualmente depois.
+		if $LFDE; then
+			menu="Fde"
+			sh_confLvm
+		elif $LVM; then
+			menu="Lvm"
+			sh_confLvm
+		fi
+	fi
+	LAUTO=true
+	return 0
+}
+
 sh_menuUtilDisk() {
 	local array=()
 	local i
@@ -5130,28 +5159,7 @@ ${BOLD}MODEL   : ${RESET}${RED}${MODEL_ORIGEM}${RESET}\n" \
 
 	case "$software" in
 	"automatic")
-		if sh_chooseTablePartition; then
-			LMKPARTED=false
-			oldgrafico=$grafico
-			grafico=1
-			sh_mkparted
-			grafico=$oldgrafico
-			sh_disk_part_info
-
-			# $LFDE/$LVM já foram decididos dentro de sh_getPartitionsPercent
-			# (chamada por sh_mkparted, via sh_ask_partition_mode). Se o usuário
-			# optou por LUKS ou LVM, encadeia direto na configuração de VG/LVs
-			# (senha também, se for LUKS), sem precisar que ele ache o menu
-			# "Fde"/"Lvm" manualmente depois.
-			if $LFDE; then
-				menu="Fde"
-				sh_confLvm
-			elif $LVM; then
-				menu="Lvm"
-				sh_confLvm
-			fi
-		fi
-		LAUTO=true
+		sh_auto_partition
 		return 0
 		;;
 	esac
@@ -8400,6 +8408,73 @@ sh_getyes() {
 	esac
 }
 
+# Chamada no Feito do FileSystem quando o layout não passou na validação.
+# Recomenda o particionamento automático, explicando os benefícios e listando
+# exatamente o que será apagado (só as partições DESTE disco). Se houver
+# Windows no disco, o cursor começa em "Corrigir" em vez de "Automático".
+# Devolve (stdout): auto | corrigir | menu
+sh_fs_layout_invalido() {
+	local disk="${AConfDisk[_DEVICE]}"
+	local line PATH_ TYPE_ FSTYPE_ SIZE_ PARTTYPENAME_
+	local lwin=false
+	local cpartes=''
+	local coutros=''
+	local cmarca
+	local cauto="$(gettext 'Automático')"
+	local ccorrigir="$(gettext 'Corrigir')"
+	local cmenu="$(gettext 'Menu')"
+	local cdefault
+	local opc
+
+	while read -r line; do
+		PATH_='' TYPE_='' FSTYPE_='' SIZE_='' PARTTYPENAME_=''
+		eval "${line//=/_=}"
+		[[ "$TYPE_" == "part" ]] || continue
+		cmarca=''
+		if [[ "$FSTYPE_" == "ntfs" ]]; then
+			lwin=true
+			cmarca="${RED}← Windows${RST}"
+		fi
+		cpartes+="$(printf '  %-14s %-6s %7s  %s ' "${PATH_##*/}" "$FSTYPE_" "$SIZE_" "$PARTTYPENAME_")${cmarca}\n"
+	done < <(lsblk -lnpPo PATH,TYPE,FSTYPE,SIZE,PARTTYPENAME "$disk" 2>/dev/null)
+
+	while read -r line; do
+		[[ "$line" == "$disk" ]] && continue
+		coutros+="${line##*/}, "
+	done < <(lsblk -dnpo NAME,TYPE 2>/dev/null | awk '$2 == "disk" {print $1}')
+	coutros="${coutros%, }"
+
+	$lwin && cdefault="$ccorrigir" || cdefault="$cauto"
+
+	opc=$(${DIALOG} \
+		--backtitle "$ccabec" \
+		--colors \
+		--no-cancel \
+		--default-item "$cdefault" \
+		--ok-label "${cmsg_Aceitar}" \
+		--title "${cmsg_TitleFileSystem}" \
+		--menu "\n$(gettext 'O layout do disco') ${CYAN}${disk}${RST} $(gettext 'não está pronto para a instalação.')\n\n\
+${YELLOW}$(gettext 'Recomendado: particionamento automático')${RST}\n\
+ ${GREEN}✓${RST} $(gettext 'layout testado (BIOS boot, EFI, raiz, swap/home opcionais)')\n\
+ ${GREEN}✓${RST} $(gettext 'inicia em UEFI e em BIOS')\n\
+ ${GREEN}✓${RST} $(gettext 'pontos de montagem e formatação já definidos')\n\
+ ${GREEN}✓${RST} $(gettext 'opção de criptografia (LUKS) e LVM')\n\n\
+$(gettext 'O automático apaga') ${RED}$(gettext 'somente')${RST} $(gettext 'o disco') ${CYAN}${disk}${RST} (${MODEL_ORIGEM} · ${SIZE_ORIGEM}):\n\
+${cpartes}\
+${coutros:+\n${GREEN}$(gettext 'Os outros discos') (${coutros}) $(gettext 'NÃO serão alterados.')${RST}\n}" \
+		0 0 3 \
+		"$cauto" "$(gettext 'Particionar automaticamente (recomendado)')" \
+		"$ccorrigir" "$(gettext 'Voltar à lista e ajustar manualmente')" \
+		"$cmenu" "$(gettext 'Voltar ao menu (FileSystem fica pendente)')" \
+		2>&1 >/dev/tty)
+
+	case "$opc" in
+	"$cauto") echo "auto" ;;
+	"$cmenu") echo "menu" ;;
+	*) echo "corrigir" ;;
+	esac
+}
+
 # Abre o particionamento a partir do FileSystem (item ">> Particionar disco"
 # ou botão Particionamento): mesmo menu do Armazenamento. Se a tabela de
 # partições mudou por uma ferramenta manual (cfdisk, fdisk...), refaz os pontos
@@ -8537,22 +8612,25 @@ $(printf "%${nlen}s$sep%-11s$sep%6s$sep%-20s$sep%-20s$sep%-20s$sep%-8s$sep%s" \
 		case $exit_status in
 		"$D_ESC" | "$D_CANCEL")
 			# Feito: valida o layout configurado (raiz, ESP, BIOS boot, pontos
-			# de montagem repetidos) antes de aceitar. Se não passar, o usuário
-			# corrige na lista ou volta ao menu com o FileSystem pendente.
+			# de montagem repetidos) antes de aceitar. Se não passar, recomenda o
+			# particionamento automático; o usuário também pode corrigir na lista
+			# ou voltar ao menu com o FileSystem pendente.
 			if sh_validate_filesystem; then
 				LFS=true
 				LPARTITION=true
 				LFSREVISED=true
 				return 0
 			fi
-			if conf "${cmsg_TitleFileSystem}" \
-				"\n$(gettext 'O layout ainda não está pronto para a instalação.')" \
-				"\n\n${BOLD}${YELLOW}$(gettext 'Voltar ao menu principal mesmo assim?')${RST}" \
-				"\n$(gettext '(o FileSystem ficará pendente de revisão)')"; then
+			case "$(sh_fs_layout_invalido)" in
+			auto)
+				sh_auto_partition
+				;;
+			menu)
 				LFSREVISED=false
 				DEFITEM="FileSystem"
 				return 1
-			fi
+				;;
+			esac
 			continue
 			;;
 		3)
