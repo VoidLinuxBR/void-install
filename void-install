@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 17 nov 2026 16:02:33 -04
+#  Updated: ter 17 nov 2026 22:03:14 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -7134,7 +7134,7 @@ sh_limineInstall() {
 
 	if $LBIOS; then
 		sh_chroot_job "${cmsg_Instalando} Limine $(gettext 'para a plataforma') i386-pc" "
-      limine bios-install ${AConfDisk[_BOOTLOADER]} 1 --force
+      limine bios-install ${AConfDisk[_BOOTLOADER]} ${_PART_BIOS_NUM} --force
 	   "
 	fi
 
@@ -7154,10 +7154,15 @@ sh_limineInstall() {
     "
 
 		if ! sh_is_running_hypervisor; then
+			# Número real da ESP (em layout feito fora do instalador ela pode não
+			# ser a partição 2). Sem _PART_BOOT, mantém o 2 do layout automático.
+			local esp_num
+			esp_num="$(cat "/sys/class/block/${_PART_BOOT##*/}/partition" 2>/dev/null)"
+			esp_num="${esp_num:-2}"
 			sh_chroot_job "${cmsg_Instalando} Limine $(gettext 'para a plataforma') x86_64-efi" "
         efibootmgr -c \
           -d ${AConfDisk[_BOOTLOADER]} \
-          -p 2 \
+          -p ${esp_num} \
           -L 'Limine' \
           -l '\EFI\limine\BOOTX64.EFI'
     	"
@@ -8145,6 +8150,56 @@ sh_splitarray() {
 	echo "${array[pos - 1]}"
 }
 
+# Devolve (stdout) o número da partição BIOS boot do disco, identificada pelo
+# GUID do tipo (mais confiável que o nome exibido pelo lsblk), em qualquer
+# posição do disco. Retorna 1 se não houver nenhuma.
+sh_get_biosboot_num() {
+	local disk="$1"
+	local path ptype
+
+	while read -r path ptype; do
+		if [[ "${ptype,,}" == "21686148-6449-6e6f-744e-656564454649" ]]; then
+			cat "/sys/class/block/${path##*/}/partition" 2>/dev/null && return 0
+		fi
+	done < <(lsblk -lnpo PATH,PARTTYPE "$disk" 2>/dev/null)
+	return 1
+}
+
+# Confere a partição BIOS boot no disco do bootloader e ajusta LBIOS e
+# _PART_BIOS_NUM. Regra: só é obrigatória quando o sistema iniciou sem UEFI
+# e o disco é GPT. Em UEFI sem ela, o boot BIOS é simplesmente pulado.
+# $1 = true mostra o aviso de "apenas UEFI" (usado no Feito do FileSystem).
+sh_check_biosboot() {
+	local laviso="${1:-false}"
+	local disk="${AConfDisk[_BOOTLOADER]}"
+
+	LBIOS=true
+	_PART_BIOS_NUM=''
+
+	# MBR não usa partição BIOS boot
+	[[ "$(lsblk -dno PTTYPE "$disk" 2>/dev/null)" == "gpt" ]] || return 0
+
+	if _PART_BIOS_NUM="$(sh_get_biosboot_num "$disk")"; then
+		return 0
+	fi
+
+	if sh_getBootEFI && [[ "${AConfDisk[_DISKTABLE]}" != "GPT_BIOS" ]]; then
+		LBIOS=false
+		if $laviso; then
+			info "=== BIOS BOOT ===" \
+				"\n$(gettext 'Partição BIOS boot não encontrada no disco') ${disk}." \
+				"\n${BOLD}${YELLOW}$(gettext 'O sistema vai iniciar apenas em modo UEFI.')${RESET}"
+		fi
+		return 0
+	fi
+
+	alerta "=== BIOS BOOT ===" \
+		"${BOLD}${RED}$(gettext 'ERRO:')${RESET} $(gettext 'disco GPT em modo BIOS precisa de uma partição BIOS boot.')" \
+		"$(gettext 'Crie uma partição de') ${CYAN}2 MiB${RESET} $(gettext 'do tipo') ${CYAN}BIOS boot${RESET} $(gettext 'no disco') ${disk}" \
+		"$(gettext 'ou use o particionamento automático.')"
+	return 1
+}
+
 sh_validate_filesystem() {
 	local mntpoint
 	local fstype
@@ -8217,16 +8272,10 @@ ${BOLD}${RED}$(gettext "Deseja continuar sem suporte a UEFI?")\n\n"; then
 		fi
 	fi
 
-	if $LEFI; then
-		for i in {0..9}; do
-			[[ "$(sh_splitarray "${AARRAY_PART_DEVICES[${AConfDisk[_BOOTLOADER]}${ext}${i}]}" 8)" = "BIOS boot" ]] && {
-				LBIOS=true
-				break
-			} || LBIOS=false
-		done
-		if ! $LBIOS; then # alguns device block em lvm não são detectados pelo lsblk
-			[[ -n "$(sh_splitarray "${AARRAY_PART_DEVICES[${AConfDisk[_BOOTLOADER]}${ext}1]}" 8)" ]] && LBIOS=true
-		fi
+	# alguns device block em lvm não são detectados pelo lsblk
+	if ! sh_check_biosboot false; then
+		DEFITEM="FileSystem"
+		return 1
 	fi
 
 	for i in "${!Amntpoint[@]}"; do
@@ -8333,6 +8382,19 @@ sh_getyes() {
 
 sh_choose_Partition() {
 	sh_umount_fs
+
+	# Confere a partição BIOS boot uma vez, ao entrar: o usuário fica sabendo
+	# do problema antes de configurar as partições. O Feito confere de novo.
+	if $LDISK && ! sh_check_biosboot true; then
+		if conf "=== BIOS BOOT ===" \
+			"\n${BOLD}${YELLOW}$(gettext 'Deseja ir para o particionamento agora?')${RST}"; then
+			sh_checkdisk "${AConfDisk[_DEVICE]}"
+			sh_menuUtilDisk
+			DEFITEM="${cmsg_Disco}"
+			return 1
+		fi
+	fi
+
 	while true; do
 		sh_disk_part_info
 		local array=()
@@ -8427,6 +8489,9 @@ $(printf "%${nlen}s$sep%-11s$sep%6s$sep%-20s$sep%-20s$sep%-20s$sep%-8s$sep%s" \
 
 		case $exit_status in
 		"$D_ESC" | "$D_CANCEL")
+			if ! sh_check_biosboot false; then
+				continue
+			fi
 			LFS=true
 			LPARTITION=true
 			LFSREVISED=true
