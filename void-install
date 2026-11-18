@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 17 nov 2026 22:17:49 -04
+#  Updated: ter 17 nov 2026 22:25:45 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -6836,11 +6836,11 @@ sh_checkInstall() {
 		return 1
 	elif ! $LKEYMAP; then
 		alerta "${cmsg_Teclado^^}" "${RED}✗ ${cmsg_NotConfTeclado}"
-		DEFITEM="${cmsg_Teclado}"
+		DEFITEM="Regional"
 		return 1
 	elif ! $LTIMEZONE; then
 		alerta "TIMEZONE" "${RED}✗ ${cmsg_NotConfTimezone}"
-		DEFITEM="Timezone"
+		DEFITEM="Regional"
 		return 1
 	elif ! $LWM; then
 		alerta "WM" "${RED}✗ ${cmsg_NotConfWm}"
@@ -8723,6 +8723,51 @@ sh_getparamfile() {
 	return 1
 }
 
+# Submenu Regional: agrupa Teclado, Timezone e Locale, que antes eram três
+# itens separados no menu principal. Ao concluir um item, o cursor desce para
+# o próximo; ao concluir o Locale com os três definidos, volta ao menu principal.
+sh_menu_regional() {
+	local cOK="${RST}${BOLD}${GREEN}✓ ${RST}${YELLOW}"
+	local cNOK="${RST}${BOLD}${RED}✗ ${RST}${UNDERLINE}${BOLD}${RED}[${cmsg_Nao_definido}]${RST} ● "
+	local item="${cmsg_Teclado}"
+	local opc
+	local m_keymap m_timezone m_locale
+
+	while true; do
+		$LKEYMAP && m_keymap="${cOK}[${AConfLocale[_KEYMAP]}]${RST} ● " ||
+			m_keymap="${cNOK}"
+		$LTIMEZONE && m_timezone="${cOK}[${AConfLocale[_TIMEZONE]}]${RST} ● " ||
+			m_timezone="${cNOK}"
+		$LLOCALE && m_locale="${cOK}[${AConfLocale[_LOCALE]} ${AConfLocale[_REGION]}]${RST} ● " ||
+			m_locale="${cNOK}"
+
+		opc=$(${DIALOG} \
+			--backtitle "$ccabec" \
+			--clear \
+			--colors \
+			--default-item "$item" \
+			--ok-label "${cmsg_Aceitar}" \
+			--cancel-label "${cmsg_ButtonBack}" \
+			--title "$APP - Regional" \
+			--menu "${RESET}${cmsg_MENU}" \
+			12 100 3 \
+			"${cmsg_Teclado}" "${m_keymap}${cmsg_descTeclado}" \
+			"Timezone" "${m_timezone}${cmsg_descTimezone}" \
+			"Locale" "${m_locale}${cmsg_descLocale}" \
+			2>&1 >/dev/tty) || return 0
+
+		case "$opc" in
+		"${cmsg_Teclado}") sh_chooseKeymap && $LKEYMAP && item="Timezone" ;;
+		"Timezone") sh_chooseTimezone && $LTIMEZONE && item="Locale" ;;
+		"Locale")
+			if sh_chooseLocale && $LKEYMAP && $LTIMEZONE && $LLOCALE; then
+				return 0
+			fi
+			;;
+		esac
+	done
+}
+
 sh_main_menu() {
 	local cOK="${RST}${BOLD}${GREEN}✓ ${RST}${YELLOW}"
 	local cNOK="${RST}${BOLD}${RED}✗ ${cERRO}[${cmsg_Nao_definido}]${RST} ● "
@@ -8761,6 +8806,11 @@ sh_main_menu() {
 			MENU_TIMEZONE="${cNOK}"
 		$LLOCALE && MENU_LOCALE="${cOK}[${AConfLocale[_LOCALE]} ${AConfLocale[_REGION]}]${RST} ● " ||
 			MENU_LOCALE="${cNOK}"
+		if $LKEYMAP && $LTIMEZONE && $LLOCALE; then
+			MENU_REGIONAL="${cOK}[${AConfLocale[_KEYMAP]} · ${AConfLocale[_TIMEZONE]} · ${AConfLocale[_LOCALE]}]${RST} ● "
+		else
+			MENU_REGIONAL="${cNOK}"
+		fi
 		$LKERNEL && MENU_KERNEL="${cOK}[${AConfKernel[_KERNEL]}]${RST} ● " ||
 			MENU_KERNEL="${cNOK}"
 
@@ -8795,9 +8845,7 @@ sh_main_menu() {
 			"${cmsg_Disco}" "${MENU_DEVICE}${cmsg_descDisco}" \
 			"FileSystem" "${MENU_FS}${cmsg_descFileSystem}" \
 			"${cmsg_BootLoader}" "${MENU_BOOTLOADER}${cmsg_descBootLoader}" \
-			"${cmsg_Teclado}" "${MENU_KEYMAP}${cmsg_descTeclado}" \
-			"Timezone" "${MENU_TIMEZONE}${cmsg_descTimezone}" \
-			"Locale" "${MENU_LOCALE}${cmsg_descLocale}" \
+			"Regional" "${MENU_REGIONAL}$(gettext 'Teclado, fuso horário e localidade')" \
 			"Kernel" "${MENU_KERNEL}${cmsg_descKernel}" \
 			"Wm" "${MENU_WM}${cmsg_descWm}" \
 			"Dm" "${MENU_DM}${cmsg_descDm}" \
@@ -8810,7 +8858,6 @@ sh_main_menu() {
 			"Lvm" "$(gettext 'Gerenciamento de Volume Lógico LVM (opcional)')" \
 			"Vg" "Delete/Clear Volume Group (VG) from LVM (optional)" \
 			"${cmsg_Tema}" "$(gettext 'Seletor de temas do dialog (opcional)')" \
-			"${cmsg_Servicos}" "${cmsg_utilvoidservices}" \
 			"Clonedisk" "$(gettext 'Utilitário para clonar discos (opcional)')" \
 			"Wifi" "${cmsg_descWifi}" \
 			"Prompt" "$(gettext 'Prompt de comando - Exit para voltar')" \
@@ -8828,10 +8875,8 @@ sh_main_menu() {
 		"${cmsg_Source}") sh_chooseSource && [ -n "$LSOURCE" ] && DEFITEM="${cmsg_Disco}" ;;
 		"${cmsg_Disco}") sh_choose_disk && [ -n "$LDISK" ] && DEFITEM="FileSystem" ;;
 		"FileSystem") sh_choose_Partition && [ -n "$LPARTITION" ] && DEFITEM="${cmsg_BootLoader}" ;;
-		"${cmsg_BootLoader}") sh_choose_bootloadernew && [ -n "$LGRUB" ] && DEFITEM="${cmsg_Teclado}" ;;
-		"${cmsg_Teclado}") sh_chooseKeymap && [ -n "$LKEYMAP" ] && DEFITEM="Timezone" ;;
-		"Timezone") sh_chooseTimezone && [ -n "$LTIMEZONE" ] && DEFITEM="Locale" ;;
-		"Locale") sh_chooseLocale && [ -n "$LLOCALE" ] && DEFITEM="Kernel" ;;
+		"${cmsg_BootLoader}") sh_choose_bootloadernew && [ -n "$LGRUB" ] && DEFITEM="Regional" ;;
+		"Regional") sh_menu_regional && $LKEYMAP && $LTIMEZONE && $LLOCALE && DEFITEM="Kernel" ;;
 		"Kernel") sh_choose_kernel && [ -n "$LKERNEL" ] && DEFITEM="Wm" ;;
 		"Wm") sh_choose_wm && [ -n "$LWM" ] && DEFITEM="Dm" ;;
 		"Dm") sh_choose_dm && [ -n "$LDM" ] && DEFITEM="Audio" ;;
@@ -8841,7 +8886,6 @@ sh_main_menu() {
 		'↑↓') : ;;
 		"${cmsg_Saude_disco}") sh_check_disk_health ;;
 		"${cmsg_Tema}") sh_run_binary 'voidbr-dialog-theme-selector' ;;
-		"${cmsg_Servicos}") sh_run_binary 'void-services' "$LC_DEFAULT" "-g" ;;
 		"Clonedisk") sh_run_binary 'void-clonedisk' ;;
 		"Fde") sh_confLvm && [ -n "$LFDE" ] && DEFITEM="${cmsg_Instalar}" ;;
 		"Lvm") sh_confLvm && [ -n "$LVM" ] && DEFITEM="${cmsg_Instalar}" ;;
