@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qua 18 nov 2026 00:10:48 -04
+#  Updated: qua 18 nov 2026 00:26:44 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -2295,6 +2295,10 @@ sh_mkparted() {
 	local cnextpart=''
 	local CSCRIPT=''
 	local _p
+	# FS do /boot para o Amntpoint/mkfs: o parted recebe "fat32", mas o
+	# mkfs correspondente é mkfs.vfat (não existe mkfs.fat32).
+	local cfsboot="${AsFs[boot]:-ext4}"
+	[[ "$cfsboot" == "fat32" ]] && cfsboot="vfat"
 
 	# Fecha qualquer LUKS/LVM remanescente de um teste anterior que ainda
 	# esteja ativo em cima de uma partição deste disco (ou deste LV, se o
@@ -2429,7 +2433,7 @@ sh_mkparted() {
 				((++cnextpart))
 				cnextpercent=$((AsDiskPercent[boot]))
 				CSCRIPT+="mkpart primary ${AsFs[boot]:-ext4} ${cini} ${cnextpercent}% name ${cnextpart} BOOT "
-				Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="/boot|${AsFs[boot]:-ext4}|1")
+				Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="/boot|${cfsboot}|1")
 				cini="${cnextpercent}%"
 			fi
 
@@ -2466,7 +2470,7 @@ sh_mkparted() {
 				((++cnextpart))
 				cnextpercent=$((AsDiskPercent[boot]))
 				CSCRIPT+="mkpart primary ${AsFs[boot]:-ext4} ${cini} ${cnextpercent}% "
-				Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="/boot|${AsFs[boot]:-ext4}|1")
+				Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}${cnextpart}"]="/boot|${cfsboot}|1")
 				cini="${cnextpercent}%"
 			fi
 
@@ -2520,6 +2524,11 @@ sh_mkparted() {
 		Amkfs+=(["vfat"]="mkfs.vfat")
 		Amkfs+=(["swap"]="mkswap")
 		Amkfs+=(["ext4"]="mkfs.ext4")
+		# Os FS escolhidos no automático também precisam ter o mkfs conferido
+		# por sh_check_util_fs antes de formatar (antes só vfat, swap e ext4).
+		Amkfs+=(["${AsFs[root]:-ext4}"]="mkfs.${AsFs[root]:-ext4}")
+		$withboot && Amkfs+=(["$cfsboot"]="mkfs.$cfsboot")
+		$withhome && Amkfs+=(["${AsFs[home]:-ext4}"]="mkfs.${AsFs[home]:-ext4}")
 		LMKPARTED=true
 		LMKPARTED_DEVICE="${AConfDisk[_DEVICE]}"
 		# Guarda os pontos de montagem do automático (com os FS escolhidos) e a
