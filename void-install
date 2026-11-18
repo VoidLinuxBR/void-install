@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 17 nov 2026 22:31:21 -04
+#  Updated: ter 17 nov 2026 22:39:54 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -8400,6 +8400,23 @@ sh_getyes() {
 	esac
 }
 
+# Abre o particionamento a partir do FileSystem (item ">> Particionar disco"
+# ou botão Particionamento): mesmo menu do Armazenamento. Se a tabela de
+# partições mudou por uma ferramenta manual (cfdisk, fdisk...), refaz os pontos
+# de montagem a partir do disco. No automático não precisa: o próprio
+# sh_mkparted já monta o Amntpoint certo.
+sh_fs_particionar() {
+	local antes depois
+
+	antes="$(lsblk -nrpo NAME,SIZE,PARTTYPE,FSTYPE "${AConfDisk[_DEVICE]}" 2>/dev/null)"
+	sh_checkdisk "${AConfDisk[_DEVICE]}"
+	sh_menuUtilDisk
+	depois="$(lsblk -nrpo NAME,SIZE,PARTTYPE,FSTYPE "${AConfDisk[_DEVICE]}" 2>/dev/null)"
+	if [[ "$antes" != "$depois" ]] && ! $LAUTO; then
+		sh_rebuild_amntpoint_for_new_disk
+	fi
+}
+
 sh_choose_Partition() {
 	sh_umount_fs
 
@@ -8433,6 +8450,7 @@ sh_choose_Partition() {
 		local part=
 		local -A Aoldfstype=()
 		local dsk
+		local citem=">> $(gettext 'Particionar disco')"
 
 		if ! $LDISK; then
 			info "${cmsg_TitleFileSystem}" "\n\n${RED}$(gettext 'Disco de armazenamento não foi escolhido')${RST}"
@@ -8463,6 +8481,12 @@ sh_choose_Partition() {
 			return 1
 		fi
 
+		# Primeira linha da lista: atalho visível para o particionamento
+		# (muitos usuários não percebem o botão no rodapé).
+		array[n++]="$citem"
+		array[n++]="$sep$(gettext 'Abrir o particionamento (automático, cfdisk, fdisk, gdisk, parted)')"
+		nlen=${#citem}
+
 		for i in "${ARRAY_PART_DEVICES[@]}"; do
 			array[n++]="$i"
 			if ((nlen < ${#i})); then
@@ -8492,6 +8516,8 @@ sh_choose_Partition() {
 			--colors \
 			--extra-button \
 			--extra-label "${cmsg_info_particao}" \
+			--help-button \
+			--help-label "$(gettext 'Particionamento')" \
 			--menu "${cmsg_MENU}\n\n\
 $(printf "%${nlen}s$sep%-11s$sep%6s$sep%-20s$sep%-20s$sep%-20s$sep%-8s$sep%s" \
 				"PARTITION" \
@@ -8506,6 +8532,7 @@ $(printf "%${nlen}s$sep%-11s$sep%6s$sep%-20s$sep%-20s$sep%-20s$sep%-8s$sep%s" \
 
 		exit_status=$?
 		dsk="${part%%[p0-9]*([0-9])}"
+		[[ "$part" == "$citem" ]] && dsk="${AConfDisk[_DEVICE]}"
 
 		case $exit_status in
 		"$D_ESC" | "$D_CANCEL")
@@ -8522,7 +8549,16 @@ $(printf "%${nlen}s$sep%-11s$sep%6s$sep%-20s$sep%-20s$sep%-20s$sep%-8s$sep%s" \
 			display_result "$result" "${cmsg_part_disk^^}"
 			continue
 			;;
+		"$D_HELP")
+			sh_fs_particionar
+			continue
+			;;
 		esac
+
+		if [[ "$part" == "$citem" ]]; then
+			sh_fs_particionar
+			continue
+		fi
 
 		oldfstype="${Aoldfstype[$part]}"
 		oldmntpoint="$(sh_splitarray "${Amntpoint[$part]}" 1)"
