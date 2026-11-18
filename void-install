@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 17 nov 2026 22:39:54 -04
+#  Updated: ter 17 nov 2026 22:42:58 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -8484,7 +8484,7 @@ sh_choose_Partition() {
 		# Primeira linha da lista: atalho visível para o particionamento
 		# (muitos usuários não percebem o botão no rodapé).
 		array[n++]="$citem"
-		array[n++]="$sep$(gettext 'Abrir o particionamento (automático, cfdisk, fdisk, gdisk, parted)')"
+		array[n++]="$(printf "$sep%s" "$(gettext 'Abrir o particionamento (automático, cfdisk, fdisk, gdisk, parted)')")"
 		nlen=${#citem}
 
 		for i in "${ARRAY_PART_DEVICES[@]}"; do
