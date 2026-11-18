@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 17 nov 2026 23:58:39 -04
+#  Updated: qua 18 nov 2026 00:03:46 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.11.17-20261117'
+readonly _VERSION_='3.11.18-20261118'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -8513,7 +8513,7 @@ sh_fs_layout_invalido() {
 	while read -r line; do
 		[[ "$line" == "$disk" ]] && continue
 		coutros+="${line##*/}, "
-	done < <(lsblk -dnpo NAME,TYPE 2>/dev/null | awk '$2 == "disk" {print $1}')
+	done < <(lsblk -dnpo NAME,TYPE 2>/dev/null | awk '$2 == "disk" && $1 !~ /\/(zram|ram)[0-9]+$/ {print $1}')
 	coutros="${coutros%, }"
 
 	$lwin && cdefault="$ccorrigir" || cdefault="$cauto"
@@ -8607,7 +8607,11 @@ sh_check_layout() {
 	local line PATH_ TYPE_ FSTYPE_ PARTTYPENAME_
 	local report=''
 
-	sh_getBootEFI && [[ "${AConfDisk[_DISKTABLE]}" != "GPT_BIOS" ]] && lefi=true
+	# Modo BIOS escolhido no automático (GPT_BIOS/MBR_BIOS) numa máquina UEFI:
+	# o layout é conferido como BIOS, igual ao que o sh_validate_filesystem faz.
+	if sh_getBootEFI && [[ "${AConfDisk[_DISKTABLE]}" != "GPT_BIOS" && "${AConfDisk[_DISKTABLE]}" != "MBR_BIOS" ]]; then
+		lefi=true
+	fi
 	pttype="$(lsblk -dno PTTYPE "$disk" 2>/dev/null)"
 	ctab="${pttype^^}"
 	[[ "$pttype" == "dos" ]] && ctab="MBR"
@@ -10626,8 +10630,10 @@ sh_rebuild_amntpoint_for_new_disk() {
 				continue
 				;;
 			*EFI*)
-				Amntpoint["$PATH_"]="/boot/efi|vfat|1"
-				efi_set=true
+				if ! $efi_set; then
+					Amntpoint["$PATH_"]="/boot/efi|vfat|1"
+					efi_set=true
+				fi
 				continue
 				;;
 			*swap*)
