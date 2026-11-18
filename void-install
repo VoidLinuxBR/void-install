@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qua 18 nov 2026 00:56:17 -04
+#  Updated: qua 18 nov 2026 01:18:51 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -8099,6 +8099,16 @@ sh_install() {
 				fi
 				sh_update_sshd
 			fi
+
+			# Define o tema Plymouth antes do reconfigure geral: assim o hook do
+			# kernel (20-initramfs) já gera o initramfs com o tema, e o post_install
+			# do voidbr-plymouth-theme (que confere com lsinitrd) não precisa refazê-lo.
+			# Sem isso, a ordem alfabética do --all configura o kernel antes do tema e
+			# o initramfs é gerado duas vezes. Se este passo falhar, segue como antes.
+			sh_chroot_job "$(gettext 'Configurando tema Plymouth')" "
+        xbps-query voidbr-plymouth-theme >/dev/null 2>&1 &&
+          xbps-reconfigure --force voidbr-plymouth-theme || true
+      "
 
 			sh_chroot_job "$(gettext 'Validando configuração para FINALIZAR')" "
         #xbps-reconfigure --force glibc-locales
