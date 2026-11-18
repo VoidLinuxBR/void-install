@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qua 18 nov 2026 01:54:26 -04
+#  Updated: qua 18 nov 2026 02:11:23 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -144,7 +144,7 @@ declare LMETA=false
 #
 declare DEFITEM
 #
-declare -gi njobs=73
+declare -gi njobs=76
 declare -gi ncounter=0
 declare -gi quiet=0
 declare -gi grafico=1
@@ -2980,6 +2980,8 @@ sh_update_sudoers() {
 
 		unset user
 	fi
+	[[ -s "$dir_install/etc/sudoers.d/wheel" ]]
+	evaluate_retval "$?" "$err_not_fatal"
 }
 
 sh_make_fstab() {
@@ -3073,6 +3075,8 @@ sh_make_fstab() {
 		done
 		#		evaluate_retval "$?"
 	fi
+	[[ -s "$dir_install/etc/fstab" ]]
+	evaluate_retval "$?" "$err_not_fatal"
 
 	sh_chroot_job "${cmsg_Gerando} fstab pass2" "
     sed 's/#.*//' /etc/fstab | column --table --table-columns SOURCES,DIR,TYPE,OPTIONS,DUMP,PASS --table-hide - >/tmp/fstab
@@ -7005,7 +7009,10 @@ sh_set_edition_os_release() {
 	local f="${dir_install}/etc/os-release"
 
 	sh_info_msg "${cmsg_Ajustando} $f"
-	[[ -f "$f" ]] || return 1
+	[[ -f "$f" ]] || {
+		evaluate_retval 1 "$err_not_fatal"
+		return 1
+	}
 	name="${name^}"
 	if grep -q '^EDITION=' "$f"; then
 		sed -i "s/^EDITION=.*/EDITION=\"$name\"/" "$f"
@@ -7013,6 +7020,8 @@ sh_set_edition_os_release() {
 		[[ -s "$f" ]] && [[ -n "$(tail -c1 "$f")" ]] && echo >>"$f"
 		echo "EDITION=\"$name\"" >>"$f"
 	fi
+	grep -q "^EDITION=\"$name\"" "$f"
+	evaluate_retval "$?" "$err_not_fatal"
 }
 
 # Nome CRU da edição. Alimenta o SESSION_NAME do DM, por isso não normaliza
@@ -8118,6 +8127,7 @@ sh_install() {
 			sh_chroot_job "${cmsg_RemovendoPacotesAntigosObseletos}" "
         rm -f /var/cache/xbps/*.xbps
         rm -f /var/cache/xbps/*.sig*
+        rm -f /etc/default/grub.new-*
       "
 
 			sh_update_repository_main
