@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 17 nov 2026 23:05:50 -04
+#  Updated: ter 17 nov 2026 23:17:16 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -8560,6 +8560,17 @@ sh_choose_Partition() {
 		fi
 	fi
 
+	# Raiz sugerida num disco particionado fora do instalador: avisa uma vez por
+	# que ela não será formatada (pode conter dados) e como mudar isso.
+	if ${LROOT_AVISO:-false} && [[ "$(sh_splitarray "${Amntpoint[$_ROOT_SUGERIDA]}" 1)" == "/" ]]; then
+		info "${cmsg_TitleFileSystem}" \
+			"\n$(gettext 'A partição') ${CYAN}${_ROOT_SUGERIDA}${RST} $(gettext 'foi sugerida como raiz') (/)," \
+			"$(gettext 'mas') ${YELLOW}$(gettext 'NÃO será formatada')${RST}: $(gettext 'ela foi criada fora do instalador e pode conter dados.')" \
+			"" \
+			"$(gettext 'Se quiser instalar do zero nela, selecione a partição na lista, vá em Mudar e responda Sim em formatar.')"
+		LROOT_AVISO=false
+	fi
+
 	while true; do
 		sh_disk_part_info
 		local array=()
@@ -10357,6 +10368,7 @@ sh_rebuild_amntpoint_for_new_disk() {
 	local home_set=false
 	local luks_found=false
 	local fs
+	local acand_root=()
 
 	[[ -n "$device" ]] || return 1
 
@@ -10456,7 +10468,12 @@ sh_rebuild_amntpoint_for_new_disk() {
 			;;
 		*)
 			case "$PTTYPE_" in
-			gpt) Amntpoint["$PATH_"]="none|$fs|0" ;;
+			gpt)
+				Amntpoint["$PATH_"]="none|$fs|0"
+				if [[ "$PARTTYPENAME_" == "Linux filesystem" || "$PARTTYPENAME_" == "Linux root (x86-64)" ]]; then
+					acand_root+=("$PATH_|$fs")
+				fi
+				;;
 			dos)
 				if ! $root_set; then
 					Amntpoint["$PATH_"]="/|$fs|1"
@@ -10479,6 +10496,17 @@ sh_rebuild_amntpoint_for_new_disk() {
 			grep -P 'TYPE="(part)"' |
 			sort -k5,5 -k2,2
 	)
+
+	# Disco GPT particionado fora do instalador (sem o label ROOT do automático):
+	# se houver exatamente uma partição Linux, ela é sugerida como raiz, mas SEM
+	# formatar, porque pode conter dados. sh_choose_Partition explica o motivo.
+	_ROOT_SUGERIDA=''
+	LROOT_AVISO=false
+	if ! $root_set && ((${#acand_root[@]} == 1)); then
+		_ROOT_SUGERIDA="${acand_root[0]%%|*}"
+		Amntpoint["$_ROOT_SUGERIDA"]="/|${acand_root[0]#*|}|0"
+		LROOT_AVISO=true
+	fi
 
 	if $luks_found; then
 		sh_alert_luks_remnant
