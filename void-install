@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 17 nov 2026 23:51:40 -04
+#  Updated: ter 17 nov 2026 23:56:54 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -7175,7 +7175,8 @@ sh_limineInstall() {
 			# Número real da ESP (em layout feito fora do instalador ela pode não
 			# ser a partição 2). Sem _PART_BOOT, mantém o 2 do layout automático.
 			local esp_num
-			esp_num="$(cat "/sys/class/block/${_PART_BOOT##*/}/partition" 2>/dev/null)"
+			esp_num="$(cat "/sys/class/block/$(basename "$(readlink -f "$_PART_BOOT")")/partition" 2>/dev/null)"
+			[[ -n "$esp_num" ]] || esp_num="$(grep -o '[0-9]*$' <<<"$_PART_BOOT")"
 			esp_num="${esp_num:-2}"
 			sh_chroot_job "${cmsg_Instalando} Limine $(gettext 'para a plataforma') x86_64-efi" "
         efibootmgr -c \
@@ -8223,7 +8224,8 @@ sh_check_biosboot() {
 			return 1
 		fi
 		LBIOS=false
-		if $laviso; then
+		if $laviso && [[ "${_UEFI_AVISADO:-}" != "$disk" ]]; then
+			_UEFI_AVISADO="$disk"
 			info "=== BIOS BOOT ===" \
 				"\n$(gettext 'Partição BIOS boot não encontrada no disco') ${disk}." \
 				"\n${BOLD}${YELLOW}$(gettext 'O sistema vai iniciar apenas em modo UEFI.')${RESET}"
@@ -8437,7 +8439,7 @@ sh_lista_particoes() {
 			cmarca="${RED}← Windows${RST}"
 		fi
 		printf '  %-14s %-6s %7s  %s %s\\n' "${PATH_##*/}" "$FSTYPE_" "$SIZE_" "$PARTTYPENAME_" "$cmarca"
-	done < <(lsblk -lnpPo PATH,TYPE,FSTYPE,SIZE,PARTTYPENAME "$disk" 2>/dev/null)
+	done < <(lsblk -npPo PATH,TYPE,FSTYPE,SIZE,PARTTYPENAME "$disk" 2>/dev/null)
 	$lwin
 }
 
@@ -8464,7 +8466,7 @@ sh_disco_com_particoes() {
 		--ok-label "${cmsg_Aceitar}" \
 		--title "${cmsg_Disco}" \
 		--menu "\n$(gettext 'O disco') ${CYAN}${disk}${RST} (${MODEL_ORIGEM} · ${SIZE_ORIGEM}) $(gettext 'já possui partições:')\n\n\
-${cpartes}\n\
+${cpartes}${cpartes:+\n}\
 $(gettext 'Você quer usar essas partições assim mesmo ou particionar o disco agora?')\n\
 $(gettext 'Se não tiver certeza, use o particionamento automático: ele apaga somente este disco e cria o layout ideal.')\n" \
 		0 0 2 \
@@ -8604,9 +8606,14 @@ sh_check_layout() {
 		"BIOS boot") ((++nbios)) ;;
 		"EFI System") ((++nesp)) ;;
 		*swap* | "Extended" | "Microsoft reserved" | "Windows recovery environment") ;;
-		*) [[ "$FSTYPE_" != "crypto_LUKS" ]] && ((++nroot)) ;;
+		*)
+			case "$FSTYPE_" in
+			crypto_LUKS | ntfs | vfat | exfat) ;;
+			*) ((++nroot)) ;;
+			esac
+			;;
 		esac
-	done < <(lsblk -lnpPo PATH,TYPE,FSTYPE,PARTTYPENAME "$disk" 2>/dev/null)
+	done < <(lsblk -npPo PATH,TYPE,FSTYPE,PARTTYPENAME "$disk" 2>/dev/null)
 
 	$lefi && report+="$(gettext 'Modo de boot:') ${BOLD}UEFI${RESET}\n" || report+="$(gettext 'Modo de boot:') ${BOLD}BIOS${RESET}\n"
 
