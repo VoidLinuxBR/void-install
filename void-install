@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 17 nov 2026 22:42:58 -04
+#  Updated: ter 17 nov 2026 22:49:33 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -8536,13 +8536,24 @@ $(printf "%${nlen}s$sep%-11s$sep%6s$sep%-20s$sep%-20s$sep%-20s$sep%-8s$sep%s" \
 
 		case $exit_status in
 		"$D_ESC" | "$D_CANCEL")
-			if ! sh_check_biosboot false; then
-				continue
+			# Feito: valida o layout configurado (raiz, ESP, BIOS boot, pontos
+			# de montagem repetidos) antes de aceitar. Se não passar, o usuário
+			# corrige na lista ou volta ao menu com o FileSystem pendente.
+			if sh_validate_filesystem; then
+				LFS=true
+				LPARTITION=true
+				LFSREVISED=true
+				return 0
 			fi
-			LFS=true
-			LPARTITION=true
-			LFSREVISED=true
-			return 0
+			if conf "${cmsg_TitleFileSystem}" \
+				"\n$(gettext 'O layout ainda não está pronto para a instalação.')" \
+				"\n\n${BOLD}${YELLOW}$(gettext 'Voltar ao menu principal mesmo assim?')${RST}" \
+				"\n$(gettext '(o FileSystem ficará pendente de revisão)')"; then
+				LFSREVISED=false
+				DEFITEM="FileSystem"
+				return 1
+			fi
+			continue
 			;;
 		3)
 			result=$(fdisk -x "$dsk")
