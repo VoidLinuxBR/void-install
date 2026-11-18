@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 17 nov 2026 23:18:12 -04
+#  Updated: ter 17 nov 2026 23:37:05 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -10452,8 +10452,21 @@ sh_rebuild_amntpoint_for_new_disk() {
 		if [[ -n "$FSTYPE_" ]]; then
 			case "$FSTYPE_" in
 			vfat)
-				Amntpoint["$PATH_"]="/boot/efi|vfat|1"
-				efi_set=true
+				# Só a primeira partição do tipo EFI vira /boot/efi; outra vfat
+				# qualquer (dados, pendrive antigo) fica sem uso. Formata só a
+				# ESP criada pelo automático (label EFI); a de um disco
+				# particionado fora do instalador pode ter o boot do Windows ou
+				# de outro sistema, então é mantida.
+				if [[ "$PARTTYPENAME_" == *EFI* ]] && ! $efi_set; then
+					if [[ "$PARTLABEL_" == "EFI" ]]; then
+						Amntpoint["$PATH_"]="/boot/efi|vfat|1"
+					else
+						Amntpoint["$PATH_"]="/boot/efi|vfat|0"
+					fi
+					efi_set=true
+				else
+					Amntpoint["$PATH_"]="none|vfat|0"
+				fi
 				continue
 				;;
 			swap)
@@ -10521,15 +10534,26 @@ sh_rebuild_amntpoint_for_new_disk() {
 				fi
 				;;
 			dos)
-				if ! $root_set; then
-					Amntpoint["$PATH_"]="/|$fs|1"
-					root_set=true
-				else
-					if ! $home_set; then
-						Amntpoint["$PATH_"]="/home|$fs|1"
-						home_set=true
+				# MBR não tem label de partição. Se o disco foi particionado
+				# pelo automático, mantém a dedução por posição (1ª raiz, 2ª
+				# home, formatando). Se foi particionado fora do instalador,
+				# não formata nada: usa a mesma sugestão de raiz do GPT.
+				if [[ "$LMKPARTED_DEVICE" == "$device" ]]; then
+					if ! $root_set; then
+						Amntpoint["$PATH_"]="/|$fs|1"
+						root_set=true
 					else
-						Amntpoint["$PATH_"]="none|$fs|0"
+						if ! $home_set; then
+							Amntpoint["$PATH_"]="/home|$fs|1"
+							home_set=true
+						else
+							Amntpoint["$PATH_"]="none|$fs|0"
+						fi
+					fi
+				else
+					Amntpoint["$PATH_"]="none|$fs|0"
+					if [[ "$PARTTYPENAME_" == "Linux" ]]; then
+						acand_root+=("$PATH_|$fs")
 					fi
 				fi
 				;;
@@ -10543,9 +10567,9 @@ sh_rebuild_amntpoint_for_new_disk() {
 			sort -k5,5 -k2,2
 	)
 
-	# Disco GPT particionado fora do instalador (sem o label ROOT do automático):
-	# se houver exatamente uma partição Linux, ela é sugerida como raiz, mas SEM
-	# formatar, porque pode conter dados. sh_choose_Partition explica o motivo.
+	# Disco particionado fora do instalador (GPT sem o label ROOT do automático,
+	# ou MBR): se houver exatamente uma partição Linux, ela é sugerida como raiz,
+	# mas SEM formatar, porque pode conter dados. sh_choose_Partition explica.
 	_ROOT_SUGERIDA=''
 	LROOT_AVISO=false
 	if ! $root_set && ((${#acand_root[@]} == 1)); then
