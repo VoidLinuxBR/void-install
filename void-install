@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 17 nov 2026 22:57:06 -04
+#  Updated: ter 17 nov 2026 23:05:50 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -5381,6 +5381,13 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 					return 0         # qui 07 mai 2026 21:22:11 -04
 				fi
 
+			# Disco já tem partições e não foi particionado pelo automático nesta
+			# sessão: mostra o que existe e pergunta se usa ou particiona agora.
+			elif [[ "$LMKPARTED_DEVICE" != "$sd" ]] && sh_disco_com_particoes "$sd"; then
+				sh_checkdisk "${AConfDisk[_DEVICE]}"
+				sh_menuUtilDisk
+				set_disk_choosed
+				return 0
 			fi
 			return 0
 			;;
@@ -8408,23 +8415,14 @@ sh_getyes() {
 	esac
 }
 
-# Chamada no Feito do FileSystem quando o layout não passou na validação.
-# Recomenda o particionamento automático, explicando os benefícios e listando
-# exatamente o que será apagado (só as partições DESTE disco). Se houver
-# Windows no disco, o cursor começa em "Corrigir" em vez de "Automático".
-# Devolve (stdout): auto | corrigir | menu
-sh_fs_layout_invalido() {
-	local disk="${AConfDisk[_DEVICE]}"
+# Lista (stdout, já com \n e cores do dialog) as partições de um único disco:
+# nome, sistema de arquivos, tamanho e tipo. Partições ntfs recebem a marca
+# "← Windows". Retorna 0 se encontrou ntfs (Windows) no disco, 1 se não.
+sh_lista_particoes() {
+	local disk="$1"
 	local line PATH_ TYPE_ FSTYPE_ SIZE_ PARTTYPENAME_
-	local lwin=false
-	local cpartes=''
-	local coutros=''
 	local cmarca
-	local cauto="$(gettext 'Automático')"
-	local ccorrigir="$(gettext 'Corrigir')"
-	local cmenu="$(gettext 'Menu')"
-	local cdefault
-	local opc
+	local lwin=false
 
 	while read -r line; do
 		PATH_='' TYPE_='' FSTYPE_='' SIZE_='' PARTTYPENAME_=''
@@ -8435,8 +8433,63 @@ sh_fs_layout_invalido() {
 			lwin=true
 			cmarca="${RED}← Windows${RST}"
 		fi
-		cpartes+="$(printf '  %-14s %-6s %7s  %s ' "${PATH_##*/}" "$FSTYPE_" "$SIZE_" "$PARTTYPENAME_")${cmarca}\n"
+		printf '  %-14s %-6s %7s  %s %s\\n' "${PATH_##*/}" "$FSTYPE_" "$SIZE_" "$PARTTYPENAME_" "$cmarca"
 	done < <(lsblk -lnpPo PATH,TYPE,FSTYPE,SIZE,PARTTYPENAME "$disk" 2>/dev/null)
+	$lwin
+}
+
+# Chamada no Armazenamento, depois do Selecionar, quando o disco já tem
+# partições e o usuário não passou pelo particionamento (muitos não percebem
+# o botão Particionamento). Retorna 0 se ele escolheu particionar agora.
+sh_disco_com_particoes() {
+	local disk="$1"
+	local cpartes
+	local lwin=false
+	local cusar="$(gettext 'Usar')"
+	local cparticionar="$(gettext 'Particionar')"
+	local cdefault
+	local opc
+
+	cpartes="$(sh_lista_particoes "$disk")" && lwin=true
+	$lwin && cdefault="$cusar" || cdefault="$cparticionar"
+
+	opc=$(${DIALOG} \
+		--backtitle "$ccabec" \
+		--colors \
+		--no-cancel \
+		--default-item "$cdefault" \
+		--ok-label "${cmsg_Aceitar}" \
+		--title "${cmsg_Disco}" \
+		--menu "\n$(gettext 'O disco') ${CYAN}${disk}${RST} (${MODEL_ORIGEM} · ${SIZE_ORIGEM}) $(gettext 'já possui partições:')\n\n\
+${cpartes}\n\
+$(gettext 'Você quer usar essas partições assim mesmo ou particionar o disco agora?')\n\
+$(gettext 'Se não tiver certeza, use o particionamento automático: ele apaga somente este disco e cria o layout ideal.')\n" \
+		0 0 2 \
+		"$cusar" "$(gettext 'Usar as partições atuais (definir no FileSystem)')" \
+		"$cparticionar" "$(gettext 'Abrir o particionamento (automático recomendado)')" \
+		2>&1 >/dev/tty)
+
+	[[ "$opc" == "$cparticionar" ]]
+}
+
+# Chamada no Feito do FileSystem quando o layout não passou na validação.
+# Recomenda o particionamento automático, explicando os benefícios e listando
+# exatamente o que será apagado (só as partições DESTE disco). Se houver
+# Windows no disco, o cursor começa em "Corrigir" em vez de "Automático".
+# Devolve (stdout): auto | corrigir | menu
+sh_fs_layout_invalido() {
+	local disk="${AConfDisk[_DEVICE]}"
+	local line
+	local lwin=false
+	local cpartes=''
+	local coutros=''
+	local cauto="$(gettext 'Automático')"
+	local ccorrigir="$(gettext 'Corrigir')"
+	local cmenu="$(gettext 'Menu')"
+	local cdefault
+	local opc
+
+	cpartes="$(sh_lista_particoes "$disk")" && lwin=true
 
 	while read -r line; do
 		[[ "$line" == "$disk" ]] && continue
