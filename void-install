@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 17 nov 2026 23:37:05 -04
+#  Updated: ter 17 nov 2026 23:51:40 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -2451,7 +2451,7 @@ sh_mkparted() {
 			((++cnextpart))
 			cnextpercent=$((AsDiskPercent[boot] + AsDiskPercent[swap] + AsDiskPercent[root]))
 			CSCRIPT+="mkpart primary ${AsFs[root]:-ext4} ${cini} ${cnextpercent}% set ${cnextpart} boot on "
-			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}$cnextpart"]="/|ext4|1")
+			Amntpoint+=(["${AConfDisk[_DEVICE]}${ext}$cnextpart"]="/|${AsFs[root]:-ext4}|1")
 			cini="${cnextpercent}%"
 
 			#home
@@ -6849,6 +6849,9 @@ sh_checkInstall() {
 		alerta "${cmsg_BootLoader^^}" "${RED}✗ ${cmsg_LimineNaoSuportaMbr}"
 		DEFITEM="${cmsg_BootLoader}"
 		return 1
+	elif [[ "${AConfBootLoader[_LOADER]}" == "limine" ]] && $LEFI && ! sh_check_esp_limine; then
+		DEFITEM="${cmsg_BootLoader}"
+		return 1
 	elif ! $LKEYMAP; then
 		alerta "${cmsg_Teclado^^}" "${RED}✗ ${cmsg_NotConfTeclado}"
 		DEFITEM="Regional"
@@ -8573,6 +8576,101 @@ $(gettext 'O VoidBR será instalado por cima deles, misturando com o que já exi
 	return 0
 }
 
+# Confere se o layout atual do disco atende ao esquema mínimo exigido pelo
+# instalador (o mesmo que o particionamento automático cria). Identifica as
+# partições pelo TIPO (PARTTYPENAME), não pelo número nem pelo label, já que
+# muitos usuários particionam com ferramentas externas (GParted etc.).
+# Imprime o relatório (✓/✗) e retorna 0 se atende, 1 se não atende.
+sh_check_layout() {
+	local disk="$1"
+	local pttype
+	local ctab
+	local lefi=false
+	local lok=true
+	local nbios=0 nesp=0 nroot=0
+	local line PATH_ TYPE_ FSTYPE_ PARTTYPENAME_
+	local report=''
+
+	sh_getBootEFI && [[ "${AConfDisk[_DISKTABLE]}" != "GPT_BIOS" ]] && lefi=true
+	pttype="$(lsblk -dno PTTYPE "$disk" 2>/dev/null)"
+	ctab="${pttype^^}"
+	[[ "$pttype" == "dos" ]] && ctab="MBR"
+
+	while read -r line; do
+		PATH_='' TYPE_='' FSTYPE_='' PARTTYPENAME_=''
+		eval "${line//=/_=}"
+		[[ "$TYPE_" == "part" ]] || continue
+		case "$PARTTYPENAME_" in
+		"BIOS boot") ((++nbios)) ;;
+		"EFI System") ((++nesp)) ;;
+		*swap* | "Extended" | "Microsoft reserved" | "Windows recovery environment") ;;
+		*) [[ "$FSTYPE_" != "crypto_LUKS" ]] && ((++nroot)) ;;
+		esac
+	done < <(lsblk -lnpPo PATH,TYPE,FSTYPE,PARTTYPENAME "$disk" 2>/dev/null)
+
+	$lefi && report+="$(gettext 'Modo de boot:') ${BOLD}UEFI${RESET}\n" || report+="$(gettext 'Modo de boot:') ${BOLD}BIOS${RESET}\n"
+
+	if [[ -z "$pttype" ]]; then
+		report+="${RED}✗${RESET} $(gettext 'Disco sem tabela de partições')\n"
+		lok=false
+	elif $lefi && [[ "$pttype" != "gpt" ]]; then
+		report+="${RED}✗${RESET} $(gettext 'Tabela') ${ctab} $(gettext '— em UEFI a tabela precisa ser GPT')\n"
+		lok=false
+	else
+		report+="${GREEN}✓${RESET} $(gettext 'Tabela') ${ctab}\n"
+	fi
+
+	if [[ "$pttype" == "gpt" ]]; then
+		if ((nbios)); then
+			report+="${GREEN}✓${RESET} $(gettext 'Partição BIOS boot')\n"
+		elif $lefi; then
+			report+="${YELLOW}-${RESET} $(gettext 'Partição BIOS boot (opcional em UEFI)')\n"
+		else
+			report+="${RED}✗${RESET} $(gettext 'Falta partição BIOS boot (obrigatória em BIOS com GPT)')\n"
+			lok=false
+		fi
+	fi
+
+	if $lefi; then
+		if ((nesp)); then
+			report+="${GREEN}✓${RESET} $(gettext 'Partição EFI System')\n"
+		else
+			report+="${RED}✗${RESET} $(gettext 'Falta partição EFI System (obrigatória em UEFI)')\n"
+			lok=false
+		fi
+	fi
+
+	if ((nroot)); then
+		report+="${GREEN}✓${RESET} $(gettext 'Partição disponível para a raiz (/)')\n"
+	else
+		report+="${RED}✗${RESET} $(gettext 'Nenhuma partição disponível para a raiz (/)')\n"
+		lok=false
+	fi
+
+	echo "$report"
+	$lok
+}
+
+# Chamada no Instalar quando o bootloader é o Limine: ele copia o kernel e o
+# initramfs para a ESP (via update-limine), então uma ESP pequena, como a de
+# 100 MiB do Windows, pode encher. Pergunta se continua mesmo assim.
+sh_check_esp_limine() {
+	local part="$_PART_BOOT"
+	local nbytes nmib
+
+	[[ -n "$part" ]] || return 0
+	nbytes="$(lsblk -bdno SIZE "$part" 2>/dev/null)"
+	[[ -n "$nbytes" ]] || return 0
+	nmib=$((nbytes / 1024 / 1024))
+	((nmib >= 300)) && return 0
+
+	conf "${cmsg_BootLoader^^}" \
+		"\n$(gettext 'A partição EFI') ${CYAN}${part}${RST} $(gettext 'tem só') ${YELLOW}${nmib} MiB${RST}." \
+		"\n$(gettext 'O Limine copia o kernel e o initramfs para ela, e esse espaço pode não ser suficiente.')" \
+		"\n$(gettext 'Recomendado: partição EFI com 300 MiB ou mais, ou usar o GRUB como bootloader.')" \
+		"\n\n${BOLD}${YELLOW}$(gettext 'Deseja continuar mesmo assim?')${RST}"
+}
+
 # Abre o particionamento a partir do FileSystem (item ">> Particionar disco"
 # ou botão Particionamento): mesmo menu do Armazenamento. Se a tabela de
 # partições mudou por uma ferramenta manual (cfdisk, fdisk...), refaz os pontos
@@ -8593,15 +8691,20 @@ sh_fs_particionar() {
 sh_choose_Partition() {
 	sh_umount_fs
 
-	# Confere a partição BIOS boot uma vez, ao entrar: o usuário fica sabendo
-	# do problema antes de configurar as partições. O Feito confere de novo.
-	if $LDISK && ! sh_check_biosboot true; then
-		if conf "=== BIOS BOOT ===" \
-			"\n${BOLD}${YELLOW}$(gettext 'Deseja ir para o particionamento agora?')${RST}"; then
-			sh_checkdisk "${AConfDisk[_DEVICE]}"
-			sh_menuUtilDisk
-			DEFITEM="${cmsg_Disco}"
-			return 1
+	# Confere o layout do disco uma vez, ao entrar: o usuário fica sabendo do
+	# problema antes de configurar as partições (o Feito confere de novo). Se o
+	# layout estiver certo, só avisa quando não houver BIOS boot (apenas UEFI).
+	local clayout
+	if $LDISK; then
+		if ! clayout="$(sh_check_layout "${AConfDisk[_DEVICE]}")"; then
+			if conf "${cmsg_TitleFileSystem}" \
+				"\n$(gettext 'O layout do disco') ${CYAN}${AConfDisk[_DEVICE]}${RST} $(gettext 'não atende ao esquema exigido:')\n\n" \
+				"${clayout}" \
+				"\n${BOLD}${YELLOW}$(gettext 'Deseja ir para o particionamento agora?')${RST}"; then
+				sh_fs_particionar
+			fi
+		else
+			sh_check_biosboot true
 		fi
 	fi
 
@@ -8635,6 +8738,7 @@ sh_choose_Partition() {
 		local -A Aoldfstype=()
 		local dsk
 		local citem=">> $(gettext 'Particionar disco')"
+		local cdefault="${AsFs[_DEVICE]}$(sh_getNvme)1"
 
 		if ! $LDISK; then
 			info "${cmsg_TitleFileSystem}" "\n\n${RED}$(gettext 'Disco de armazenamento não foi escolhido')${RST}"
@@ -8661,9 +8765,17 @@ sh_choose_Partition() {
 		fi
 
 		if [[ "${#ARRAY_PART_DEVICES[@]}" -eq 0 ]]; then
-			info "${cmsg_TitleFileSystem}" "\n\n${RED}$(gettext 'Disco de armazenamento não foi particionado')${RST}"
+			if conf "${cmsg_TitleFileSystem}" \
+				"\n\n${RED}$(gettext 'Disco de armazenamento não foi particionado')${RST}" \
+				"\n\n${BOLD}${YELLOW}$(gettext 'Deseja particionar agora?')${RST}"; then
+				sh_fs_particionar
+				continue
+			fi
 			return 1
 		fi
+
+		# Layout fora do esquema: o cursor já começa no ">> Particionar disco".
+		sh_check_layout "${AConfDisk[_DEVICE]}" >/dev/null || cdefault="$citem"
 
 		# Primeira linha da lista: atalho visível para o particionamento
 		# (muitos usuários não percebem o botão no rodapé).
@@ -8692,7 +8804,7 @@ sh_choose_Partition() {
 		((nlen += 6))
 		part=$(${DIALOG} \
 			--defaultno \
-			--default-item "${AsFs[_DEVICE]}$(sh_getNvme)1" \
+			--default-item "$cdefault" \
 			--backtitle "$ccabec" \
 			--title "${cmsg_TitleFileSystem}" \
 			--ok-label "${cmsg_Mudar}" \
