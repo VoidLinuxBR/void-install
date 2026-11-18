@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qua 18 nov 2026 00:26:44 -04
+#  Updated: qua 18 nov 2026 00:44:13 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -1355,6 +1355,9 @@ sh_info_msg() {
 
 msg() {
 	((++ncounter))
+	# njobs é uma estimativa; quando há mais etapas que o previsto, o total
+	# acompanha o contador em vez de mostrar 074/073.
+	((ncounter > njobs)) && njobs=$ncounter
 	cinfo="$1"
 	cfmt="$(fmt)"
 	ufmt=$(unfmt "$cfmt")
@@ -2512,7 +2515,7 @@ sh_mkparted() {
 		evaluate_retval "${PIPESTATUS[0]}"
 		parted --align=opt --script "${AConfDisk[_DEVICE]}" -- print 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 		sync 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
-		partprobe 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
+		partprobe "${AConfDisk[_DEVICE]}" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 
 		# Limpa qualquer assinatura antiga (LUKS, ext4, etc.) que possa ter
 		# ficado gravada na mesma região de disco de uma partição anterior,
@@ -7230,7 +7233,7 @@ sh_limineInstall() {
 			[[ -n "$esp_num" ]] || esp_num="$(grep -o '[0-9]*$' <<<"$_PART_BOOT")"
 			esp_num="${esp_num:-2}"
 			sh_chroot_job "${cmsg_Instalando} Limine $(gettext 'para a plataforma') x86_64-efi" "
-        efibootmgr -c \
+        efibootmgr -q -c \
           -d ${AConfDisk[_BOOTLOADER]} \
           -p ${esp_num} \
           -L 'Limine' \
@@ -7259,9 +7262,16 @@ sh_limineInstall() {
 
 	sh_change_limine
 
-	sh_chroot_job "${cmsg_Instalando} Limine $(gettext 'para a plataforma') x86_64-efi" "
-    update-limine || true
-  "
+	# Na instalação pela rede o kernel só é configurado (initramfs gerado) no
+	# xbps-reconfigure do fim, cujo hook 50-limine já roda o update-limine.
+	# Rodar agora, sem initramfs, só gerava o erro enganoso "sem espaço
+	# suficiente em /boot/efi/limine". Roda aqui só se o initramfs já existe
+	# (instalação local, ou LUKS/LVM, que regenera o initramfs acima).
+	if compgen -G "$dir_install/boot/initramfs-*.img" >/dev/null; then
+		sh_chroot_job "$(gettext 'Gerando configuração do Limine')" "
+      update-limine || true
+    "
+	fi
 
 }
 
@@ -8095,8 +8105,8 @@ sh_install() {
       "
 
 			sh_chroot_job "${cmsg_RemovendoPacotesAntigosObseletos}" "
-        rm -fv /var/cache/xbps/*.xbps
-        rm -fv /var/cache/xbps/*.sig*
+        rm -f /var/cache/xbps/*.xbps
+        rm -f /var/cache/xbps/*.sig*
       "
 
 			sh_update_repository_main
