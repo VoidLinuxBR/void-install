@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qua 18 nov 2026 00:44:13 -04
+#  Updated: qua 18 nov 2026 00:56:17 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -1365,7 +1365,8 @@ msg() {
 	logmessage="$ufmt $last_msg"
 	logmessage=${logmessage/INFO /}
 	clean_logmessage="$(strip_ansi "$logmessage")"
-	printf "%s\n" "$(timespec) [ $cinfo ]$ufmt ${clean_logmessage}" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
+	# clean_logmessage já começa com o contador ($ufmt): não repetir aqui.
+	printf "%s\n" "$(timespec) [ $cinfo ]${clean_logmessage}" 2>&1 | tee -i -a "$BOOTLOG" >$LOGGER
 
 	if ((grafico)); then
 		logmessage="$(strip_ansi "$last_msg")"
@@ -7232,7 +7233,7 @@ sh_limineInstall() {
 			esp_num="$(cat "/sys/class/block/$(basename "$(readlink -f "$_PART_BOOT")")/partition" 2>/dev/null)"
 			[[ -n "$esp_num" ]] || esp_num="$(grep -o '[0-9]*$' <<<"$_PART_BOOT")"
 			esp_num="${esp_num:-2}"
-			sh_chroot_job "${cmsg_Instalando} Limine $(gettext 'para a plataforma') x86_64-efi" "
+			sh_chroot_job "$(gettext 'Registrando Limine no firmware (NVRAM)')" "
         efibootmgr -q -c \
           -d ${AConfDisk[_BOOTLOADER]} \
           -p ${esp_num} \
@@ -8012,7 +8013,7 @@ sh_install() {
 					# source!=local, ou LCUSTOM=true: instalação completa.
 					sh_install_pkgs_in_chroot "$(gettext 'Instalando Kernel')" "${akernel[*]}"
 					sh_install_pkgs_in_chroot "$(gettext 'Instalando Firmware')" "${afirmware[*]}"
-					sh_install_pkgs_in_chroot "$(gettext 'Instalando Daemons')" "${aPackageDaemons[*]}" sh_install_pkgs_in_chroot "$(gettext 'Instalando Utilitários')" "${aUtility[*]}"
+					sh_install_pkgs_in_chroot "$(gettext 'Instalando Daemons')" "${aPackageDaemons[*]}"
 					sh_install_pkgs_in_chroot "$(gettext 'Instalando Extras')" "${aExtra[*]}"
 					sh_install_pkgs_in_chroot "$(gettext 'Instalando Pacotes customizados')" "${aCustomPackages[*]}"
 				fi
