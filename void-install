@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: ter 17 nov 2026 23:56:54 -04
+#  Updated: ter 17 nov 2026 23:58:39 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -110,6 +110,7 @@ declare LDM=true
 declare LAUTO=true
 declare LMKPARTED=false
 declare LMKPARTED_DEVICE=''
+declare LMKPARTED_AGORA=false
 declare LUPDATELOCAL=false
 declare LHAS_INTERNET=false
 declare LREPO_ONLINE=true
@@ -2490,6 +2491,10 @@ sh_mkparted() {
 		Amkfs+=(["ext4"]="mkfs.ext4")
 		LMKPARTED=true
 		LMKPARTED_DEVICE="${AConfDisk[_DEVICE]}"
+		# Marca que o Amntpoint acabou de ser montado pelo automático (com os
+		# sistemas de arquivos escolhidos); o próximo set_disk_choosed não deve
+		# refazê-lo a partir do disco, que ainda não tem FS nas partições novas.
+		LMKPARTED_AGORA=true
 		LFS=true
 		LPARTITION=true
 		LFSREVISED=true
@@ -5361,7 +5366,16 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 			# pois esse valor pode ter sido restaurado de uma execução anterior
 			# (/tmp/void-install.conf) enquanto o disco físico mudou de conteúdo
 			# (ex: já tem um LUKS de um teste anterior).
-			sh_rebuild_amntpoint_for_new_disk
+			# Exceção: logo depois do particionamento automático deste disco, o
+			# Amntpoint já veio certo do sh_mkparted. Refazer agora trocaria os FS
+			# escolhidos por ext4 e perderia o /boot (as partições novas ainda não
+			# têm FS). LMKPARTED_AGORA não é salvo na configuração, então uma
+			# sessão restaurada sempre reconstrói.
+			if $LMKPARTED_AGORA && [[ "$LMKPARTED_DEVICE" == "$sd" ]]; then
+				LMKPARTED_AGORA=false
+			else
+				sh_rebuild_amntpoint_for_new_disk
+			fi
 			AsFs[_DEVICE]="$sd"
 		}
 
@@ -8689,6 +8703,7 @@ sh_fs_particionar() {
 	antes="$(lsblk -nrpo NAME,SIZE,PARTTYPE,FSTYPE "${AConfDisk[_DEVICE]}" 2>/dev/null)"
 	sh_checkdisk "${AConfDisk[_DEVICE]}"
 	sh_menuUtilDisk
+	LMKPARTED_AGORA=false
 	depois="$(lsblk -nrpo NAME,SIZE,PARTTYPE,FSTYPE "${AConfDisk[_DEVICE]}" 2>/dev/null)"
 	if [[ "$antes" != "$depois" ]] && ! $LAUTO; then
 		sh_rebuild_amntpoint_for_new_disk
