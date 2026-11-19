@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qua 18 nov 2026 23:23:47 -04
+#  Updated: qua 18 nov 2026 23:30:02 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -5442,8 +5442,7 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 
 			# Disco já tem partições e não foi particionado pelo automático nesta
 			# sessão: mostra o que existe e pergunta se usa ou particiona agora.
-			# Se o layout já é o do automático, não há o que perguntar.
-			elif [[ "$LMKPARTED_DEVICE" != "$sd" ]] && ! sh_layout_padrao "$sd" && sh_disco_com_particoes "$sd"; then
+			elif [[ "$LMKPARTED_DEVICE" != "$sd" ]] && sh_disco_com_particoes "$sd"; then
 				sh_checkdisk "${AConfDisk[_DEVICE]}"
 				sh_menuUtilDisk
 				set_disk_choosed
@@ -8538,35 +8537,6 @@ sh_lista_particoes() {
 		printf '  %-14s %-6s %7s  %s %s\\n' "${PATH_##*/}" "$FSTYPE_" "$SIZE_" "$PARTTYPENAME_" "$cmarca"
 	done < <(lsblk -npPo PATH,TYPE,FSTYPE,SIZE,PARTTYPENAME "$disk" 2>/dev/null)
 	$lwin
-}
-
-# Layout igual ao do particionamento automático: tabela GPT com BIOS boot,
-# EFI System e ao menos uma partição Linux para a raiz. Nesse caso o
-# Armazenamento não mostra a tela de "usar ou particionar".
-sh_layout_padrao() {
-	local disk="$1"
-	local line PATH_ TYPE_ FSTYPE_ PARTTYPE_
-	local nroot=0
-
-	[[ "$(blkid -p -s PTTYPE -o value "$disk" 2>/dev/null)" == "gpt" ]] || return 1
-	sh_get_biosboot_num "$disk" >/dev/null || return 1
-	sh_get_esp_num "$disk" >/dev/null || return 1
-
-	while read -r line; do
-		PATH_='' TYPE_='' FSTYPE_='' PARTTYPE_=''
-		eval "${line//=/_=}"
-		[[ "$TYPE_" == "part" ]] || continue
-		case "${PARTTYPE_,,}" in
-		# Linux filesystem | Linux root (x86-64)
-		0fc63daf-8483-4772-8e79-3d69d8477de4 | 4f68bce3-e8cd-4db1-96e7-fbcaf984b709)
-			case "$FSTYPE_" in
-			crypto_LUKS | ntfs | vfat | exfat) ;;
-			*) ((++nroot)) ;;
-			esac
-			;;
-		esac
-	done < <(lsblk -npPo PATH,TYPE,FSTYPE,PARTTYPE "$disk" 2>/dev/null)
-	((nroot))
 }
 
 # Chamada no Armazenamento, depois do Selecionar, quando o disco já tem
