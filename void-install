@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qua 18 nov 2026 23:14:18 -04
+#  Updated: qua 18 nov 2026 23:18:52 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -8581,9 +8581,9 @@ sh_disco_com_particoes() {
 		--default-item "$cdefault" \
 		--ok-label "${cmsg_Aceitar}" \
 		--title "${cmsg_Disco}" \
-		--menu "\n$(gettext 'Disco:')  ${CYAN}${disk}${RST}\n$(gettext 'Modelo:') ${MODEL_ORIGEM} · ${SIZE_ORIGEM}\n$(gettext 'Tabela:') ${ctab}\n\n$(gettext 'já possui partições:')\n\n\
+		--menu "$(gettext 'Disco:')  ${CYAN}${disk}${RST}\n$(gettext 'Modelo:') ${CYAN}${MODEL_ORIGEM} · ${SIZE_ORIGEM}${RST}\n$(gettext 'Tabela:') ${CYAN}${ctab}${RST}\n\n\
 ${cpartes}${cpartes:+\n}\
-$(gettext 'Você quer usar essas partições assim mesmo ou particionar o disco agora?')\n\
+$(gettext 'O Disco acima já possui partições. Você quer usar essas partições assim mesmo ou particionar o disco agora?')\n\
 $(gettext 'Se não tiver certeza, use o particionamento automático: ele apaga somente este disco e cria o layout ideal.')\n" \
 		0 0 2 \
 		"$cusar" "$(gettext 'Usar as partições atuais (definir no FileSystem)')" \
