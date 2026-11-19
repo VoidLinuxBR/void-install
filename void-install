@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qua 18 nov 2026 04:12:42 -04
+#  Updated: qua 18 nov 2026 23:14:18 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -8550,18 +8550,38 @@ sh_disco_com_particoes() {
 	local cparticionar="$(gettext 'Particionar')"
 	local cdefault
 	local opc
+	local pttype
+	local ctab
+	local cfdisk
 
+	# blkid -p lê o disco direto; o lsblk usa o banco do udev, que pode
+	# estar desatualizado logo após um particionamento externo.
+	pttype="$(blkid -p -s PTTYPE -o value "$disk" 2>/dev/null)"
+	[[ -z "$pttype" ]] && pttype="$(lsblk -dno PTTYPE "$disk" 2>/dev/null)"
+	case "$pttype" in
+	gpt) ctab='GPT' ;;
+	dos) ctab='MBR' ;;
+	*) ctab="$(gettext 'desconhecida')" ;;
+	esac
+
+	# Tabela de partições do fdisk: é o 2º bloco da saída (o 1º é o cabeçalho
+	# do disco). Pegar por bloco funciona em qualquer idioma.
+	cfdisk="$(fdisk -l "$disk" 2>/dev/null | awk 'BEGIN{RS=""} NR==2')"
+
+	# sh_lista_particoes continua sendo chamada: é ela que detecta o Windows.
 	cpartes="$(sh_lista_particoes "$disk")" && lwin=true
+	[[ -n "$cfdisk" ]] && cpartes="${cfdisk//$'\n'/\\n}\\n"
 	$lwin && cdefault="$cusar" || cdefault="$cparticionar"
 
 	opc=$(${DIALOG} \
 		--backtitle "$ccabec" \
 		--colors \
+		--no-collapse \
 		--no-cancel \
 		--default-item "$cdefault" \
 		--ok-label "${cmsg_Aceitar}" \
 		--title "${cmsg_Disco}" \
-		--menu "\n$(gettext 'O disco') ${CYAN}${disk}${RST} (${MODEL_ORIGEM} · ${SIZE_ORIGEM}) $(gettext 'já possui partições:')\n\n\
+		--menu "\n$(gettext 'Disco:')  ${CYAN}${disk}${RST}\n$(gettext 'Modelo:') ${MODEL_ORIGEM} · ${SIZE_ORIGEM}\n$(gettext 'Tabela:') ${ctab}\n\n$(gettext 'já possui partições:')\n\n\
 ${cpartes}${cpartes:+\n}\
 $(gettext 'Você quer usar essas partições assim mesmo ou particionar o disco agora?')\n\
 $(gettext 'Se não tiver certeza, use o particionamento automático: ele apaga somente este disco e cria o layout ideal.')\n" \
