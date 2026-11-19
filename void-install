@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qua 18 nov 2026 23:33:42 -04
+#  Updated: qua 18 nov 2026 23:39:10 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -8854,9 +8854,13 @@ sh_choose_Partition() {
 	if ${LROOT_AVISO:-false} && [[ "$(sh_splitarray "${Amntpoint[$_ROOT_SUGERIDA]}" 1)" == "/" ]]; then
 		info "${cmsg_TitleFileSystem}" \
 			"\n$(gettext 'A partição') ${CYAN}${_ROOT_SUGERIDA}${RST} $(gettext 'foi sugerida como raiz') (/)," \
-			"$(gettext 'mas') ${YELLOW}$(gettext 'NÃO será formatada')${RST}: $(gettext 'ela foi criada fora do instalador e pode conter dados.')" \
+			"$(gettext 'mas') ${BOLD}${RED}$(gettext 'NÃO será formatada')${RST}: $(gettext 'ela foi criada fora do instalador e pode conter dados.')" \
 			"" \
-			"$(gettext 'Se quiser instalar do zero nela, selecione a partição na lista, vá em Mudar e responda Sim em formatar.')"
+			"${BOLD}$(gettext 'Para instalar do zero nela:')${RST}" \
+			"  ${BOLD}${GREEN}1.${RST} $(gettext 'selecione a partição na lista e escolha') ${YELLOW}$(gettext 'Mudar')${RST};" \
+			"  ${BOLD}${GREEN}2.${RST} $(gettext 'escolha o sistema de arquivos') (${YELLOW}ext4${RST} $(gettext 'é o recomendado'));" \
+			"  ${BOLD}${GREEN}3.${RST} $(gettext 'confirme o ponto de montagem') ${YELLOW}/${RST};" \
+			"  ${BOLD}${GREEN}4.${RST} $(gettext 'em') ${YELLOW}$(gettext 'Criar um novo sistema de arquivos')${RST}, $(gettext 'responda') ${YELLOW}$(gettext 'Sim')${RST}."
 		LROOT_AVISO=false
 	fi
 
