@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qua 18 nov 2026 23:30:02 -04
+#  Updated: qua 18 nov 2026 23:33:42 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -111,6 +111,10 @@ declare LAUTO=true
 declare LMKPARTED=false
 declare LMKPARTED_DEVICE=''
 declare LMKPARTED_SIG=''
+# Disco em que o usuário respondeu "Usar" na tela de usar ou particionar, e a
+# assinatura dele naquela hora: se o disco não mudou, não pergunta de novo.
+declare LUSAR_DEVICE=''
+declare LUSAR_SIG=''
 declare -gA AmntpointAuto=()
 declare LUPDATELOCAL=false
 declare LHAS_INTERNET=false
@@ -978,6 +982,8 @@ sh_touchConf() {
 		declare -p LMKPARTED
 		declare -p LMKPARTED_DEVICE
 		declare -p LMKPARTED_SIG
+		declare -p LUSAR_DEVICE
+		declare -p LUSAR_SIG
 		declare -p LFSREVISED
 		declare -p LVM
 		declare -p LFDE
@@ -5442,7 +5448,11 @@ $(printf "%${nlen}s$sep%-4s$sep%-6s$sep%6s$sep%-6s$sep%-15s$sep%-30s" "DEVICE" "
 
 			# Disco já tem partições e não foi particionado pelo automático nesta
 			# sessão: mostra o que existe e pergunta se usa ou particiona agora.
-			elif [[ "$LMKPARTED_DEVICE" != "$sd" ]] && sh_disco_com_particoes "$sd"; then
+			# Também não pergunta se ele já respondeu "Usar" para este disco e o
+			# disco não mudou desde então (vale entre execuções, via conf).
+			elif [[ "$LMKPARTED_DEVICE" != "$sd" ]] &&
+				! [[ "$LUSAR_DEVICE" == "$sd" && "$LUSAR_SIG" == "$(sh_disk_assinatura "$sd")" ]] &&
+				sh_disco_com_particoes "$sd"; then
 				sh_checkdisk "${AConfDisk[_DEVICE]}"
 				sh_menuUtilDisk
 				set_disk_choosed
@@ -8590,6 +8600,10 @@ $(gettext 'Se não tiver certeza, use o particionamento automático: ele apaga s
 		"$cparticionar" "$(gettext 'Abrir o particionamento (automático recomendado)')" \
 		2>&1 >/dev/tty)
 
+	if [[ "$opc" == "$cusar" ]]; then
+		LUSAR_DEVICE="$disk"
+		LUSAR_SIG="$(sh_disk_assinatura "$disk")"
+	fi
 	[[ "$opc" == "$cparticionar" ]]
 }
 
