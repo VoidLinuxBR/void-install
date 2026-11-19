@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qua 18 nov 2026 23:39:10 -04
+#  Updated: qui 19 nov 2026 00:00:11 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.11.19-20261118'
+readonly _VERSION_='3.11.19-20261119'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -5264,6 +5264,9 @@ sh_getNvme() {
 		case "$name" in
 		zram*) echo 'p' ;;
 		nbd*) echo 'p' ;;
+		# Regra do kernel: nome terminado em dígito leva 'p' antes do número
+		# da partição (mmcblk0p1, md0p1); senão, não (sda1, vda1).
+		*[0-9]) echo 'p' ;;
 		*) echo '' ;;
 		esac
 		;;
