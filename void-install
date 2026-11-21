@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: qui 19 nov 2026 18:30:37 -04
+#  Updated: sex 20 nov 2026 20:36:58 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.11.20-20261119'
+readonly _VERSION_='3.11.21-20261120'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -166,7 +166,7 @@ declare -gA AsUser=(
 	[cpass]='voidlinux'
 	[cpassroot]='voidlinux'
 	[chostname]='voidbr'
-	[cgroups]='wheel,audio,video,tty,floppy,cdrom,optical,kvm,xbuilder'
+	[cgroups]='wheel,audio,video,tty,floppy,cdrom,optical,kvm,xbuilder,network'
 )
 #
 declare -gA AConfFde=(
@@ -1132,7 +1132,7 @@ sh_setUser() {
 	AsUser[cpass]=${AsUser[cpass]:-voidlinux}
 	AsUser[cpassroot]=${AsUser[cpassroot]:-voidlinux}
 	AsUser[chostname]=${AsUser[chostname]:-voidbr}
-	AsUser[cgroups]=${AsUser[cgroups]:-"wheel,audio,video,floppy,cdrom,optical,kvm,xbuilder"}
+	AsUser[cgroups]=${AsUser[cgroups]:-"wheel,audio,video,tty,floppy,cdrom,optical,kvm,xbuilder,network"}
 }
 
 # Testa se o terminal suporta caracteres gráficos estendidos
@@ -3137,6 +3137,17 @@ sh_activating_services() {
 				"$err_not_fatal" \
 				"$level"
 		done
+	fi
+
+	# Em local o runsvdir também traz o dhcpcd que ISOs antigas ativavam junto
+	# do NetworkManager (mkiso < 0.11.21). Os dois disputam as interfaces e o
+	# Wi-Fi falha mesmo com a senha certa. Fora do modo servidor quem cuida da
+	# rede é o NetworkManager, então o link herdado sai. O pacote fica.
+	if [[ "${AConfMirror[_SOURCE]}" = "local" ]] && ! $LSERVER; then
+		sh_chroot_job "$(gettext 'Desativando serviço') dhcpcd" \
+			"rm -f /etc/runit/runsvdir/current/dhcpcd" \
+			"$err_not_fatal" \
+			"$level"
 	fi
 
 	for service in "${aServicesTTY[@]}"; do
