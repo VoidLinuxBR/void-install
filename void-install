@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: dom 22 nov 2026 12:26:03 -04
+#  Updated: dom 22 nov 2026 14:51:10 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.11.22-20261122'
+readonly _VERSION_='3.11.23-20261122'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -7036,7 +7036,7 @@ sh_confLuksBoot() {
 #   voidbr-labwc.desktop (do voidbr-labwc-config), que não é tocada;
 # - weston: transitiva, via alguma dependência Wayland;
 # - sway: compositor do greeter do sddm (dependência do voidbr-sddm-themes);
-#   só é sessão de verdade na edição Sway e na Fullx.
+#   só é sessão de verdade na edição Sway e na Multi (antiga Fullx).
 # Em instalação local sem atualizar, o squashfs da ISO já vem assim; isto
 # cobre os modos que instalam pacotes da rede (source != local ou LUPDATELOCAL).
 sh_cleanup_spurious_sessions() {
@@ -7050,7 +7050,7 @@ sh_cleanup_spurious_sessions() {
 			"${dir_install}/usr/share/wayland-sessions/${f}.desktop"
 	done
 
-	if ! $LSWAY && [[ "$edition" != @(sway|fullx) ]]; then
+	if ! $LSWAY && [[ "$edition" != @(sway|multi|fullx) ]]; then
 		rm -f "${dir_install}/usr/share/wayland-sessions/sway.desktop"
 	fi
 	return 0
