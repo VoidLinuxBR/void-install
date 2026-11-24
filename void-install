@@ -4,7 +4,7 @@
 #
 #  void-install
 #  Created: 2022/12/24
-#  Updated: dom 22 nov 2026 14:51:10 -04
+#  Updated: ter 24 nov 2026 00:48:37 -04
 #
 #  Copyright (c) 2022-2026, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -52,7 +52,7 @@ shopt -s extglob
 
 #system
 readonly APP="${0##*/}"
-readonly _VERSION_='3.11.23-20261122'
+readonly _VERSION_='3.11.24-20261124'
 declare -g DEPENDENCIES=(dialog rsync awk tar sed cat grep sort tr
 	chroot blkid fdisk parted lsblk curl xz tee
 	mkfs.vfat mkfs.xfs mkfs.ntfs mkfs.jfs mkfs.btrfs mkfs.f2fs mkfs.nilfs2
@@ -2933,6 +2933,18 @@ sh_make_user() {
     rm -f $dir_install/etc/skel/Área\ de\ trabalho/void-install.desktop
     rm -f $dir_install/etc/skel/'Área de trabalho'/voidbr-install.desktop
     rm -f $dir_install/etc/skel/Área\ de\ trabalho/voidbr-install.desktop
+  " $err_not_fatal
+
+	# Fonte local: o rsync do squashfs trouxe o /etc/skel/.bash_profile do live,
+	# em que o mkiso acrescentou o bloco que abre o void-install no tty1 (entrada
+	# "Instalar" do menu, voidbr.autoinstall no cmdline). Esse bloco não serve no
+	# sistema instalado: remove do comentário "# Instalado pelo mkiso" até o 'fi'
+	# que fecha o if. Antes do useradd -m e da cópia do skel para o root, para
+	# que nenhum dos dois herde o bloco. Sem o bloco (fonte rede), não muda nada.
+	sh_cmd_job "$(gettext 'Removendo autoexec do instalador do .bash_profile')" "
+    [ -f $dir_install/etc/skel/.bash_profile ] &&
+      sed -i '/^[[:space:]]*# Instalado pelo mkiso/,/^[[:space:]]*fi[[:space:]]*\$/d' $dir_install/etc/skel/.bash_profile
+    true
   " $err_not_fatal
 
 	if [[ -n "${AsUser[cuser]}" ]]; then
